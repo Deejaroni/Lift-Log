@@ -1,0 +1,16 @@
+{
+  "name": "Lift Log",
+  "short_name": "Lift Log",
+  "description": "Workout journal: log exercises, weight, reps, sets and drop sets, and chart your progress.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E6EAEE",
+  "theme_color": "#1B2430",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
