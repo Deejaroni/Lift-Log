@@ -61,7 +61,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:cen
 nav.tabs button{flex:1;max-width:240px;border:0;background:none;padding:12px 8px 14px;font-weight:600;color:var(--muted);border-top:3px solid transparent}
 nav.tabs button[aria-selected="true"]{color:var(--ink);border-top-color:var(--red)}
 
-section[hidden]{display:none}
+[hidden]{display:none!important}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
 label.lbl{display:block;font-size:.85rem;font-weight:600;color:var(--muted);margin-bottom:6px}
 input[type=text],input[type=date],input[type=number],select{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:1.05rem}
@@ -101,8 +101,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .set .num{font-size:1.35rem;font-weight:600;min-width:0}
 .set .x{color:var(--muted)}
 .set .note{color:var(--muted);font-size:.88rem;flex:1;min-width:0;overflow-wrap:anywhere}
-.set .del{margin-left:auto;border:0;background:none;color:var(--muted);font-size:.85rem;padding:6px 8px;border-radius:8px}
-.set .del:hover{color:var(--red);background:var(--field)}
+.del{margin-left:auto;-webkit-appearance:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.85rem;font-weight:600;padding:5px 10px;border-radius:8px;flex:none}
+.del:hover,.del:active{color:var(--red);border-color:var(--red)}
 .day-date{font-family:"Barlow Condensed",sans-serif;font-size:1.3rem;font-weight:600;margin:0 0 8px}
 .empty{color:var(--muted);text-align:center;padding:24px 8px}
 
@@ -152,6 +152,9 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .eq-grid input[type=text],.eq-grid input[type=number],.eq-grid select{background:var(--surface);padding:10px;font-size:1rem}
 .eq-grid .check{margin-top:4px}
 .eq-line{display:block;color:var(--muted);font-size:.85rem;font-family:Barlow,sans-serif;font-weight:500}
+.day-total{border-top:2px solid var(--ink);margin-top:10px;padding-top:12px}
+.day-total .lbl{margin:0 0 6px}
+.day-total .stats{margin:0}
 .foot{color:var(--muted);font-size:.85rem;text-align:center;margin-top:8px}
 .foot button{border:0;background:none;color:var(--blue);font-weight:600;padding:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -175,18 +178,24 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   <!-- LOG -->
   <section id="tab-log">
     <div class="panel">
-      <div class="row two">
+      <div>
+        <label class="lbl" for="exercise-pick">Exercise or machine</label>
+        <select id="exercise-pick"></select>
+      </div>
+      <div id="new-ex-wrap" style="margin-top:12px">
+        <label class="lbl" for="exercise">New exercise name</label>
+        <input id="exercise" type="text" autocomplete="off" placeholder="e.g. Leg press">
+      </div>
+      <div class="row two" style="margin-top:12px">
         <div>
-          <label class="lbl" for="exercise">Exercise or machine</label>
-          <input id="exercise" type="text" list="exercise-list" autocomplete="off" placeholder="e.g. Leg press">
-          <datalist id="exercise-list"></datalist>
+          <label class="lbl" for="muscle">Muscle group</label>
+          <select id="muscle"></select>
         </div>
         <div>
           <label class="lbl" for="date">Date</label>
           <input id="date" type="date">
         </div>
       </div>
-      <div class="chips" id="recent-chips" aria-label="Recent exercises"></div>
 
       <div class="mode" role="group" aria-label="Set type">
         <button data-mode="straight" aria-pressed="true">Straight sets</button>
@@ -196,6 +205,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       <div id="drop-wrap" hidden>
         <div class="drop-rows" id="drop-rows"></div>
         <div class="drop-tools">
+          <button id="add-same">+ Same</button>
           <button id="add-up">+ Heavier</button>
           <button id="add-down">+ Drop</button>
           <label class="lbl" for="drop-pct" style="margin:0">by</label>
@@ -274,13 +284,15 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       <p class="empty" id="prog-empty" hidden>Log this exercise on at least one day to see a chart.</p>
     </div>
     <div class="panel">
-      <h2>Weekly volume</h2>
-      <div class="seg" role="group" aria-label="Weeks shown" id="range-seg">
-        <button data-weeks="8" aria-pressed="true">8 weeks</button>
-        <button data-weeks="26" aria-pressed="false">6 months</button>
-        <button data-weeks="52" aria-pressed="false">1 year</button>
+      <h2>Training volume</h2>
+      <div class="seg" role="group" aria-label="Time range" id="range-seg">
+        <button data-range="week" aria-pressed="true">Weekly</button>
+        <button data-range="month" aria-pressed="false">Monthly</button>
+        <button data-range="6m" aria-pressed="false">6 months</button>
+        <button data-range="12m" aria-pressed="false">12 months</button>
       </div>
-      <div class="chart-box"><canvas id="week-chart" aria-label="Weekly training volume chart" role="img"></canvas></div>
+      <div class="chart-box"><canvas id="week-chart" aria-label="Training volume chart" role="img"></canvas></div>
+      <p class="foot" id="range-total" style="margin-top:10px"></p>
     </div>
   </section>
 
@@ -326,10 +338,10 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
   // ---------- CSV export / import ----------
-  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json"];
+  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group"];
   function toCSV(){
     const rows=[CSV_COLS];
-    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):""]));
+    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||""]));
     return rows.map(r=>r.map(v=>{const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(",")).join("\n");
   }
   function parseCSV(text){
@@ -373,6 +385,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       const chain=g("chain_id"); if(chain){ e.chain=chain; e.step=Math.max(0,(parseInt(g("step"),10)||1)-1); }
       if(g("to_failure").toLowerCase()==="yes") e.failure=true;
       try{ const eq=g("equipment_json"); if(eq) e.equip=JSON.parse(eq); }catch(_){}
+      const mg=g("muscle_group"); if(mg) e.muscle=mg;
       added.push(e);
     });
     if(!added.length){ alert(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
@@ -466,7 +479,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
         <button class="rm" data-rm="${i}" aria-label="Remove set ${i+1}" ${dropRows.length===1?"disabled":""}>×</button></div>`).join("");
   }
   $("#drop-rows").addEventListener("input", readDropRows);
-  $("#drop-rows").addEventListener("change", ()=>{ readDropRows(); renderDropRows(); });
+  // Update the heaviest-row highlight without rebuilding the inputs (rebuilding would steal focus mid-entry)
+  $("#drop-rows").addEventListener("change", ()=>{
+    readDropRows();
+    const rows=[...document.querySelectorAll("#drop-rows .drop-row")];
+    const peak = dropRows.reduce((m,r,i)=> (parseFloat(r.weight)||0) > (parseFloat(dropRows[m]?.weight)||0) ? i : m, 0);
+    rows.forEach((r,i)=>r.classList.toggle("peak", i===peak && rows.length>1));
+  });
   $("#drop-rows").addEventListener("click", e=>{
     const b=e.target.closest("[data-rm]"); if(!b) return;
     readDropRows(); dropRows.splice(+b.dataset.rm,1); renderDropRows();
@@ -475,12 +494,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     readDropRows();
     const last = dropRows[dropRows.length-1] || {weight:$("#weight").value, reps:$("#reps").value};
     const w = parseFloat(last.weight)||0, pct = +$("#drop-pct").value/100;
-    let nw = roundStep(dir>0 ? w*(1+pct) : w*(1-pct));
-    if(nw===w) nw = Math.max(0, w + dir*stepSize());
+    let nw = w;
+    if(dir!==0){ nw = roundStep(dir>0 ? w*(1+pct) : w*(1-pct)); if(nw===w) nw = Math.max(0, w + dir*stepSize()); }
     dropRows.push({weight:fmt(nw), reps:last.reps});
     renderDropRows();
     const inputs=document.querySelectorAll("#drop-rows [data-f=r]"); inputs[inputs.length-1]?.focus();
   }
+  $("#add-same").onclick = ()=>addDropRow(0);
   $("#add-up").onclick = ()=>addDropRow(1);
   $("#add-down").onclick = ()=>addDropRow(-1);
   document.querySelectorAll(".mode button").forEach(b=>b.onclick=()=>{
@@ -501,7 +521,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const reps = parseInt($("#reps").value,10);
     const sets = parseInt($("#sets").value,10);
     const date = $("#date").value || today();
-    if(!exercise){ flash("Enter an exercise or machine name.", true); $("#exercise").focus(); return; }
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
     if(!(weight>=0)){ flash("Enter a weight of 0 or more.", true); return; }
     if(!(reps>=1)){ flash("Reps must be at least 1.", true); return; }
     if(!(sets>=1 && sets<=50)){ flash("Sets must be between 1 and 50.", true); return; }
@@ -510,7 +530,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const name = existing || exercise;
     const note = $("#note").value.trim();
     const base = Date.now();
-    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, ...equipField(), ts:base+i}));
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ts:base+i}));
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
@@ -523,7 +543,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   // ---------- equipment toggles ----------
   const EQUIP = [
     {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"brand",label:"Brand",brand:true}]},
-    {key:"barbell", label:"Barbell",          fields:[{k:"bar",label:"Bar weight",num:true}]},
+    {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true}]},
     {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","Rope pulldown","V bar","Straight bar","EZ bar"]}]},
     {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"}]},
     {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"}]},
@@ -589,6 +609,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     if(!e.equip) return "";
     return EQUIP.filter(q=>e.equip[q.key]).map(q=>{
       const o=e.equip[q.key], parts=[];
+      if(o.type) parts.push(o.type);
       if(o.brand) parts.push(o.brand);
       if(typeof o.bar==="number") parts.push(`${fmt(toUnit(o.bar,e.unit))} ${prefs.unit} bar`);
       if(o.attach) parts.push(o.attach);
@@ -606,7 +627,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   renderEquipToggles();
 
   async function saveDrop(exercise){
-    if(!exercise){ flash("Enter an exercise or machine name.", true); $("#exercise").focus(); return; }
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
     readDropRows();
     const rows = dropRows.map(r=>({weight:parseFloat(r.weight), reps:parseInt(r.reps,10)}));
     if(rows.length<2){ flash("Add at least two rows for a drop set.", true); return; }
@@ -615,7 +636,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
     const name = existing || exercise, note = $("#note").value.trim(), date = $("#date").value || today();
     const chain = uid(), base = Date.now(), fail = $("#to-failure").checked;
-    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, ...equipField(), ts:base+i, chain, step:i, failure: fail && i===rows.length-1}));
+    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ts:base+i, chain, step:i, failure: fail && i===rows.length-1}));
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
@@ -639,6 +660,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
     return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
   }
+  function dayTotalHTML(list){
+    const sets=list.length, reps=list.reduce((a,e)=>a+e.reps,0), vol=list.reduce((a,e)=>a+toUnit(e.weight,e.unit)*e.reps,0);
+    return `<div class="day-total"><p class="lbl">Day total</p><div class="stats">
+      <div class="stat"><div class="num">${sets.toLocaleString()}</div><small>Sets</small></div>
+      <div class="stat"><div class="num">${reps.toLocaleString()}</div><small>Reps</small></div>
+      <div class="stat"><div class="num">${Math.round(vol).toLocaleString()}</div><small>${prefs.unit==="kg"?"Kilograms":"Pounds"} lifted</small></div></div></div>`;
+  }
   function groupHTML(list){
     const groups = new Map();
     list.forEach(e=>{ const k=e.exercise.toLowerCase(); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(e); });
@@ -658,28 +686,63 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const d = $("#date").value || today();
     $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
     const list = sorted().filter(e=>e.date===d);
-    $("#day-list").innerHTML = list.length ? groupHTML(list) : `<p class="empty">No sets logged for this day yet.</p>`;
+    $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list) : `<p class="empty">No sets logged for this day yet.</p>`;
   }
   $("#date").addEventListener("change", renderDay);
 
+  // ---------- muscle groups & exercise dropdown ----------
+  const MUSCLES = ["Chest","Back","Shoulders","Biceps","Triceps","Forearms","Legs","Glutes","Calves","Core","Full body","Other"];
+  const GUESS = [
+    [/calf|calves/, "Calves"],
+    [/wrist|forearm|grip|farmer/, "Forearms"],
+    [/leg raise|knee raise|crunch|plank|\babs?\b|ab wheel|core|oblique|sit.?up|russian twist|wood.?chop|pallof|hollow/, "Core"],
+    [/leg curl|hamstring|leg extension|leg press|squat|lunge|hack|quad|\brdl\b|romanian|step.?up|good ?morning|sissy|adductor/, "Legs"],
+    [/hip thrust|glute|abduct|bridge|donkey|kickback.*(glute|cable)/, "Glutes"],
+    [/tricep|pushdown|push.?down|skull|kickback|close.?grip|\bdips?\b|jm press|overhead extension|french press/, "Triceps"],
+    [/curl|bicep|preacher|hammer|spider/, "Biceps"],
+    [/shoulder|delt|lateral raise|side raise|front raise|overhead press|\bohp\b|military|arnold|upright row|face pull|y.?raise/, "Shoulders"],
+    [/bench|chest|\bfly\b|flye|\bflies\b|pec|push.?up|incline|decline|crossover|svend/, "Chest"],
+    [/deadlift|clean|snatch|thruster|burpee|kettlebell swing/, "Full body"],
+    [/\brows?\b|rowing|pull.?down|pull.?up|\bchin|\blats?\b|shrug|back extension|hyperextension|pullover|\btraps?\b|rack pull/, "Back"],
+  ];
+  const guessMuscle = name => { const n=(name||"").toLowerCase(); for(const [re,g] of GUESS){ if(re.test(n)) return g; } return "Other"; };
+  const groupOf = name => { const l=(name||"").toLowerCase(); const e = sorted().reverse().find(x=>x.exercise.toLowerCase()===l && x.muscle); return e ? e.muscle : guessMuscle(name); };
+  function groupedOptions(names, selected){
+    const by = new Map(MUSCLES.map(m=>[m,[]]));
+    names.forEach(n=>{ const g=groupOf(n); if(!by.has(g)) by.set(g,[]); by.get(g).push(n); });
+    return [...by.entries()].filter(([,l])=>l.length).map(([g,l])=>`<optgroup label="${esc(g)}">${l.sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}" ${n===selected?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>`).join("");
+  }
+  $("#muscle").innerHTML = MUSCLES.map(m=>`<option>${m}</option>`).join("");
+  let muscleTouched = false;
+  $("#muscle").addEventListener("change", ()=>{ muscleTouched = true; });
   function renderChips(){
     const names = exercisesByRecent();
-    $("#exercise-list").innerHTML = names.map(n=>`<option value="${esc(n)}">`).join("");
-    $("#recent-chips").innerHTML = names.slice(0,10).map(n=>`<button data-chip="${esc(n)}">${esc(n)}</button>`).join("");
-    $("#recent-chips").hidden = !names.length;
+    const cur = $("#exercise").value.trim().toLowerCase();
+    const match = names.find(n=>n.toLowerCase()===cur);
+    const isNew = $("#exercise-pick").value==="__new__" && !match;
+    $("#exercise-pick").innerHTML =
+      (names.length ? `<option value="" disabled ${!match&&!isNew?"selected":""}>Select an exercise…</option>` : "") +
+      groupedOptions(names, match) +
+      `<optgroup label="Add"><option value="__new__" ${(isNew||!names.length)?"selected":""}>＋ New exercise…</option></optgroup>`;
+    $("#new-ex-wrap").hidden = !(isNew || !names.length);
   }
-  $("#recent-chips").addEventListener("click", e=>{
-    const b = e.target.closest("[data-chip]"); if(!b) return;
-    $("#exercise").value = b.dataset.chip; prefill(b.dataset.chip);
+  $("#exercise-pick").addEventListener("change", e=>{
+    const v = e.target.value;
+    if(v==="__new__"){
+      $("#exercise").value=""; $("#new-ex-wrap").hidden=false; muscleTouched=false; $("#muscle").value="Other"; $("#exercise").focus();
+    } else {
+      $("#exercise").value=v; $("#new-ex-wrap").hidden=true; muscleTouched=false; $("#muscle").value=groupOf(v); prefill(v);
+    }
   });
-
+  $("#exercise").addEventListener("input", e=>{ if(!muscleTouched) $("#muscle").value = guessMuscle(e.target.value); });
   function fillSelect(sel, withAll){
-    const names = exercisesByRecent().slice().sort((a,b)=>a.localeCompare(b));
+    const names = exercisesByRecent();
     const cur = sel.value;
-    sel.innerHTML = (withAll?`<option value="">All exercises</option>`:"") + names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
-    if([...sel.options].some(o=>o.value===cur)) sel.value = cur;
-    else if(!withAll && names.length) sel.value = exercisesByRecent()[0];
+    const keep = names.includes(cur) ? cur : (!withAll && names.length ? names[0] : "");
+    sel.innerHTML = (withAll?`<option value="">All exercises</option>`:"") + groupedOptions(names, keep);
+    sel.value = keep;
   }
+
 
   function renderHistory(){
     fillSelect($("#hist-filter"), true);
@@ -688,7 +751,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
     const days = new Map();
     list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
-    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><p class="day-date">${niceDate(d)}</p>${groupHTML(l)}</div>`).join("");
+    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><p class="day-date">${niceDate(d)}</p>${groupHTML(l)}${dayTotalHTML(l)}</div>`).join("");
   }
   $("#hist-filter").addEventListener("change", renderHistory);
 
@@ -706,7 +769,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   });
 
   // ---------- charts ----------
-  let exChart=null, wkChart=null, metric="top", weeks=8;
+  let exChart=null, wkChart=null, metric="top", range="week";
   const metricLabel = {top:"Top weight", e1rm:"Est. 1-rep max", vol:"Volume", reps:"Total reps"};
 
   function chartDefaults(){
@@ -755,24 +818,40 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   function weekStart(iso){ const d=new Date(iso+"T00:00:00"); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d; }
   function isoOf(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
 
+  // Volume by range: Weekly = last 7 days by day; Monthly = last 5 weeks by week;
+  // 6 / 12 months = calendar months.
   function renderWeekly(){
-    const start = weekStart(today()); start.setDate(start.getDate()-7*(weeks-1));
-    const labels=[], totals=[];
-    for(let i=0;i<weeks;i++){ const d=new Date(start); d.setDate(d.getDate()+7*i); labels.push(isoOf(d)); totals.push(0); }
-    entries.forEach(e=>{
-      const k = isoOf(weekStart(e.date)); const i = labels.indexOf(k);
-      if(i>=0) totals[i] += toUnit(e.weight,e.unit)*e.reps;
-    });
+    const keys=[], labels=[], titles=[]; let keyOf;
+    const now = new Date(today()+"T00:00:00");
+    if(range==="week"){
+      for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); keys.push(isoOf(d));
+        labels.push(d.toLocaleDateString(undefined,{weekday:"short"})); titles.push(d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})); }
+      keyOf = e=>e.date;
+    } else if(range==="month"){
+      const start = weekStart(today()); start.setDate(start.getDate()-7*4);
+      for(let i=0;i<5;i++){ const d=new Date(start); d.setDate(d.getDate()+7*i); keys.push(isoOf(d));
+        const l=d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); labels.push(l); titles.push("Week of "+l); }
+      keyOf = e=>isoOf(weekStart(e.date));
+    } else {
+      const n = range==="6m" ? 6 : 12;
+      for(let i=n-1;i>=0;i--){ const d=new Date(now.getFullYear(), now.getMonth()-i, 1); keys.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));
+        labels.push(d.toLocaleDateString(undefined,{month:"short"})); titles.push(d.toLocaleDateString(undefined,{month:"long",year:"numeric"})); }
+      keyOf = e=>e.date.slice(0,7);
+    }
+    const totals = keys.map(()=>0), days = new Set();
+    entries.forEach(e=>{ const i = keys.indexOf(keyOf(e)); if(i>=0){ totals[i] += toUnit(e.weight,e.unit)*e.reps; days.add(e.date); } });
+    const sum = totals.reduce((a,b)=>a+b,0);
+    $("#range-total").textContent = sum ? `${Math.round(sum).toLocaleString()} ${prefs.unit} lifted across ${days.size} workout day${days.size===1?"":"s"}` : "No sets logged in this range yet.";
     if(wkChart) wkChart.destroy();
     wkChart = new Chart($("#week-chart"),{
       type:"bar",
-      data:{labels:labels.map(l=>new Date(l+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})),
-        datasets:[{label:"Volume", data:totals.map(v=>Math.round(v)), backgroundColor:css("--blue"), borderRadius:5}]},
+      data:{labels, datasets:[{label:"Volume", data:totals.map(v=>Math.round(v)), backgroundColor:css("--blue"), borderRadius:5}]},
       options:{responsive:true, maintainAspectRatio:false, animation:matchMedia("(prefers-reduced-motion: reduce)").matches?false:{duration:400},
-        plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>"Week of "+c[0].label, label:c=>`${c.parsed.y.toLocaleString()} ${prefs.unit} lifted`}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>titles[c[0].dataIndex], label:c=>`${c.parsed.y.toLocaleString()} ${prefs.unit} lifted`}}},
         scales:{y:{beginAtZero:true, grid:{color:css("--line")}}, x:{grid:{display:false}}}}
     });
   }
+
 
   $("#prog-ex").addEventListener("change", renderProgress);
   document.querySelectorAll("#metric-seg button").forEach(b=>b.onclick=()=>{
@@ -781,7 +860,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     renderProgress();
   });
   document.querySelectorAll("#range-seg button").forEach(b=>b.onclick=()=>{
-    weeks=+b.dataset.weeks;
+    range=b.dataset.range;
     document.querySelectorAll("#range-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
     renderWeekly();
   });
