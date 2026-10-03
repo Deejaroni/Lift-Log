@@ -67,6 +67,7 @@ label.lbl{display:block;font-size:.85rem;font-weight:600;color:var(--muted);marg
 input[type=text],input[type=date],input[type=number],select{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:1.05rem}
 .row{display:grid;gap:12px}
 .row>*{min-width:0}
+.row.pair{grid-template-columns:1fr 1fr}
 input,select{min-width:0;max-width:100%}
 input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-height:52px;line-height:1.3}
 input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
@@ -118,12 +119,16 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .mode button{flex:1;border:0;background:var(--field);padding:10px;font-weight:600;color:var(--muted)}
 .mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .drop-rows{margin-top:14px;display:grid;gap:8px}
-.drop-row{display:grid;grid-template-columns:28px 1fr 1fr 40px;gap:8px;align-items:center}
+.drop-row{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;align-items:center}
+.dcell{display:flex;align-items:center;gap:4px;min-width:0}
+.dcell button{flex:none;width:30px;height:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:1.25rem;font-weight:600;line-height:1;padding:0}
+.dcell input{flex:1;min-width:0}
 .drop-row .idx{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.2rem;color:var(--muted);text-align:center}
 .drop-row.peak .idx{color:var(--red)}
-.drop-row input{text-align:center;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.5rem;padding:8px}
-.drop-row .rm{height:40px;border:1px solid var(--line);background:var(--surface);border-radius:9px;color:var(--muted);font-size:1.1rem}
-.drop-head{display:grid;grid-template-columns:28px 1fr 1fr 40px;gap:8px;font-size:.8rem;font-weight:600;color:var(--muted);text-align:center}
+.drop-row input{text-align:center;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.4rem;padding:8px 2px;-moz-appearance:textfield}
+.drop-row input::-webkit-outer-spin-button,.drop-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.drop-row .rm{height:42px;padding:0;border:1px solid var(--line);background:var(--surface);border-radius:9px;color:var(--muted);font-size:1.1rem}
+.drop-head{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;font-size:.8rem;font-weight:600;color:var(--muted);text-align:center}
 .drop-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .drop-tools button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;font-weight:600}
 .drop-tools select{width:auto;padding:8px 10px;font-size:.95rem}
@@ -155,6 +160,18 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .day-total{border-top:2px solid var(--ink);margin-top:10px;padding-top:12px}
 .day-total .lbl{margin:0 0 6px}
 .day-total .stats{margin:0}
+.cal{margin-top:12px;background:var(--field);border-radius:10px;padding:12px}
+.cal-main{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cal-main .num{font-size:1.9rem;font-weight:700;line-height:1.1;color:var(--yellow)}
+.cal-sub{margin:4px 0 0;color:var(--muted);font-size:.85rem}
+.cal-bw{display:flex;gap:8px;align-items:center;margin-top:8px}
+.cal-bw input{max-width:170px;background:var(--surface)}
+.cal .eq-fields{border-left-color:var(--yellow);background:var(--surface)}
+.cal .eq-grid input,.cal .eq-grid select{background:var(--field)}
+.steppers.c2{grid-template-columns:repeat(2,1fr)}
+.cardio-row .num{font-size:1.25rem}
+.cardio-meta{display:block;color:var(--muted);font-size:.85rem}
+.cardio-kcal{color:var(--yellow);font-weight:700}
 .foot{color:var(--muted);font-size:.85rem;text-align:center;margin-top:8px}
 .foot button{border:0;background:none;color:var(--blue);font-weight:600;padding:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -178,22 +195,31 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   <!-- LOG -->
   <section id="tab-log">
     <div class="panel">
-      <div>
-        <label class="lbl" for="exercise-pick">Exercise or machine</label>
-        <select id="exercise-pick"></select>
-      </div>
-      <div id="new-ex-wrap" style="margin-top:12px">
-        <label class="lbl" for="exercise">New exercise name</label>
-        <input id="exercise" type="text" autocomplete="off" placeholder="e.g. Leg press">
-      </div>
-      <div class="row two" style="margin-top:12px">
+      <div class="row pair">
         <div>
-          <label class="lbl" for="muscle">Muscle group</label>
-          <select id="muscle"></select>
+          <label class="lbl" for="group-filter">Muscle group</label>
+          <select id="group-filter"></select>
         </div>
         <div>
           <label class="lbl" for="date">Date</label>
           <input id="date" type="date">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label class="lbl" for="exercise-pick">Exercise or machine</label>
+        <input id="exercise-search" type="search" autocomplete="off" placeholder="Search exercises (optional)" aria-label="Search exercises" style="margin-bottom:8px">
+        <select id="exercise-pick"></select>
+      </div>
+      <div id="new-ex-wrap" style="margin-top:12px">
+        <div class="row two">
+          <div>
+            <label class="lbl" for="exercise">New exercise name</label>
+            <input id="exercise" type="text" autocomplete="off" placeholder="e.g. Leg press">
+          </div>
+          <div id="new-muscle-wrap">
+            <label class="lbl" for="muscle">Muscle group for this exercise</label>
+            <select id="muscle"></select>
+          </div>
         </div>
       </div>
 
@@ -232,6 +258,28 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
           <input id="sets" type="number" inputmode="numeric" min="1" step="1" value="1">
           <div class="btns"><button data-step="sets" data-dir="-1" aria-label="Decrease sets">−</button><button data-step="sets" data-dir="1" aria-label="Increase sets">+</button></div>
         </div>
+      </div>
+
+      <div id="cardio-wrap" hidden>
+        <div class="steppers c2">
+          <div class="stepper w">
+            <label class="lbl" for="c-min">Duration <span class="num-unit">min</span></label>
+            <input id="c-min" type="number" inputmode="decimal" min="0" step="any" value="30">
+            <div class="btns"><button type="button" data-cstep="min" data-dir="-1" aria-label="Decrease duration">−</button><button type="button" data-cstep="min" data-dir="1" aria-label="Increase duration">+</button></div>
+          </div>
+          <div class="stepper">
+            <label class="lbl" for="c-dist">Distance <span class="num-unit" id="c-dist-unit">mi</span></label>
+            <input id="c-dist" type="number" inputmode="decimal" min="0" step="any" placeholder="—">
+            <div class="btns"><button type="button" data-cstep="dist" data-dir="-1" aria-label="Decrease distance">−</button><button type="button" data-cstep="dist" data-dir="1" aria-label="Increase distance">+</button></div>
+          </div>
+        </div>
+        <p class="lbl" style="margin:14px 0 0">Effort</p>
+        <div class="seg" role="group" aria-label="Effort" id="effort-seg" style="margin-top:6px">
+          <button type="button" data-effort="easy" aria-pressed="false">Easy</button>
+          <button type="button" data-effort="moderate" aria-pressed="true">Moderate</button>
+          <button type="button" data-effort="hard" aria-pressed="false">Hard</button>
+        </div>
+        <div id="cardio-details"></div>
       </div>
 
       <div class="equip">
@@ -274,17 +322,17 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       <label class="lbl" for="prog-ex">Exercise</label>
       <select id="prog-ex"></select>
       <div class="stats" id="prog-stats"></div>
-      <div class="seg" role="group" aria-label="Chart metric" id="metric-seg">
-        <button data-metric="top" aria-pressed="true">Top weight</button>
-        <button data-metric="e1rm" aria-pressed="false">Est. 1-rep max</button>
-        <button data-metric="vol" aria-pressed="false">Volume</button>
-        <button data-metric="reps" aria-pressed="false">Total reps</button>
-      </div>
+      <div class="seg" role="group" aria-label="Chart metric" id="metric-seg"></div>
       <div class="chart-box"><canvas id="ex-chart" aria-label="Exercise progress chart" role="img"></canvas></div>
       <p class="empty" id="prog-empty" hidden>Log this exercise on at least one day to see a chart.</p>
     </div>
     <div class="panel">
-      <h2>Training volume</h2>
+      <h2>Training totals</h2>
+      <div class="seg" role="group" aria-label="Chart measure" id="tot-seg">
+        <button data-tot="vol" aria-pressed="true">Volume</button>
+        <button data-tot="cal" aria-pressed="false">Calories</button>
+        <button data-tot="min" aria-pressed="false">Cardio min</button>
+      </div>
       <div class="seg" role="group" aria-label="Time range" id="range-seg">
         <button data-range="week" aria-pressed="true">Weekly</button>
         <button data-range="month" aria-pressed="false">Monthly</button>
@@ -317,6 +365,19 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY)||"{}")); } catch(e){}
   function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }catch(e){} }
 
+  // ---------- personal settings: body weight + per-day calorie adjustments ----------
+  const SET_KEY = "liftlog.settings.v1";
+  let settings = {bw:null, bwUnit:"lb", days:{}};
+  try { settings = Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY)||"{}")); } catch(e){}
+  if(!settings.days || typeof settings.days!=="object") settings.days = {};
+  async function saveSettings(){
+    try{ localStorage.setItem(SET_KEY, JSON.stringify(settings)); }catch(e){}
+    if(typeof col!=="undefined" && col && typeof backend!=="undefined" && backend==="db"){
+      try{ await col.doc("__settings").set(Object.assign({kind:"settings"}, settings)); }catch(e){}
+    }
+    renderAll();
+  }
+
   // ---------- storage: synced db when available, local fallback ----------
   let entries = [];
 
@@ -338,10 +399,10 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
   // ---------- CSV export / import ----------
-  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group"];
+  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json"];
   function toCSV(){
     const rows=[CSV_COLS];
-    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||""]));
+    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,e.kind==="cardio"?"cardio":e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):""]));
     return rows.map(r=>r.map(v=>{const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(",")).join("\n");
   }
   function parseCSV(text){
@@ -377,6 +438,17 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     rows.slice(1).forEach((r,i)=>{
       const g = k=> col(k)>=0 ? (r[col(k)]||"").trim() : "";
       const date=g("date"), exercise=g("exercise"), weight=parseFloat(g("weight")), reps=parseInt(g("reps"),10);
+      if(g("kind")==="cardio"){
+        const minutes=parseFloat(g("minutes"));
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(minutes>0)){ skipped++; return; }
+        const id = g("id") || uid(); if(have.has(id)) return; have.add(id);
+        const c = {id, kind:"cardio", date, exercise, muscle:"Cardio", minutes, effort:g("effort")||"moderate", unit:g("unit")==="kg"?"kg":"lb", weight:0, reps:0, sets:1, note:g("note"), ts:Date.parse(date+"T12:00:00")+i};
+        const d=parseFloat(g("distance")); if(d>0){ c.distance=d; c.distUnit=g("dist_unit")||"mi"; }
+        const hr=parseFloat(g("avg_hr")); if(hr>0) c.hr=hr;
+        const mk=parseFloat(g("machine_kcal")); if(mk>0){ c.machineKcal=mk; c.useMachine=g("use_machine")==="yes"; }
+        try{ const x=g("cardio_json"); if(x) c.extra=JSON.parse(x); }catch(_){}
+        added.push(c); return;
+      }
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(weight>=0) || !(reps>=1)){ skipped++; return; }
       const id = g("id") || uid();
       if(have.has(id)) return;
@@ -390,7 +462,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     });
     if(!added.length){ alert(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
     await store.add(added);
-    alert(`Imported ${added.length} set(s).` + (skipped?` Skipped ${skipped} invalid row(s).`:""));
+    alert(`Imported ${added.length} entr${added.length===1?"y":"ies"}.` + (skipped?` Skipped ${skipped} invalid row(s).`:""));
   };
 
   // ---------- helpers ----------
@@ -408,7 +480,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     sorted().reverse().forEach(e=>{ const k=e.exercise.trim(); if(!seen.has(k.toLowerCase())) seen.set(k.toLowerCase(), k); });
     return [...seen.values()];
   };
-  const lastFor = name => sorted().reverse().find(e=>e.exercise.toLowerCase()===name.toLowerCase());
+  const lastFor = name => sorted().reverse().find(e=>e.kind!=="cardio" && e.exercise.toLowerCase()===name.toLowerCase());
   const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
   function flash(text, err){ const m=$("#msg"); m.textContent=text; m.className="msg"+(err?" err":""); clearTimeout(flash.t); flash.t=setTimeout(()=>m.textContent="",2600); }
@@ -425,6 +497,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     $("#weight").value = fmt(toUnit(w, old));
     Object.values(equipState).forEach(st=>{ const n=parseFloat(st.vals && st.vals.bar); if(n>=0) st.vals.bar=fmt(toUnit(n,old)); });
     renderEquipFields();
+    if(isCardioForm()){ const v=readCardioVals(); renderCardioDetails(cardioTypeOf($("#exercise").value), v); }
     readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); if(mode==="drop") renderDropRows();
     renderAll();
   });
@@ -452,6 +525,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   };
   function prefill(name){
     const last = lastFor(name);
+    if(!last){ applyEquip(suggestEquip(name), prefs.unit); return; }
     if(last){
       applyEquip(last.equip, last.unit);
       $("#weight").value = fmt(toUnit(last.weight, last.unit));
@@ -471,13 +545,23 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   }
   function renderDropRows(){
     const peak = dropRows.reduce((m,r,i)=> (parseFloat(r.weight)||0) > (parseFloat(dropRows[m]?.weight)||0) ? i : m, 0);
+    const cell = (f,i,val,attrs,label)=>`<div class="dcell"><button type="button" data-dstep="${f}" data-dir="-1" aria-label="Decrease set ${i+1} ${label}">−</button><input data-f="${f}" type="number" ${attrs} value="${esc(val)}" aria-label="Set ${i+1} ${label}"><button type="button" data-dstep="${f}" data-dir="1" aria-label="Increase set ${i+1} ${label}">+</button></div>`;
     $("#drop-rows").innerHTML = `<div class="drop-head"><span>#</span><span>Weight (${prefs.unit})</span><span>Reps</span><span></span></div>` +
       dropRows.map((r,i)=>`<div class="drop-row${i===peak&&dropRows.length>1?" peak":""}">
         <span class="idx">${i+1}</span>
-        <input data-f="w" type="number" inputmode="decimal" min="0" step="any" value="${esc(r.weight)}" aria-label="Set ${i+1} weight">
-        <input data-f="r" type="number" inputmode="numeric" min="1" step="1" value="${esc(r.reps)}" aria-label="Set ${i+1} reps">
+        ${cell("w",i,r.weight,'inputmode="decimal" min="0" step="any"',"weight")}
+        ${cell("r",i,r.reps,'inputmode="numeric" min="1" step="1"',"reps")}
         <button class="rm" data-rm="${i}" aria-label="Remove set ${i+1}" ${dropRows.length===1?"disabled":""}>×</button></div>`).join("");
   }
+  $("#drop-rows").addEventListener("click", e=>{
+    const b = e.target.closest("[data-dstep]"); if(!b) return;
+    const isW = b.dataset.dstep==="w";
+    const input = b.parentElement.querySelector("input");
+    const step = isW ? stepSize() : 1, min = isW ? 0 : 1;
+    input.value = fmt(Math.max(min, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
+    input.dispatchEvent(new Event("change", {bubbles:true}));
+  });
+
   $("#drop-rows").addEventListener("input", readDropRows);
   // Update the heaviest-row highlight without rebuilding the inputs (rebuilding would steal focus mid-entry)
   $("#drop-rows").addEventListener("change", ()=>{
@@ -509,13 +593,15 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     $("#drop-wrap").hidden = mode!=="drop";
     $("#straight-wrap").hidden = mode==="drop";
     $("#save").textContent = mode==="drop" ? "Log drop set" : "Log set";
+    applyFormKind();
     if(mode==="drop" && !dropRows.length){ dropRows=[{weight:$("#weight").value, reps:$("#reps").value}]; }
     if(mode==="drop") renderDropRows();
   });
-  $("#exercise").addEventListener("change", e=> prefill(e.target.value));
+  $("#exercise").addEventListener("change", e=>{ if(lastFor(e.target.value)) prefill(e.target.value); });
 
   $("#save").onclick = async ()=>{
     const exercise = $("#exercise").value.trim().replace(/\s+/g," ");
+    if(isCardioForm()) return saveCardio(exercise);
     if(mode==="drop") return saveDrop(exercise);
     const weight = parseFloat($("#weight").value);
     const reps = parseInt($("#reps").value,10);
@@ -541,14 +627,34 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   };
 
   // ---------- equipment toggles ----------
+  // For an exercise you haven't logged yet, switch on the likely equipment from its name.
+  function suggestEquip(name){
+    const n = (name||"").toLowerCase(), eq = {};
+    if(/smith/.test(n)) eq.smith = {};
+    else if(/plate-loaded|t-bar|hammer row|hammer-style|leverage|pendulum|hack squat|v-squat|belt squat|glute drive|leg press/.test(n)) eq.plate = {};
+    else if(/cable|pushdown|face pull|straight-arm|lat pulldown|pulldown|pull-through|pallof|woodchop|cable chop/.test(n)){
+      const a = /rope/.test(n) ? "Rope pulldown" : /v-bar/.test(n) ? "V bar" : /straight.?bar|bar straight/.test(n) ? "Straight bar" : /ez/.test(n) ? "EZ bar" : null;
+      eq.cable = a ? {attach:a} : {};
+    }
+    else if(/dumbbell|goblet|arnold|zottman|concentration|spider curl|hammer curl|farmer|suitcase/.test(n)) eq.db = {};
+    else if(/machine|pec deck|selectorized|iso-lateral|converging|chest press|seated row|reverse pec|leg curl|lying curl|seated curl|leg extension|single-leg extension|calf raise|abduction|ab crunch|preacher curl/.test(n)) eq.pin = {};
+    else if(/barbell|ez-bar|bench press|deadlift|\brdl\b|squat|pendlay|yates|seal row|snatch|good morning|overhead press|skull crusher|drag curl|shrug|hip thrust|glute bridge/.test(n))
+      eq.barbell = /ez-bar/.test(n) ? {type:"EZ bar"} : /trap bar/.test(n) ? {type:"Trap bar"} : {type:"Straight bar"};
+    const key = Object.keys(eq)[0];
+    if(key && key!=="barbell"){
+      if(/single-arm|single-leg|one-arm|one-leg|unilateral|single arm|single leg/.test(n)) eq[key].side = "One side (unilateral)";
+      else eq[key].side = "Both sides";
+    }
+    return eq;
+  }
   const EQUIP = [
-    {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"brand",label:"Brand",brand:true}]},
+    {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true}]},
-    {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","Rope pulldown","V bar","Straight bar","EZ bar"]}]},
-    {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"}]},
-    {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"}]},
-    {key:"db",      label:"Dumbbells",        fields:[{k:"each",label:"Weight is per hand",check:true}]},
-    {key:"band",    label:"Band / assist",    fields:[{k:"level",label:"Band color or level",ph:"Red, heavy"}]},
+    {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","Rope pulldown","V bar","Straight bar","EZ bar"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"db",      label:"Dumbbells",        fields:[{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per hand",check:true}]},
+    {key:"band",    label:"Band / assist",    fields:[{k:"level",label:"Band color or level",ph:"Red, heavy"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
   ];
   let equipState = {};
   function renderEquipToggles(){
@@ -613,6 +719,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       if(o.brand) parts.push(o.brand);
       if(typeof o.bar==="number") parts.push(`${fmt(toUnit(o.bar,e.unit))} ${prefs.unit} bar`);
       if(o.attach) parts.push(o.attach);
+      if(o.side) parts.push(o.side==="Both sides" ? "both sides" : "one side");
       if(o.seat) parts.push(o.seat);
       if(o.level) parts.push(o.level);
       if(o.each) parts.push("per hand");
@@ -625,6 +732,167 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     $("#brand-list").innerHTML = [...b].sort().map(x=>`<option value="${esc(x)}">`).join("");
   }
   renderEquipToggles();
+
+  // ---------- cardio ----------
+  const isCardio = e => e.kind==="cardio";
+  const CARDIO_MET = { // approximate published activity ratings (MET) by effort
+    treadmill:{easy:3.5, moderate:7.0, hard:9.8}, walk:{easy:2.8, moderate:3.5, hard:4.3}, run:{easy:7.0, moderate:9.8, hard:11.5},
+    hike:{easy:5.3, moderate:6.0, hard:7.8}, ruck:{easy:5.0, moderate:6.5, hard:8.0}, bike:{easy:5.5, moderate:6.8, hard:8.8},
+    airbike:{easy:5.5, moderate:7.5, hard:10.0}, rower:{easy:4.8, moderate:7.0, hard:8.5}, skierg:{easy:4.8, moderate:7.0, hard:8.5},
+    elliptical:{easy:4.0, moderate:5.0, hard:7.0}, stair:{easy:6.0, moderate:8.0, hard:9.0}, swim:{easy:5.8, moderate:8.3, hard:9.8},
+    jumprope:{easy:8.8, moderate:11.8, hard:12.3}, hiit:{easy:4.3, moderate:6.0, hard:8.0}, other:{easy:4.0, moderate:5.5, hard:7.0}
+  };
+  const CARDIO_FIELDS = {
+    treadmill:[{k:"speed",label:()=>`Speed (${spdU()})`},{k:"incline",label:()=>"Incline (%)"}],
+    bike:[{k:"level",label:()=>"Resistance level"},{k:"watts",label:()=>"Avg watts"},{k:"rpm",label:()=>"Avg RPM"}],
+    airbike:[{k:"level",label:()=>"Resistance level"},{k:"watts",label:()=>"Avg watts"},{k:"rpm",label:()=>"Avg RPM"}],
+    rower:[{k:"split",label:()=>"Avg split /500 m",text:true,ph:"2:05"},{k:"watts",label:()=>"Avg watts"},{k:"spm",label:()=>"Stroke rate (spm)"}],
+    skierg:[{k:"split",label:()=>"Avg split /500 m",text:true,ph:"2:10"},{k:"watts",label:()=>"Avg watts"},{k:"spm",label:()=>"Stroke rate (spm)"}],
+    stair:[{k:"level",label:()=>"Level"},{k:"floors",label:()=>"Floors climbed"}],
+    elliptical:[{k:"level",label:()=>"Level"},{k:"incline",label:()=>"Incline"}],
+    hiit:[{k:"rounds",label:()=>"Rounds"},{k:"work",label:()=>"Work (sec)"},{k:"rest",label:()=>"Rest (sec)"}],
+  };
+  const spdU = ()=> prefs.unit==="kg" ? "km/h" : "mph";
+  const guessCardioType = name => { const n=(name||"").toLowerCase();
+    return /treadmill/.test(n)?"treadmill": /air ?bike|assault|echo bike/.test(n)?"airbike": /bike|cycl|spin/.test(n)?"bike": /row/.test(n)?"rower": /ski/.test(n)?"skierg":
+      /stair|stepmill|step mill/.test(n)?"stair": /elliptical|cross.?trainer/.test(n)?"elliptical": /swim/.test(n)?"swim": /jump ?rope|skipping/.test(n)?"jumprope":
+      /hiit|interval|circuit|tabata/.test(n)?"hiit": /ruck/.test(n)?"ruck": /hike/.test(n)?"hike": /run|jog|sprint/.test(n)?"run": /walk/.test(n)?"walk":"other"; };
+  const cardioTypeOf = name => CARDIO_TYPE.get((name||"").toLowerCase()) || guessCardioType(name);
+  const distUnitFor = t => (t==="rower"||t==="skierg") ? "m" : t==="swim" ? (prefs.unit==="kg"?"m":"yd") : (prefs.unit==="kg"?"km":"mi");
+  const toMeters = (d,u) => u==="mi"? d*1609.344 : u==="km"? d*1000 : u==="yd"? d*0.9144 : d;
+  const distStep = u => u==="m" ? 250 : u==="yd" ? 50 : 0.25;
+  const fmtMin = m => { const r=Math.round(m*10)/10; if(r<60) return `${fmt(r)} min`; const h=Math.floor(r/60), mm=Math.round(r-h*60); return `${h} h ${String(mm).padStart(2,"0")} min`; };
+  const mmss = sec => { sec=Math.round(sec); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}`; };
+  const parseSplit = v => { v=String(v||"").trim(); if(!v) return null; const m=v.match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/); if(m) return (+m[1])*60+(+m[2]); const n=parseFloat(v); return n>0? n : null; };
+  let effort = "moderate";
+  function isCardioForm(){ return $("#muscle").value==="Cardio"; }
+  function applyFormKind(){
+    const c = isCardioForm();
+    $("#cardio-wrap").hidden = !c;
+    document.querySelector(".mode").hidden = c;
+    document.querySelector(".equip").hidden = c;
+    $("#drop-wrap").hidden = c || mode!=="drop";
+    $("#straight-wrap").hidden = c || mode==="drop";
+    $("#save").textContent = c ? "Log cardio" : (mode==="drop" ? "Log drop set" : "Log set");
+    if(c && !$("#cardio-details").dataset.type) renderCardioDetails(cardioTypeOf($("#exercise").value), {});
+  }
+  function setEffort(v){ effort = v||"moderate"; document.querySelectorAll("#effort-seg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.effort===effort))); }
+  document.querySelectorAll("#effort-seg button").forEach(b=>b.onclick=()=>setEffort(b.dataset.effort));
+  function renderCardioDetails(type, v){
+    v = v || {};
+    $("#cardio-details").dataset.type = type;
+    $("#c-dist-unit").textContent = distUnitFor(type);
+    const fields = (CARDIO_FIELDS[type]||[]).map(f=>`<div><label class="lbl" for="cx-${f.k}">${f.label()}</label><input id="cx-${f.k}" data-cx="${f.k}" type="${f.text?"text":"number"}" ${f.text?'inputmode="numeric"':'inputmode="decimal" min="0" step="any"'} placeholder="${esc(f.ph||"")}" value="${esc(v[f.k]??"")}"></div>`).join("");
+    $("#cardio-details").innerHTML = `<div class="eq-fields" style="border-left-color:var(--blue)"><h4>Details <span class="cal-sub" style="font-family:Barlow,sans-serif;font-size:.8rem">(all optional)</span></h4><div class="eq-grid">
+      ${fields}
+      <div><label class="lbl" for="cx-hr">Avg heart rate (bpm)</label><input id="cx-hr" data-cx="hr" type="number" inputmode="numeric" min="0" step="1" value="${esc(v.hr??"")}"></div>
+      <div><label class="lbl" for="cx-mk">Machine / watch calories</label><input id="cx-mk" data-cx="mk" type="number" inputmode="numeric" min="0" step="1" value="${esc(v.mk??"")}"></div>
+    </div><label class="check"><input type="checkbox" id="cx-use" ${v.use?"checked":""}> Count the machine's calories in my totals instead of the app's estimate</label></div>`;
+  }
+  function readCardioVals(){
+    const v = {}; document.querySelectorAll("#cardio-details [data-cx]").forEach(i=>{ v[i.dataset.cx]=i.value; });
+    v.use = $("#cx-use") ? $("#cx-use").checked : false; return v;
+  }
+  function prefillCardio(name){
+    const type = cardioTypeOf(name);
+    const last = sorted().reverse().find(e=>isCardio(e) && e.exercise.toLowerCase()===(name||"").toLowerCase());
+    if(!last){ $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); renderCardioDetails(type, {}); return; }
+    $("#c-min").value = fmt(last.minutes);
+    const du = distUnitFor(type);
+    $("#c-dist").value = last.distance>0 ? fmt(Math.round(toMeters(last.distance,last.distUnit)/toMeters(1,du)*100)/100) : "";
+    setEffort(last.effort);
+    const x = Object.assign({}, last.extra||{});
+    if(x.speed>0 && x.speedUnit && x.speedUnit!==(prefs.unit==="kg"?"kmh":"mph")) x.speed = fmt(x.speedUnit==="mph" ? x.speed*1.609344 : x.speed/1.609344);
+    if(x.splitSec>0) x.split = mmss(x.splitSec);
+    renderCardioDetails(type, Object.assign(x, {hr:last.hr||"", mk:"", use:false}));
+  }
+  $("#cardio-wrap").addEventListener("click", e=>{
+    const b = e.target.closest("[data-cstep]"); if(!b) return;
+    const isMin = b.dataset.cstep==="min", input = isMin ? $("#c-min") : $("#c-dist");
+    const step = isMin ? 5 : distStep($("#c-dist-unit").textContent);
+    input.value = fmt(Math.max(0, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
+  });
+  function cardioKcal(e){
+    const T = cardioTypeOf(e.exercise), mins = e.minutes, x = e.extra||{};
+    if(!(mins>0)) return null;
+    let watts = x.watts>0 ? x.watts : null;
+    if(!watts && (T==="rower"||T==="skierg")){
+      const split = x.splitSec>0 ? x.splitSec : (e.distance>0 ? mins*60/(toMeters(e.distance,e.distUnit)/500) : null);
+      if(split>0) watts = 2.80/Math.pow(split/500,3);   // Concept2 pace-to-watts formula
+    }
+    if(watts) return {kcal: watts*mins*60/1000, method:"from watts"};   // ~1 kcal burned per kJ of work
+    if(!(settings.bw>0)) return null;
+    const kg = settings.bwUnit==="kg" ? settings.bw : settings.bw*KG_PER_LB;
+    if(T==="treadmill"||T==="walk"||T==="run"){
+      let mpm = null;
+      if(x.speed>0) mpm = x.speedUnit==="kmh" ? x.speed*1000/60 : x.speed*1609.344/60;
+      else if(e.distance>0) mpm = toMeters(e.distance,e.distUnit)/mins;
+      if(mpm>=20 && mpm<=450){
+        const G = (x.incline||0)/100, walking = T==="walk" || (T==="treadmill" && mpm<107);
+        const vo2 = walking ? 3.5 + 0.1*mpm + 1.8*mpm*G : 3.5 + 0.2*mpm + 0.9*mpm*G;   // ACSM equations
+        return {kcal: vo2*kg/1000*5*mins, method: G ? "from speed & incline" : "from speed"};
+      }
+    }
+    const met = (CARDIO_MET[T]||CARDIO_MET.other)[e.effort||"moderate"];
+    return {kcal: met*kg*mins/60, method:"from effort"};
+  }
+  const countedKcal = e => (e.useMachine && e.machineKcal>0) ? e.machineKcal : (cardioKcal(e)?.kcal ?? null);
+  function paceText(e){
+    const T = cardioTypeOf(e.exercise), x=e.extra||{};
+    if(T==="rower"||T==="skierg"){ const sp = x.splitSec>0 ? x.splitSec : (e.distance>0 ? e.minutes*60/(toMeters(e.distance,e.distUnit)/500) : 0); return sp ? `${mmss(sp)} /500 m` : ""; }
+    if(!(e.distance>0) || !(e.minutes>0)) return "";
+    if(T==="swim"){ const u = e.distUnit==="m"?"m":"yd"; return `${mmss(e.minutes*60/(toMeters(e.distance,e.distUnit)/toMeters(100,u)))} /100 ${u}`; }
+    const du = prefs.unit==="kg"?"km":"mi", d = toMeters(e.distance,e.distUnit)/toMeters(1,du);
+    if(T==="bike"||T==="airbike") return `${fmt(d/(e.minutes/60))} ${du==="km"?"km/h":"mph"}`;
+    return `${mmss(e.minutes*60/d)} /${du}`;
+  }
+  const distText = e => e.distance>0 ? `${fmt(e.distance)} ${e.distUnit}` : "";
+  function cardioRow(e){
+    const x=e.extra||{}, bits=[];
+    if(x.speed>0) bits.push(`${fmt(x.speed)} ${x.speedUnit==="kmh"?"km/h":"mph"}`);
+    if(x.incline>0) bits.push(`${fmt(x.incline)}% incline`);
+    if(x.level>0) bits.push(`Level ${fmt(x.level)}`);
+    if(x.watts>0) bits.push(`${Math.round(x.watts)} W`);
+    if(x.rpm>0) bits.push(`${Math.round(x.rpm)} rpm`);
+    if(x.spm>0) bits.push(`${Math.round(x.spm)} spm`);
+    if(x.floors>0) bits.push(`${Math.round(x.floors)} floors`);
+    if(x.rounds>0) bits.push(`${x.rounds} rounds${x.work>0?` × ${x.work}s on`:""}${x.rest>0?` / ${x.rest}s off`:""}`);
+    if(e.hr>0) bits.push(`♥ ${Math.round(e.hr)} bpm`);
+    const est = cardioKcal(e);
+    const kc = countedKcal(e);
+    const kcText = kc!=null ? `<span class="cardio-kcal">≈ ${Math.round(kc).toLocaleString()} cal</span>` : "";
+    const machine = e.machineKcal>0 ? `Machine: ${Math.round(e.machineKcal)} cal${e.useMachine?" (counted)":""}${est?` · App estimate: ${Math.round(est.kcal)} (${est.method})`:""}` : (est ? `Estimate ${est.method}` : "");
+    const main = [fmtMin(e.minutes), distText(e), paceText(e), cap(e.effort||"moderate")].filter(Boolean).join(" · ");
+    return `<div class="set cardio-row"><span class="note" style="color:var(--ink);font-size:1rem"><span class="num">${esc(main)}</span> ${kcText}
+      ${bits.length?`<span class="cardio-meta">${esc(bits.join(" · "))}</span>`:""}${machine?`<span class="cardio-meta">${esc(machine)}</span>`:""}${e.note?`<span class="cardio-meta">${esc(e.note)}</span>`:""}</span>
+      <button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
+  }
+  async function saveCardio(exercise){
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); return; }
+    const minutes = parseFloat($("#c-min").value);
+    if(!(minutes>0)){ flash("Enter how many minutes you did.", true); $("#c-min").focus(); return; }
+    const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
+    const name = existing || exercise, type = cardioTypeOf(name), v = readCardioVals();
+    const e = {id:uid(), kind:"cardio", date:$("#date").value||today(), exercise:name, muscle:"Cardio", minutes, effort, unit:prefs.unit, weight:0, reps:0, sets:1, ts:Date.now(), note:$("#note").value.trim()};
+    const dist = parseFloat($("#c-dist").value); if(dist>0){ e.distance=dist; e.distUnit=distUnitFor(type); }
+    const hr = parseFloat(v.hr); if(hr>0) e.hr=hr;
+    const mk = parseFloat(v.mk); if(mk>0){ e.machineKcal=mk; e.useMachine=!!v.use; }
+    const x = {};
+    (CARDIO_FIELDS[type]||[]).forEach(f=>{
+      if(f.k==="split"){ const sp=parseSplit(v.split); if(sp) x.splitSec=sp; return; }
+      const n=parseFloat(v[f.k]); if(n>0) x[f.k]=n;
+    });
+    if(x.speed) x.speedUnit = prefs.unit==="kg" ? "kmh" : "mph";
+    if(Object.keys(x).length) e.extra = x;
+    const btn=$("#save"); btn.disabled=true;
+    try{
+      await store.add([e]);
+      const k = countedKcal(e);
+      flash(`Logged ${fmtMin(minutes)} — ${name}${k!=null?` (≈ ${Math.round(k)} cal)`:""}`);
+      $("#note").value=""; if($("#cx-mk")) $("#cx-mk").value=""; if($("#cx-use")) $("#cx-use").checked=false;
+    }catch(err){ flash("Couldn't save that entry. Try again.", true); }
+    btn.disabled=false;
+  }
 
   async function saveDrop(exercise){
     if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
@@ -660,17 +928,95 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
     return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
   }
-  function dayTotalHTML(list){
-    const sets=list.length, reps=list.reduce((a,e)=>a+e.reps,0), vol=list.reduce((a,e)=>a+toUnit(e.weight,e.unit)*e.reps,0);
-    return `<div class="day-total"><p class="lbl">Day total</p><div class="stats">
+  // ---------- calorie estimate (MET method) ----------
+  // Approximate published activity ratings for weight training.
+  const MET = {light:3.0, moderate:3.5, vigorous:6.0};
+  const cap = w => w.charAt(0).toUpperCase()+w.slice(1);
+  let calOpen = false;
+  function dayCalc(date, list){
+    list = (list || entries.filter(e=>e.date===date)).filter(e=>!isCardio(e));
+    if(!list.length || !(settings.bw>0)) return null;
+    const kg = settings.bwUnit==="kg" ? settings.bw : settings.bw*KG_PER_LB;
+    const o = settings.days[date] || {};
+    const ts = list.map(e=>e.ts).filter(t=>typeof t==="number" && t>1e12);
+    const sameDay = ts.length>0 && ts.every(t=>isoOf(new Date(t))===date);
+    const span = ts.length ? (Math.max(...ts)-Math.min(...ts))/60000 : 0;
+    let mins, src;
+    if(o.min>0){ mins=o.min; src="set by you"; }
+    else if(sameDay && span>=10 && span<=240){ mins=Math.round(span+5); src="from your set times"; }
+    else { mins=Math.max(10, Math.round(list.length*2.5)); src=`estimated from ${list.length} sets`; }
+    const density = list.length/mins;
+    const autoLvl = density>=0.45 ? "vigorous" : density>=0.25 ? "moderate" : "light";
+    const lvl = (o.int && MET[o.int]) ? o.int : autoLvl;
+    return {kcal: MET[lvl]*kg*mins/60, net: (MET[lvl]-1)*kg*mins/60, mins, src, lvl, autoLvl, isAuto: !(o.int && MET[o.int]), o};
+  }
+  function dayTotalCalories(date){
+    const list = entries.filter(e=>e.date===date);
+    const lift = dayCalc(date, list);
+    const card = list.filter(isCardio).map(countedKcal).filter(k=>k!=null);
+    if(!lift && !card.length) return null;
+    return (lift?lift.kcal:0) + card.reduce((a,b)=>a+b,0);
+  }
+  function calHTML(list, editable){
+    const date = list[0].date, strength = list.filter(e=>!isCardio(e)), cardio = list.filter(isCardio);
+    const bwPrompt = `<p class="cal-sub" style="margin:0">Add your body weight to estimate calories burned.</p>
+        <div class="cal-bw"><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" placeholder="Body weight" aria-label="Body weight in ${prefs.unit}"><span>${prefs.unit}</span></div>`;
+    if(!(settings.bw>0) && !cardio.some(e=>countedKcal(e)!=null)) return editable ? `<div class="cal">${bwPrompt}</div>` : "";
+    const c = strength.length ? dayCalc(date, strength) : null;
+    const cardKc = cardio.map(countedKcal).filter(k=>k!=null).reduce((a,b)=>a+b,0);
+    const cardMin = cardio.reduce((a,e)=>a+(e.minutes||0),0);
+    const total = (c?c.kcal:0) + cardKc;
+    const lines = [];
+    if(c) lines.push(`Lifting ≈ ${Math.round(c.kcal).toLocaleString()}: ${cap(c.lvl)}${c.isAuto?" (auto)":""}, ${c.mins} min ${c.src}`);
+    if(cardio.length) lines.push(`Cardio ≈ ${Math.round(cardKc).toLocaleString()}: ${fmtMin(cardMin)}`);
+    let adj = "";
+    if(editable && calOpen && c){
+      adj = `<div class="eq-fields"><h4>Lifting estimate</h4><div class="eq-grid">
+        <div><label class="lbl" for="cal-min">Lifting time (min)</label><input type="number" id="cal-min" inputmode="numeric" min="1" step="1" value="${c.o.min||""}" placeholder="${c.mins}"></div>
+        <div><label class="lbl" for="cal-int">Intensity</label><select id="cal-int">
+          <option value="" ${c.isAuto?"selected":""}>Auto (${cap(c.autoLvl)})</option>
+          ${["light","moderate","vigorous"].map(l=>`<option value="${l}" ${!c.isAuto&&c.lvl===l?"selected":""}>${cap(l)}</option>`).join("")}</select></div>
+        <div><label class="lbl" for="bw-input">Body weight (${prefs.unit}), all days</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${fmt(toUnit(settings.bw, settings.bwUnit))}"></div>
+      </div><p class="cal-sub">Clear the time box to go back to the automatic estimate. Cardio is estimated per entry. All calories are rough estimates.</p></div>`;
+    } else if(editable && calOpen && !c){
+      adj = `<div class="eq-fields"><div class="eq-grid"><div><label class="lbl" for="bw-input">Body weight (${prefs.unit}), all days</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${settings.bw>0?fmt(toUnit(settings.bw, settings.bwUnit)):""}"></div></div></div>`;
+    }
+    return `<div class="cal"><div class="cal-main"><span class="num">≈ ${Math.round(total).toLocaleString()}</span><span>calories burned</span></div>
+      ${lines.map(l=>`<p class="cal-sub">${esc(l)}</p>`).join("")}
+      ${!(settings.bw>0) && editable ? `<div style="margin-top:8px">${bwPrompt}</div>` : ""}
+      ${editable && settings.bw>0 ?`<button class="note-toggle" id="cal-adjust" aria-expanded="${calOpen}">${calOpen?"Done":"Adjust"}</button>${adj}`:""}</div>`;
+  }
+  document.addEventListener("change", e=>{
+    const t = e.target, date = $("#date").value || today();
+    if(t.id==="bw-input"){ const n=parseFloat(t.value); settings.bw = n>0 ? n : null; settings.bwUnit = prefs.unit; saveSettings(); }
+    else if(t.id==="cal-min"){ const n=parseInt(t.value,10); settings.days[date] = Object.assign({}, settings.days[date], {min: n>0 ? n : null}); saveSettings(); }
+    else if(t.id==="cal-int"){ settings.days[date] = Object.assign({}, settings.days[date], {int: t.value || null}); saveSettings(); }
+  });
+  document.addEventListener("click", e=>{ if(e.target.id==="cal-adjust"){ calOpen=!calOpen; renderDay(); } });
+
+  function dayTotalHTML(list, editable){
+    const str = list.filter(e=>!isCardio(e)), car = list.filter(isCardio);
+    const sets=str.length, reps=str.reduce((a,e)=>a+e.reps,0), vol=str.reduce((a,e)=>a+toUnit(e.weight,e.unit)*e.reps,0);
+    const du = prefs.unit==="kg"?"km":"mi";
+    const dist = car.filter(e=>e.distance>0).reduce((a,e)=>a+toMeters(e.distance,e.distUnit),0)/toMeters(1,du);
+    const strStats = str.length ? `<div class="stats">
       <div class="stat"><div class="num">${sets.toLocaleString()}</div><small>Sets</small></div>
       <div class="stat"><div class="num">${reps.toLocaleString()}</div><small>Reps</small></div>
-      <div class="stat"><div class="num">${Math.round(vol).toLocaleString()}</div><small>${prefs.unit==="kg"?"Kilograms":"Pounds"} lifted</small></div></div></div>`;
+      <div class="stat"><div class="num">${Math.round(vol).toLocaleString()}</div><small>${prefs.unit==="kg"?"Kilograms":"Pounds"} lifted</small></div></div>` : "";
+    const carStats = car.length ? `<div class="stats" style="${str.length?"margin-top:10px":""}">
+      <div class="stat"><div class="num">${Math.round(car.reduce((a,e)=>a+(e.minutes||0),0)).toLocaleString()}</div><small>Cardio min</small></div>
+      <div class="stat"><div class="num">${dist>0?fmt(Math.round(dist*100)/100):"—"}</div><small>Distance (${du})</small></div>
+      <div class="stat"><div class="num">${car.length}</div><small>Cardio sessions</small></div></div>` : "";
+    return `<div class="day-total"><p class="lbl">Day total</p>${strStats}${carStats}${calHTML(list, editable)}</div>`;
   }
   function groupHTML(list){
     const groups = new Map();
     list.forEach(e=>{ const k=e.exercise.toLowerCase(); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(e); });
     return [...groups.values()].map(g=>{
+      if(isCardio(g[0])){
+        const mins = g.reduce((s,e)=>s+(e.minutes||0),0);
+        return `<div class="ex-group"><div class="ex-head"><h3>${esc(g[0].exercise)}</h3><span class="vol">${g.length>1?g.length+" sessions · ":""}${fmtMin(mins)}</span></div>${g.map(cardioRow).join("")}</div>`;
+      }
       const vol = g.reduce((s,e)=>s+toUnit(e.weight,e.unit)*e.reps,0);
       const parts=[], seen=new Set();
       g.forEach(e=>{
@@ -686,55 +1032,703 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const d = $("#date").value || today();
     $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
     const list = sorted().filter(e=>e.date===d);
-    $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list) : `<p class="empty">No sets logged for this day yet.</p>`;
+    $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
   }
   $("#date").addEventListener("change", renderDay);
 
   // ---------- muscle groups & exercise dropdown ----------
-  const MUSCLES = ["Chest","Back","Shoulders","Biceps","Triceps","Forearms","Legs","Glutes","Calves","Core","Full body","Other"];
+  const MUSCLES = ["Cardio","Chest","Back","Shoulders","Biceps","Triceps","Quadriceps","Hamstrings","Glutes","Calves","Abdominals","Lower back","Forearms","Full body","Other"];
+  // Built-in exercise library: "# Muscle", "## Subgroup", then one exercise per line.
+  const CATALOG_TEXT = `# Cardio
+## Machines
+Treadmill |treadmill
+Incline treadmill walk |treadmill
+Stationary bike |bike
+Spin bike |bike
+Recumbent bike |bike
+Air bike |airbike
+Rowing machine |rower
+Ski erg |skierg
+Elliptical |elliptical
+Stair climber |stair
+Stepmill |stair
+## Outdoor
+Run |run
+Walk |walk
+Hike |hike
+Ruck |ruck
+Outdoor cycling |bike
+Swim |swim
+## Other
+Jump rope |jumprope
+HIIT / circuit |hiit
+Cardio class |other
+# Chest
+## Barbell press
+Barbell bench press — flat
+Barbell bench press — slight incline
+Barbell bench press — high incline
+Close-grip bench press
+Wide-grip bench press
+Paused bench press
+## Dumbbell press
+Dumbbell bench press — flat
+Dumbbell bench press — low incline
+Dumbbell bench press — high incline
+Dumbbell press — neutral grip
+Dumbbell squeeze press
+Alternating dumbbell bench press
+Single-arm dumbbell bench press
+## Machine / plate-loaded press
+Seated chest press
+Horizontal chest press
+Incline chest press
+Decline chest press
+Plate-loaded chest press
+Plate-loaded incline press
+Converging chest press
+Iso-lateral chest press
+Hammer-style chest press
+## Cable press
+Cable chest press — standing
+Cable chest press — seated
+Cable chest press — split stance
+Single-arm cable chest press
+Cable chest press — low-to-high
+Cable chest press — high-to-low
+## Dumbbell fly
+Dumbbell fly — flat bench
+Dumbbell fly — incline bench
+Dumbbell fly — decline bench
+Dumbbell fly — neutral/semisupinated
+Dumbbell fly — floor
+## Cable fly
+Cable fly — standing
+Cable fly — low pulley
+Cable fly — mid pulley
+Cable fly — high pulley
+Cable fly — low-to-high
+Cable fly — high-to-low
+Single-arm cable fly
+Single-arm cable fly — split stance
+Cable fly — seated
+Cable fly — lying on bench
+## Machine fly
+Pec deck
+Reverse-grip pec deck
+Single-arm pec deck
+Plate-loaded pec fly
+## Lower / sternal chest emphasis
+Decline barbell press
+Decline dumbbell press
+Decline machine press
+High-to-low cable fly
+Dips — chest emphasis
+Assisted chest dips
+Weighted chest dips
+# Back
+## Lats: pull-ups
+Pull-up
+Neutral-grip pull-up
+Chin-up
+Wide-grip pull-up
+Close-grip pull-up
+Assisted pull-up
+Machine-assisted pull-up
+Weighted pull-up
+Neutral-grip assisted pull-up
+## Lats: lat pulldown
+Lat pulldown — wide overhand
+Lat pulldown — medium overhand
+Lat pulldown — close overhand
+Lat pulldown — neutral grip
+Lat pulldown — parallel grip
+Lat pulldown — underhand
+Reverse-grip lat pulldown
+Single-arm lat pulldown
+Single-arm kneeling lat pulldown
+Single-arm standing lat pulldown
+Behind-the-neck pulldown
+Dual-handle independent pulldown
+## Lats: machine pulldown
+Plate-loaded pulldown
+Iso-lateral pulldown
+High-row machine
+Converging pulldown
+## Lats: straight-arm (cable)
+Straight-arm pulldown
+Rope straight-arm pulldown
+Bar straight-arm pulldown
+Single-arm straight-arm pulldown
+Kneeling straight-arm pulldown
+Standing straight-arm pulldown
+Cable pullover
+## Lats: pullover
+Pullover machine
+Plate-loaded pullover machine
+Dumbbell pullover — flat bench
+Dumbbell pullover — decline bench
+## Rows: barbell
+Barbell bent-over row
+Pendlay row
+Underhand barbell row
+Wide-grip barbell row
+Close-grip barbell row
+Yates row
+Snatch-grip row
+Seal row
+Paused barbell row
+## Rows: dumbbell
+One-arm dumbbell row — bench supported
+One-arm dumbbell row — unsupported
+One-arm dumbbell row — knee supported
+Chest-supported dumbbell row
+Incline bench dumbbell row
+Dumbbell seal row
+Bilateral dumbbell row
+Neutral-grip dumbbell row
+## Rows: cable
+Seated cable row
+Seated cable row — close neutral grip
+Seated cable row — wide grip
+Seated cable row — overhand
+Seated cable row — underhand
+Single-arm cable row
+Single-arm cable row — standing
+Single-arm cable row — kneeling
+Chest-supported cable row
+High cable row
+Low cable row
+Cable row to hip
+Cable row to upper chest
+## Rows: machine / plate-loaded
+Seated row machine
+Chest-supported row machine
+Iso-lateral row
+Plate-loaded row
+T-bar row machine
+Hammer row
+High row machine
+Low row machine
+Unilateral row machine
+## Upper traps
+Barbell shrug
+Behind-the-back barbell shrug
+Wide-grip barbell shrug
+Dumbbell shrug
+Seated dumbbell shrug
+Incline dumbbell shrug
+Single-arm dumbbell shrug
+Smith machine shrug
+Cable shrug
+Behind-the-back cable shrug
+Machine shrug
+Plate-loaded shrug
+## Mid / lower traps
+Cable Y-raise
+Dumbbell Y-raise
+Incline Y-raise
+Prone Y-raise
+Face pull
+Chest-supported high row
+Incline bench trap raise
+Cable high row
+# Shoulders
+## Front delts: barbell
+Barbell overhead press
+Seated barbell overhead press
+Standing barbell overhead press
+Behind-the-neck press
+## Front delts: dumbbell
+Standing dumbbell shoulder press
+Seated dumbbell shoulder press
+Seated dumbbell press — back supported
+Arnold press
+Alternating dumbbell shoulder press
+Single-arm dumbbell shoulder press
+## Front delts: machine
+Machine shoulder press
+Plate-loaded shoulder press
+Iso-lateral shoulder press
+Smith machine shoulder press
+## Front delts: cable
+Single-arm cable shoulder press
+Cable front raise
+Single-arm cable front raise
+## Side delts: dumbbell
+Dumbbell lateral raise — standing
+Dumbbell lateral raise — seated
+Single-arm dumbbell lateral raise
+Incline dumbbell lateral raise
+Leaning dumbbell lateral raise
+Chest-supported lateral raise
+Lying dumbbell lateral raise
+## Side delts: cable
+Single-arm cable lateral raise
+Cable lateral raise — behind body
+Cable lateral raise — in front of body
+Cable lateral raise — standing
+Cable lateral raise — leaning
+Cable lateral raise — seated
+Dual-cable lateral raise
+## Side delts: machine
+Lateral raise machine
+Plate-loaded lateral raise
+Single-arm lateral raise machine
+## Rear delts: dumbbell
+Bent-over dumbbell reverse fly
+Seated dumbbell reverse fly
+Incline bench reverse fly
+Chest-supported reverse fly
+Lying dumbbell reverse fly
+## Rear delts: cable
+Cable reverse fly
+Single-arm cable reverse fly
+Cross-body cable reverse fly
+Cable rear-delt fly — seated
+Cable rear-delt fly — standing
+## Rear delts: machine
+Reverse pec deck
+Rear-delt machine
+Plate-loaded reverse fly
+## Rear delts: other
+Face pull
+Cable face pull — external rotation
+High cable row — rear-delt emphasis
+# Biceps
+## Barbell
+Standing barbell curl
+Wide-grip barbell curl
+Close-grip barbell curl
+EZ-bar curl
+Reverse EZ-bar curl
+Drag curl
+## Dumbbell
+Standing dumbbell curl
+Seated dumbbell curl
+Alternating dumbbell curl
+Simultaneous dumbbell curl
+Incline dumbbell curl
+Hammer curl
+Cross-body hammer curl
+Concentration curl
+Spider curl
+Bayesian-style dumbbell curl
+Zottman curl
+## Cable
+Standing cable curl
+Seated cable curl
+Single-arm cable curl
+Cable curl with straight bar
+Cable curl with EZ attachment
+Cable curl with rope
+Bayesian cable curl
+Behind-the-body cable curl
+High cable curl
+Dual-cable curl
+## Machine
+Preacher curl machine
+Biceps curl machine
+Plate-loaded preacher curl
+## Brachialis / brachioradialis
+Hammer curl
+Cross-body hammer curl
+Rope hammer curl
+Reverse curl
+EZ-bar reverse curl
+Dumbbell reverse curl
+Cable reverse curl
+Wrist-neutral preacher curl
+# Triceps
+## Pressing
+Close-grip bench press
+Smith close-grip bench
+Close-grip machine press
+Weighted dips
+Assisted dips
+Bench dips
+## Pushdowns (cable)
+Straight-bar pushdown
+EZ-bar pushdown
+Rope pushdown
+V-bar pushdown
+Reverse-grip pushdown
+Single-arm pushdown
+Cross-body pushdown
+Single-arm reverse-grip pushdown
+## Overhead / long-head emphasis
+Overhead cable triceps extension
+Dual-cable overhead extension
+Dumbbell overhead triceps extension — seated
+Dumbbell overhead triceps extension — standing
+Single-arm dumbbell overhead extension
+EZ-bar overhead extension
+Barbell overhead extension
+Cable overhead extension
+Rope overhead extension
+Single-arm cable overhead extension
+Bayesian cable triceps extension
+Incline dumbbell triceps extension
+## Lying extensions
+EZ-bar skull crusher
+Barbell skull crusher
+Dumbbell skull crusher
+Single-arm dumbbell skull crusher
+Incline skull crusher
+Decline skull crusher
+Cable skull crusher
+Cable lying triceps extension
+## Machines
+Triceps extension machine
+Plate-loaded triceps extension
+Dip machine
+Assisted dip machine
+# Quadriceps
+## Squat: barbell
+High-bar back squat
+Low-bar back squat
+Front squat
+Safety-bar squat
+Box squat
+Pause squat
+Heel-elevated squat
+Narrow-stance squat
+Wide-stance squat
+## Squat: dumbbell
+Goblet squat
+Heel-elevated goblet squat
+Dumbbell front squat
+Double-dumbbell squat
+## Squat: Smith machine
+Smith machine squat
+Smith machine squat — heels elevated
+Smith machine squat — feet forward
+## Squat: machine
+Hack squat
+Pendulum squat
+V-squat
+Belt squat
+Leverage squat
+## Leg press
+Leg press
+45° leg press
+Horizontal leg press
+Vertical leg press
+Plate-loaded leg press
+Selectorized leg press
+Single-leg leg press
+Narrow-stance leg press
+Medium-stance leg press
+Wide-stance leg press
+High-foot leg press
+Low-foot leg press
+## Knee extension
+Leg extension machine
+Single-leg extension
+Unilateral plate-loaded leg extension
+Cable leg extension
+Reverse Nordic
+# Hamstrings
+## Hip hinge: barbell
+Romanian deadlift
+Stiff-leg deadlift
+Conventional deadlift
+Sumo deadlift
+Deficit deadlift
+Block pull
+Snatch-grip RDL
+## Hip hinge: dumbbell
+Dumbbell Romanian deadlift
+Single-leg dumbbell RDL
+B-stance dumbbell RDL
+Staggered-stance dumbbell RDL
+Dumbbell stiff-leg deadlift
+## Hip hinge: Smith machine
+Smith machine RDL
+Smith machine stiff-leg deadlift
+Smith single-leg RDL
+## Hip hinge: cable
+Cable pull-through
+Single-leg cable RDL
+Cable RDL
+## Leg curl: machine
+Seated leg curl
+Lying leg curl
+Standing leg curl
+Single-leg lying curl
+Single-leg seated curl
+Plate-loaded leg curl
+Nordic curl machine
+## Leg curl: cable
+Standing cable leg curl
+Lying cable leg curl
+Seated cable leg curl
+Single-leg cable curl
+## Leg curl: bodyweight
+Nordic hamstring curl
+Assisted Nordic curl
+Stability-ball leg curl
+Slider leg curl
+Single-leg slider curl
+# Glutes
+## Hip thrust: barbell
+Barbell hip thrust
+Barbell glute bridge
+Pause hip thrust
+Single-leg hip thrust
+## Hip thrust: Smith machine
+Smith machine hip thrust
+Smith machine glute bridge
+## Hip thrust: machine
+Hip thrust machine
+Glute drive machine
+Glute bridge machine
+## Hip thrust: dumbbell
+Dumbbell hip thrust
+Dumbbell glute bridge
+Single-leg dumbbell hip thrust
+## Split squat / lunge
+Bulgarian split squat
+Front-foot-elevated split squat
+Reverse lunge
+Walking lunge
+Deficit reverse lunge
+Step-up
+High step-up
+Smith machine split squat
+Smith machine reverse lunge
+Smith machine Bulgarian split squat
+## Hip abduction
+Hip abduction machine
+Single-leg hip abduction machine
+Standing cable hip abduction
+Seated cable hip abduction
+Cross-body cable abduction
+Banded hip abduction
+Side-lying hip abduction
+# Calves
+## Straight-leg: machine
+Standing calf raise
+Donkey calf raise
+Leg press calf raise
+Hack squat calf raise
+Smith machine calf raise
+## Straight-leg: free weight
+Dumbbell standing calf raise
+Barbell standing calf raise
+Single-leg dumbbell calf raise
+Deficit calf raise
+## Bent-knee (soleus)
+Seated calf raise
+Dumbbell seated calf raise
+Smith seated calf raise
+Leg press calf raise with bent knees
+Machine soleus raise
+## Variations
+Single-leg calf raise
+Bilateral calf raise
+Calf raise — toes straight
+Calf raise — toes slightly outward
+Calf raise — toes slightly inward
+Full-ROM calf raise
+# Abdominals
+## Bodyweight
+Crunch
+Reverse crunch
+Sit-up
+Decline sit-up
+Hanging knee raise
+Hanging leg raise
+Lying leg raise
+## Cable
+Cable crunch — kneeling
+Cable crunch — standing
+Cable crunch — seated
+Single-arm cable crunch
+## Machine
+Ab crunch machine
+Plate-loaded ab crunch
+Selectorized ab machine
+## Weighted
+Weighted crunch
+Weighted decline sit-up
+Dumbbell sit-up
+Plate sit-up
+## Obliques / lateral trunk
+Cable woodchop
+High-to-low cable chop
+Low-to-high cable chop
+Standing cable rotation
+Seated cable rotation
+Pallof press
+Side bend
+Dumbbell side bend
+Cable side bend
+Machine side bend
+Hanging knee raise with rotation
+Hanging leg raise with rotation
+Russian twist
+Weighted Russian twist
+# Lower back
+## Hinge / good morning
+Romanian deadlift
+Conventional deadlift
+Stiff-leg deadlift
+Good morning
+Seated good morning
+Barbell good morning
+Smith machine good morning
+Cable good morning
+## Back extension
+Back extension
+45° back extension
+45° back extension — glute emphasis
+Horizontal back extension
+Reverse hyperextension
+Machine back extension
+# Forearms
+## Wrist flexors
+Seated wrist curl
+Standing wrist curl
+Barbell wrist curl
+Dumbbell wrist curl
+Cable wrist curl
+Behind-the-back wrist curl
+## Wrist extensors
+Reverse wrist curl
+Dumbbell reverse wrist curl
+Barbell reverse wrist curl
+Cable reverse wrist curl
+## Grip / overall forearm
+Farmer's carry
+Suitcase carry
+Dumbbell holds
+Barbell holds
+Plate pinch
+Plate holds
+Dead hangs
+Towel hangs`;
+  const CATALOG = []; // {muscle, sub, names[]}
+  const CAT_MUSCLE = new Map(); // lowercased name -> first muscle it appears under
+  const CARDIO_TYPE = new Map(); // lowercased cardio name -> activity type
+  (function(){
+    let m=null, g=null; const seenInMuscle = new Set();
+    CATALOG_TEXT.split("\n").forEach(line=>{
+      line=line.trim(); if(!line) return;
+      if(line.startsWith("## ")){ g={muscle:m, sub:line.slice(3), names:[]}; CATALOG.push(g); }
+      else if(line.startsWith("# ")){ m=line.slice(2); seenInMuscle.clear(); }
+      else if(g){
+        let type=null; if(line.includes("|")){ [line, type] = line.split("|").map(x=>x.trim()); }
+        const k=line.toLowerCase();
+        if(type) CARDIO_TYPE.set(k, type);
+        if(seenInMuscle.has(k)) return;           // same exercise listed twice under one muscle
+        seenInMuscle.add(k); g.names.push(line);
+        if(!CAT_MUSCLE.has(k)) CAT_MUSCLE.set(k, m);
+      }
+    });
+  })();
   const GUESS = [
-    [/calf|calves/, "Calves"],
-    [/wrist|forearm|grip|farmer/, "Forearms"],
-    [/leg raise|knee raise|crunch|plank|\babs?\b|ab wheel|core|oblique|sit.?up|russian twist|wood.?chop|pallof|hollow/, "Core"],
-    [/leg curl|hamstring|leg extension|leg press|squat|lunge|hack|quad|\brdl\b|romanian|step.?up|good ?morning|sissy|adductor/, "Legs"],
-    [/hip thrust|glute|abduct|bridge|donkey|kickback.*(glute|cable)/, "Glutes"],
+    [/farmer|suitcase carry/, "Forearms"],
+    [/treadmill|stationary bike|spin bike|air bike|recumbent|cycling|\bbike\b|rowing machine|\brower\b|ski ?erg|elliptical|stair ?climber|stepmill|\brun\b|running|\bjog|\bwalk\b(?!ing lunge)|hike|hiking|ruck|swim|jump ?rope|\bhiit\b|cardio|sprint|interval/, "Cardio"],
+    [/calf|calves|soleus/, "Calves"],
+    [/wrist|forearm|grip|farmer|suitcase|dead ?hang|plate pinch/, "Forearms"],
+    [/leg raise|knee raise|crunch|plank|\babs?\b|ab wheel|core|oblique|sit.?up|russian twist|wood.?chop|pallof|hollow|side bend/, "Abdominals"],
+    [/good ?morning|back extension|hyperextension/, "Lower back"],
+    [/leg curl|hamstring|nordic|\brdl\b|romanian|stiff.?leg|pull.?through/, "Hamstrings"],
+    [/hip thrust|glute|abduct|bridge|donkey kick|split squat|lunge|step.?up/, "Glutes"],
+    [/leg extension|leg press|squat|hack|quad|sissy|adductor/, "Quadriceps"],
     [/tricep|pushdown|push.?down|skull|kickback|close.?grip|\bdips?\b|jm press|overhead extension|french press/, "Triceps"],
     [/curl|bicep|preacher|hammer|spider/, "Biceps"],
-    [/shoulder|delt|lateral raise|side raise|front raise|overhead press|\bohp\b|military|arnold|upright row|face pull|y.?raise/, "Shoulders"],
+    [/shoulder|delt|lateral raise|side raise|front raise|overhead press|\bohp\b|military|arnold|upright row|face pull|reverse fly|reverse pec/, "Shoulders"],
     [/bench|chest|\bfly\b|flye|\bflies\b|pec|push.?up|incline|decline|crossover|svend/, "Chest"],
     [/deadlift|clean|snatch|thruster|burpee|kettlebell swing/, "Full body"],
-    [/\brows?\b|rowing|pull.?down|pull.?up|\bchin|\blats?\b|shrug|back extension|hyperextension|pullover|\btraps?\b|rack pull/, "Back"],
+    [/\brows?\b|rowing|pull.?down|pull.?up|\bchin|\blats?\b|shrug|pullover|\btraps?\b|y.?raise|rack pull/, "Back"],
   ];
   const guessMuscle = name => { const n=(name||"").toLowerCase(); for(const [re,g] of GUESS){ if(re.test(n)) return g; } return "Other"; };
-  const groupOf = name => { const l=(name||"").toLowerCase(); const e = sorted().reverse().find(x=>x.exercise.toLowerCase()===l && x.muscle); return e ? e.muscle : guessMuscle(name); };
+  // Older entries used "Legs" and "Core"
+  const normMuscle = (m, name) => MUSCLES.includes(m) ? m : m==="Core" ? "Abdominals" :
+    m==="Legs" ? (/curl|hamstring|rdl|romanian|stiff|nordic|good ?morning/.test((name||"").toLowerCase()) ? "Hamstrings" : "Quadriceps") : (CAT_MUSCLE.get((name||"").toLowerCase()) || guessMuscle(name));
+  const groupOf = name => {
+    const l=(name||"").toLowerCase();
+    const e = sorted().reverse().find(x=>x.exercise.toLowerCase()===l && x.muscle);
+    return e ? normMuscle(e.muscle, name) : (CAT_MUSCLE.get(l) || guessMuscle(name));
+  };
+  const opt = (n, m, sel) => `<option value="${esc(n)}" data-m="${esc(m)}" ${sel?"selected":""}>${esc(n)}</option>`;
+  const matchQ = (n, q) => !q || q.split(/\s+/).every(w=>n.toLowerCase().includes(w));
+  // Used by History and Progress: only exercises you've logged, grouped by muscle
   function groupedOptions(names, selected){
     const by = new Map(MUSCLES.map(m=>[m,[]]));
     names.forEach(n=>{ const g=groupOf(n); if(!by.has(g)) by.set(g,[]); by.get(g).push(n); });
-    return [...by.entries()].filter(([,l])=>l.length).map(([g,l])=>`<optgroup label="${esc(g)}">${l.sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}" ${n===selected?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>`).join("");
+    return [...by.entries()].filter(([,l])=>l.length).map(([g,l])=>`<optgroup label="${esc(g)}">${l.sort((a,b)=>a.localeCompare(b)).map(n=>opt(n,g,n===selected)).join("")}</optgroup>`).join("");
   }
   $("#muscle").innerHTML = MUSCLES.map(m=>`<option>${m}</option>`).join("");
+  $("#group-filter").innerHTML = `<option value="">All muscle groups</option>` + MUSCLES.map(m=>`<option>${m}</option>`).join("");
+  if(prefs.group && MUSCLES.includes(prefs.group)) $("#group-filter").value = prefs.group;
+  $("#muscle").value = $("#group-filter").value || "Other";
+  const gf = ()=> $("#group-filter").value;
+  $("#new-muscle-wrap").hidden = !!gf();
   let muscleTouched = false;
-  $("#muscle").addEventListener("change", ()=>{ muscleTouched = true; });
+  $("#muscle").addEventListener("change", ()=>{ muscleTouched = true; applyFormKind(); if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals()); });
+  // Log tab: recent + full library + your own exercises
   function renderChips(){
-    const names = exercisesByRecent();
+    const q = ($("#exercise-search").value||"").trim().toLowerCase();
+    const logged = exercisesByRecent();
     const cur = $("#exercise").value.trim().toLowerCase();
-    const match = names.find(n=>n.toLowerCase()===cur);
-    const isNew = $("#exercise-pick").value==="__new__" && !match;
+    const isNew = $("#exercise-pick").value==="__new__" && !logged.some(n=>n.toLowerCase()===cur);
+    let done = false; // mark only the first matching option as selected
+    const pick = n => { if(!done && !isNew && n.toLowerCase()===cur){ done=true; return true; } return false; };
+    let html = "", count = 0;
+    const f = gf();
+    const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0,8).filter(n=>matchQ(n,q));
+    if(recent.length){ html += `<optgroup label="Recently used">${recent.map(n=>opt(n, groupOf(n), pick(n))).join("")}</optgroup>`; count += recent.length; }
+    const custom = new Map();
+    logged.filter(n=>!CAT_MUSCLE.has(n.toLowerCase()) && matchQ(n,q)).forEach(n=>{ const g=groupOf(n); if(!custom.has(g)) custom.set(g,[]); custom.get(g).push(n); });
+    MUSCLES.filter(m=>!f || m===f).forEach(m=>{
+      const pre = f ? "" : `${m.toUpperCase()} · `;
+      const mine = (custom.get(m)||[]).sort((a,b)=>a.localeCompare(b));
+      if(mine.length){ html += `<optgroup label="${esc(pre)}My exercises">${mine.map(n=>opt(n,m,pick(n))).join("")}</optgroup>`; count += mine.length; }
+      CATALOG.filter(g=>g.muscle===m).forEach(g=>{
+        const names = g.names.filter(n=>matchQ(n,q) || matchQ(m+" "+g.sub, q));
+        if(names.length){ html += `<optgroup label="${esc(pre+g.sub)}">${names.map(n=>opt(n,m,pick(n))).join("")}</optgroup>`; count += names.length; }
+      });
+    });
+    const placeholder = q ? (count ? `${count} match${count===1?"":"es"} — tap to choose` : "No matches — add it as a new exercise") : (f ? `Select a ${f.toLowerCase()} exercise…` : "Select an exercise…");
     $("#exercise-pick").innerHTML =
-      (names.length ? `<option value="" disabled ${!match&&!isNew?"selected":""}>Select an exercise…</option>` : "") +
-      groupedOptions(names, match) +
-      `<optgroup label="Add"><option value="__new__" ${(isNew||!names.length)?"selected":""}>＋ New exercise…</option></optgroup>`;
-    $("#new-ex-wrap").hidden = !(isNew || !names.length);
+      `<option value="" disabled ${!done&&!isNew?"selected":""}>${placeholder}</option>` + html +
+      `<optgroup label="Add"><option value="__new__" ${isNew?"selected":""}>＋ New exercise…</option></optgroup>`;
+    $("#new-ex-wrap").hidden = !isNew;
   }
+  $("#exercise-search").addEventListener("input", renderChips);
+  $("#group-filter").addEventListener("change", ()=>{
+    const v = gf(); prefs.group = v; savePrefs();
+    const isNew = $("#exercise-pick").value==="__new__";
+    const cur = $("#exercise").value.trim();
+    if(isNew){ if(v){ $("#muscle").value = v; muscleTouched = true; } }
+    else if(!cur || (v && groupOf(cur)!==v)){
+      $("#exercise").value = ""; $("#exercise-pick").value = ""; $("#muscle").value = v || "Other";
+    }
+    $("#new-muscle-wrap").hidden = !!v;
+    renderChips(); applyFormKind();
+    if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals());
+  });
   $("#exercise-pick").addEventListener("change", e=>{
     const v = e.target.value;
     if(v==="__new__"){
-      $("#exercise").value=""; $("#new-ex-wrap").hidden=false; muscleTouched=false; $("#muscle").value="Other"; $("#exercise").focus();
+      $("#exercise").value = $("#exercise-search").value.trim(); $("#new-ex-wrap").hidden=false; muscleTouched=false;
+      applyEquip({}, prefs.unit);
+      $("#muscle").value = gf() || guessMuscle($("#exercise").value); muscleTouched = !!gf();
+      $("#new-muscle-wrap").hidden = !!gf(); applyFormKind(); $("#exercise").focus();
     } else {
-      $("#exercise").value=v; $("#new-ex-wrap").hidden=true; muscleTouched=false; $("#muscle").value=groupOf(v); prefill(v);
+      const m = e.target.selectedOptions[0]?.dataset.m;
+      $("#exercise").value=v; $("#new-ex-wrap").hidden=true; muscleTouched=false;
+      $("#muscle").value = MUSCLES.includes(m) ? m : groupOf(v);
+      applyFormKind();
+      if(isCardioForm()) prefillCardio(v); else prefill(v);
     }
   });
-  $("#exercise").addEventListener("input", e=>{ if(!muscleTouched) $("#muscle").value = guessMuscle(e.target.value); });
+  $("#exercise").addEventListener("input", e=>{
+    if(!muscleTouched && !gf()){ const was = isCardioForm(); $("#muscle").value = guessMuscle(e.target.value); if(was!==isCardioForm()) applyFormKind(); }
+  });
   function fillSelect(sel, withAll){
     const names = exercisesByRecent();
     const cur = sel.value;
@@ -769,7 +1763,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   });
 
   // ---------- charts ----------
-  let exChart=null, wkChart=null, metric="top", range="week";
+  let exChart=null, wkChart=null, metric="top", range="week", tot="vol";
   const metricLabel = {top:"Top weight", e1rm:"Est. 1-rep max", vol:"Volume", reps:"Total reps"};
 
   function chartDefaults(){
@@ -778,42 +1772,89 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     Chart.defaults.borderColor = css("--line");
   }
 
+  const STR_METRICS = [["top","Top weight"],["e1rm","Est. 1-rep max"],["vol","Volume"],["reps","Total reps"]];
   function renderProgress(){
     if(!window.Chart){ $("#prog-empty").hidden=false; $("#prog-empty").textContent="Charts couldn't load. Check your connection and reopen this page."; return; }
     chartDefaults();
     fillSelect($("#prog-ex"), false);
     const name = ($("#prog-ex").value||"").toLowerCase();
     const list = sorted().filter(e=>e.exercise.toLowerCase()===name);
-    const byDay = new Map();
-    list.forEach(e=>{
-      const w = toUnit(e.weight,e.unit);
-      const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0};
-      d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += w*e.reps; d.reps += e.reps;
-      byDay.set(e.date,d);
-    });
-    const days = [...byDay.keys()];
-    const pts = days.map(d=>byDay.get(d));
-    const best = pts.reduce((m,p)=>Math.max(m,p.top),0);
-    const bestE = pts.reduce((m,p)=>Math.max(m,p.e1rm),0);
-    $("#prog-stats").innerHTML = list.length ? `
-      <div class="stat"><div class="num">${fmt(best)}</div><small>Best ${prefs.unit}</small></div>
-      <div class="stat"><div class="num">${fmt(bestE)}</div><small>Best est. 1RM</small></div>
-      <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>` : "";
-    $("#prog-empty").hidden = days.length>0;
-    $("#prog-empty").textContent = "Log this exercise on at least one day to see a chart.";
-    const color = {top:css("--red"), e1rm:css("--blue"), vol:css("--yellow"), reps:css("--green")}[metric];
-    const isBar = metric==="vol" || metric==="reps";
+    const cardio = list.length>0 && list.every(isCardio);
+    const dayLabel = d=>new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    let metrics, days, series, color, isBar, unitLabel, reverse=false, digits=1;
+    if(cardio){
+      const T = cardioTypeOf(list[0].exercise), du = prefs.unit==="kg"?"km":"mi";
+      const distU = (T==="rower"||T==="skierg") ? "m" : T==="swim" ? (prefs.unit==="kg"?"m":"yd") : du;
+      const paceName = (T==="rower"||T==="skierg") ? "Split /500 m" : (T==="bike"||T==="airbike") ? "Speed" : T==="swim" ? `Pace /100 ${distU}` : `Pace /${du}`;
+      const byDay = new Map();
+      list.forEach(e=>{ const d = byDay.get(e.date) || {min:0, dist:0, cal:0, distMin:0, wattsMin:0, watts:0};
+        d.min += e.minutes||0; const k=countedKcal(e); if(k!=null) d.cal += k;
+        if(e.distance>0){ d.dist += toMeters(e.distance,e.distUnit)/toMeters(1,distU); d.distMin += e.minutes; }
+        const x=e.extra||{}; if(x.splitSec>0 && !(e.distance>0)){ d.splitSum=(d.splitSum||0)+x.splitSec*e.minutes; d.splitMin=(d.splitMin||0)+e.minutes; }
+        byDay.set(e.date,d); });
+      days = [...byDay.keys()];
+      const pts = days.map(d=>byDay.get(d));
+      const paceOf = p => {
+        if(T==="rower"||T==="skierg"){ if(p.dist>0) return p.distMin*60/(p.dist/500); return p.splitMin ? p.splitSum/p.splitMin : null; }
+        if(!(p.dist>0)) return null;
+        if(T==="bike"||T==="airbike") return p.dist/(p.distMin/60);
+        if(T==="swim") return p.distMin*60/(p.dist/100);
+        return p.distMin/p.dist; // minutes per mile/km
+      };
+      metrics = [["min","Duration"],["dist","Distance"],["pace",paceName],["cal","Calories"]];
+      if(!metrics.some(m=>m[0]===metric)) metric="min";
+      series = pts.map(p=> metric==="pace" ? paceOf(p) : p[metric]);
+      color = {min:css("--blue"), dist:css("--green"), pace:css("--red"), cal:css("--yellow")}[metric];
+      isBar = metric==="min" || metric==="cal" || metric==="dist";
+      reverse = metric==="pace" && !(T==="bike"||T==="airbike");
+      unitLabel = {min:"min", dist:distU, cal:"cal", pace:(T==="bike"||T==="airbike")?(du==="km"?"km/h":"mph"):""}[metric];
+      const totalMin = pts.reduce((a,p)=>a+p.min,0), totalDist = pts.reduce((a,p)=>a+p.dist,0);
+      $("#prog-stats").innerHTML = `
+        <div class="stat"><div class="num">${Math.round(Math.max(...pts.map(p=>p.min)))}</div><small>Longest (min)</small></div>
+        <div class="stat"><div class="num">${totalDist>0?fmtBig(totalDist):"—"}</div><small>Total ${distU}</small></div>
+        <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>`;
+      $("#prog-empty").hidden = series.some(v=>v!=null && v>0);
+      $("#prog-empty").textContent = metric==="pace"||metric==="dist" ? "Log distance (or split/speed) to see this chart." : metric==="cal" ? "Add your body weight on the Log tab to see calories." : "Log this exercise to see a chart.";
+    } else {
+      const byDay = new Map();
+      list.forEach(e=>{
+        const w = toUnit(e.weight,e.unit);
+        const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0};
+        d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += w*e.reps; d.reps += e.reps;
+        byDay.set(e.date,d);
+      });
+      days = [...byDay.keys()];
+      const pts = days.map(d=>byDay.get(d));
+      metrics = STR_METRICS;
+      if(!metrics.some(m=>m[0]===metric)) metric="top";
+      series = pts.map(p=>p[metric]);
+      const best = pts.reduce((m,p)=>Math.max(m,p.top),0), bestE = pts.reduce((m,p)=>Math.max(m,p.e1rm),0);
+      $("#prog-stats").innerHTML = list.length ? `
+        <div class="stat"><div class="num">${fmt(best)}</div><small>Best ${prefs.unit}</small></div>
+        <div class="stat"><div class="num">${fmt(bestE)}</div><small>Best est. 1RM</small></div>
+        <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>` : "";
+      $("#prog-empty").hidden = days.length>0;
+      $("#prog-empty").textContent = "Log this exercise on at least one day to see a chart.";
+      color = {top:css("--red"), e1rm:css("--blue"), vol:css("--yellow"), reps:css("--green")}[metric];
+      isBar = metric==="vol" || metric==="reps";
+      unitLabel = metric==="reps" ? "" : prefs.unit;
+    }
+    $("#metric-seg").innerHTML = metrics.map(([k,l])=>`<button data-metric="${k}" aria-pressed="${k===metric}">${l}</button>`).join("");
+    const label = metrics.find(m=>m[0]===metric)[1];
+    const isTime = cardio && metric==="pace" && unitLabel==="";
+    const show = v => isTime ? mmss(v*( /\/500|\/100/.test(label) ? 1 : 60)) : fmt(v);
     if(exChart) exChart.destroy();
     exChart = new Chart($("#ex-chart"),{
       type: isBar?"bar":"line",
-      data:{labels:days.map(d=>new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})),
-        datasets:[{label:metricLabel[metric], data:pts.map(p=>Math.round(p[metric]*10)/10), borderColor:color, backgroundColor:isBar?color:color+"33", fill:!isBar, tension:.25, pointRadius:4, pointBackgroundColor:color, borderWidth:isBar?0:3, borderRadius:6}]},
+      data:{labels:days.map(dayLabel),
+        datasets:[{label, data:series.map(v=>v==null?null:Math.round(v*100)/100), borderColor:color, backgroundColor:isBar?color:color+"33", fill:!isBar, tension:.25, pointRadius:4, pointBackgroundColor:color, borderWidth:isBar?0:3, borderRadius:6, spanGaps:true}]},
       options:{responsive:true, maintainAspectRatio:false, animation:matchMedia("(prefers-reduced-motion: reduce)").matches?false:{duration:400},
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${metricLabel[metric]}: ${fmt(c.parsed.y)}${metric==="reps"?"":" "+prefs.unit}`}}},
-        scales:{y:{beginAtZero:isBar, grid:{color:css("--line")}}, x:{grid:{display:false}}}}
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${label}: ${show(c.parsed.y)}${unitLabel?" "+unitLabel:""}${reverse?" (lower is faster)":""}`}}},
+        scales:{y:{beginAtZero:isBar, reverse, grid:{color:css("--line")}, ticks:{callback:v=>show(v)}}, x:{grid:{display:false}}}}
     });
     renderWeekly();
   }
+
 
   function weekStart(iso){ const d=new Date(iso+"T00:00:00"); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d; }
   function isoOf(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
@@ -838,26 +1879,39 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
         labels.push(d.toLocaleDateString(undefined,{month:"short"})); titles.push(d.toLocaleDateString(undefined,{month:"long",year:"numeric"})); }
       keyOf = e=>e.date.slice(0,7);
     }
-    const totals = keys.map(()=>0), days = new Set();
-    entries.forEach(e=>{ const i = keys.indexOf(keyOf(e)); if(i>=0){ totals[i] += toUnit(e.weight,e.unit)*e.reps; days.add(e.date); } });
-    const sum = totals.reduce((a,b)=>a+b,0);
-    $("#range-total").textContent = sum ? `${Math.round(sum).toLocaleString()} ${prefs.unit} lifted across ${days.size} workout day${days.size===1?"":"s"}` : "No sets logged in this range yet.";
+    const totals = keys.map(()=>0), cals = keys.map(()=>0), mins = keys.map(()=>0), days = new Set();
+    entries.forEach(e=>{ const i = keys.indexOf(keyOf(e)); if(i<0) return; days.add(e.date);
+      if(isCardio(e)) mins[i] += e.minutes||0; else totals[i] += toUnit(e.weight,e.unit)*e.reps; });
+    days.forEach(d=>{ const i = keys.indexOf(keyOf({date:d})); const k = dayTotalCalories(d); if(i>=0 && k!=null) cals[i] += k; });
+    const sum = totals.reduce((a,b)=>a+b,0), calSum = cals.reduce((a,b)=>a+b,0), minSum = mins.reduce((a,b)=>a+b,0);
+    const parts = [];
+    if(sum) parts.push(`${Math.round(sum).toLocaleString()} ${prefs.unit} lifted`);
+    if(minSum) parts.push(`${Math.round(minSum).toLocaleString()} cardio min`);
+    if(calSum) parts.push(`≈ ${Math.round(calSum).toLocaleString()} calories`);
+    $("#range-total").textContent = !days.size ? "Nothing logged in this range yet." :
+      parts.join(" · ") + ` across ${days.size} workout day${days.size===1?"":"s"}` +
+      (tot==="cal" && !(settings.bw>0) ? ". Add your body weight under Day total on the Log tab to see calories." : "");
+    const showCal = tot==="cal", showMin = tot==="min";
     if(wkChart) wkChart.destroy();
     wkChart = new Chart($("#week-chart"),{
       type:"bar",
-      data:{labels, datasets:[{label:"Volume", data:totals.map(v=>Math.round(v)), backgroundColor:css("--blue"), borderRadius:5}]},
+      data:{labels, datasets:[{label: showCal?"Calories":showMin?"Cardio minutes":"Volume", data:(showCal?cals:showMin?mins:totals).map(v=>Math.round(v)), backgroundColor:css(showCal?"--yellow":showMin?"--green":"--blue"), borderRadius:5}]},
       options:{responsive:true, maintainAspectRatio:false, animation:matchMedia("(prefers-reduced-motion: reduce)").matches?false:{duration:400},
-        plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>titles[c[0].dataIndex], label:c=>`${c.parsed.y.toLocaleString()} ${prefs.unit} lifted`}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>titles[c[0].dataIndex], label:c=> showCal ? `≈ ${c.parsed.y.toLocaleString()} calories` : showMin ? `${c.parsed.y.toLocaleString()} cardio minutes` : `${c.parsed.y.toLocaleString()} ${prefs.unit} lifted`}}},
         scales:{y:{beginAtZero:true, grid:{color:css("--line")}}, x:{grid:{display:false}}}}
     });
   }
 
 
   $("#prog-ex").addEventListener("change", renderProgress);
-  document.querySelectorAll("#metric-seg button").forEach(b=>b.onclick=()=>{
-    metric=b.dataset.metric;
-    document.querySelectorAll("#metric-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
-    renderProgress();
+  $("#metric-seg").addEventListener("click", e=>{
+    const b=e.target.closest("[data-metric]"); if(!b) return;
+    metric=b.dataset.metric; renderProgress();
+  });
+  document.querySelectorAll("#tot-seg button").forEach(b=>b.onclick=()=>{
+    tot=b.dataset.tot;
+    document.querySelectorAll("#tot-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    renderWeekly();
   });
   document.querySelectorAll("#range-seg button").forEach(b=>b.onclick=()=>{
     range=b.dataset.range;
@@ -880,6 +1934,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 
   applyUnit();
   renderAll();
+  applyFormKind();
 })();
 </script>
 </body>
