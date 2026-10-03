@@ -103,6 +103,18 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .set .x{color:var(--muted)}
 .set .note{color:var(--muted);font-size:.88rem;flex:1;min-width:0;overflow-wrap:anywhere}
 .del{margin-left:auto;-webkit-appearance:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.85rem;font-weight:600;padding:5px 10px;border-radius:8px;flex:none}
+.edit{margin-left:auto;-webkit-appearance:none;appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--blue);font-size:.85rem;font-weight:600;padding:5px 10px;border-radius:8px;flex:none}
+.edit + .del{margin-left:6px}
+.edit-box{background:var(--field);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;padding:12px;margin:6px 0}
+.edit-box h4{margin:0 0 8px;font-family:"Barlow Condensed",sans-serif;font-size:1.1rem;font-weight:600}
+.edit-box .eq-grid input,.edit-box .eq-grid select{background:var(--surface);padding:10px;font-size:1rem}
+.edit-steps{display:grid;gap:6px;margin-top:10px}
+.edit-step{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;align-items:center}
+.edit-step input{background:var(--surface);text-align:center;padding:8px 4px;font-size:1.05rem}
+.edit-step .rm{height:40px;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--muted);padding:0}
+.edit-actions{display:flex;gap:8px;margin-top:12px}
+.edit-actions .primary{padding:10px;font-size:1rem}
+.edit-actions .secondary{padding:10px 14px}
 .del:hover,.del:active{color:var(--red);border-color:var(--red)}
 .day-date{font-family:"Barlow Condensed",sans-serif;font-size:1.3rem;font-weight:600;margin:0 0 8px}
 .empty{color:var(--muted);text-align:center;padding:24px 8px}
@@ -389,6 +401,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 
   const store = {
     async add(list){ entries.push(...list); saveLocal(); renderAll(); },
+    async put(list){ const m=new Map(list.map(e=>[e.id,e])); entries = entries.map(e=>m.get(e.id)||e); saveLocal(); renderAll(); },
     async remove(id){ return this.removeMany([id]); },
     async removeMany(ids){ const set=new Set(ids); entries = entries.filter(e=>!set.has(e.id)); saveLocal(); renderAll(); }
   };
@@ -848,6 +861,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   }
   const distText = e => e.distance>0 ? `${fmt(e.distance)} ${e.distUnit}` : "";
   function cardioRow(e){
+    if(editing===e.id) return editCardioHTML(e);
     const x=e.extra||{}, bits=[];
     if(x.speed>0) bits.push(`${fmt(x.speed)} ${x.speedUnit==="kmh"?"km/h":"mph"}`);
     if(x.incline>0) bits.push(`${fmt(x.incline)}% incline`);
@@ -865,7 +879,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const main = [fmtMin(e.minutes), distText(e), paceText(e), cap(e.effort||"moderate")].filter(Boolean).join(" · ");
     return `<div class="set cardio-row"><span class="note" style="color:var(--ink);font-size:1rem"><span class="num">${esc(main)}</span> ${kcText}
       ${bits.length?`<span class="cardio-meta">${esc(bits.join(" · "))}</span>`:""}${machine?`<span class="cardio-meta">${esc(machine)}</span>`:""}${e.note?`<span class="cardio-meta">${esc(e.note)}</span>`:""}</span>
-      <button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
+      <button class="edit" data-edit="${esc(e.id)}" aria-label="Edit cardio entry">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
   }
   async function saveCardio(exercise){
     if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); return; }
@@ -916,17 +930,136 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   }
 
   // ---------- renderers ----------
+  // ---------- editing logged entries ----------
+  let editing = null; // entry id, or chain id for drop sets
+  const fld = (label, key, val, attrs) => `<div><label class="lbl">${label}</label><input data-ef="${key}" ${attrs||'type="text"'} value="${esc(val??"")}"></div>`;
+  const editActions = id => `<div class="edit-actions"><button class="primary" data-edit-save="${esc(id)}">Save changes</button><button class="secondary" data-edit-cancel>Cancel</button></div>`;
+  function editSetHTML(e){
+    return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}"><h4>Edit set</h4><div class="eq-grid">
+      ${fld("Exercise","exercise",e.exercise)}
+      ${fld("Date","date",e.date,'type="date"')}
+      ${fld(`Weight (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
+      ${fld("Reps","reps",e.reps,'type="number" inputmode="numeric" min="1" step="1"')}
+      ${fld("Note","note",e.note)}
+    </div>${editActions(e.id)}</div>`;
+  }
+  function editChainHTML(c){
+    const steps = c.map((e,i)=>`<div class="edit-step" data-step-id="${esc(e.id)}"><span class="idx">${i+1}</span>
+      <input data-sf="weight" type="number" inputmode="decimal" min="0" step="any" value="${fmt(toUnit(e.weight,e.unit))}" aria-label="Step ${i+1} weight">
+      <input data-sf="reps" type="number" inputmode="numeric" min="1" step="1" value="${e.reps}" aria-label="Step ${i+1} reps">
+      <button class="rm" data-step-rm aria-label="Remove step ${i+1}">×</button></div>`).join("");
+    return `<div class="edit-box" data-edit-kind="chain" data-id="${esc(c[0].chain)}"><h4>Edit drop set</h4><div class="eq-grid">
+      ${fld("Exercise","exercise",c[0].exercise)}
+      ${fld("Date","date",c[0].date,'type="date"')}
+      ${fld("Note","note",c[0].note)}
+    </div>
+    <div class="drop-head" style="margin-top:10px;grid-template-columns:20px 1fr 1fr 34px"><span>#</span><span>Weight (${prefs.unit})</span><span>Reps</span><span></span></div>
+    <div class="edit-steps">${steps}</div>
+    <label class="check"><input type="checkbox" data-ef="failure" ${c[c.length-1].failure?"checked":""}> Last set taken to failure</label>
+    ${editActions(c[0].chain)}</div>`;
+  }
+  function editCardioHTML(e){
+    const T = cardioTypeOf(e.exercise), x = e.extra||{};
+    const extras = (CARDIO_FIELDS[T]||[]).map(f=>{
+      let v = f.k==="split" ? (x.splitSec>0 ? mmss(x.splitSec) : "") : (x[f.k] ?? "");
+      const lab = f.k==="speed" ? `Speed (${x.speedUnit==="kmh"?"km/h":x.speedUnit==="mph"?"mph":spdU()})` : f.label();
+      return `<div><label class="lbl">${lab}</label><input data-ex="${f.k}" type="${f.text?"text":"number"}" ${f.text?'inputmode="numeric"':'inputmode="decimal" min="0" step="any"'} placeholder="${esc(f.ph||"")}" value="${esc(v)}"></div>`;
+    }).join("");
+    const du = e.distUnit || distUnitFor(T);
+    return `<div class="edit-box" data-edit-kind="cardio" data-id="${esc(e.id)}"><h4>Edit cardio</h4><div class="eq-grid">
+      ${fld("Exercise","exercise",e.exercise)}
+      ${fld("Date","date",e.date,'type="date"')}
+      ${fld("Duration (min)","minutes",fmt(e.minutes),'type="number" inputmode="decimal" min="0" step="any"')}
+      ${fld(`Distance (${du})`,"distance",e.distance>0?fmt(e.distance):"",'type="number" inputmode="decimal" min="0" step="any"')}
+      <div><label class="lbl">Effort</label><select data-ef="effort">${["easy","moderate","hard"].map(l=>`<option value="${l}" ${(e.effort||"moderate")===l?"selected":""}>${cap(l)}</option>`).join("")}</select></div>
+      ${extras}
+      ${fld("Avg heart rate (bpm)","hr",e.hr||"",'type="number" inputmode="numeric" min="0" step="1"')}
+      ${fld("Machine / watch calories","mk",e.machineKcal||"",'type="number" inputmode="numeric" min="0" step="1"')}
+      ${fld("Note","note",e.note)}
+    </div><label class="check"><input type="checkbox" data-ef="use" ${e.useMachine?"checked":""}> Count the machine's calories in my totals</label>
+    ${editActions(e.id)}</div>`;
+  }
+  const canonName = name => { const n=name.trim().replace(/\s+/g," "); return exercisesByRecent().find(x=>x.toLowerCase()===n.toLowerCase()) || n; };
+  async function saveEdit(box){
+    const kind = box.dataset.editKind, id = box.dataset.id;
+    const val = k => { const i = box.querySelector(`[data-ef="${k}"]`); return i ? (i.type==="checkbox" ? i.checked : i.value.trim()) : ""; };
+    const bad = msg => { alert(msg); return null; };
+    const exercise = canonName(val("exercise")), date = val("date");
+    if(!exercise) return bad("Enter an exercise name.");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return bad("Choose a date.");
+    const renamed = list => list[0].exercise.toLowerCase()!==exercise.toLowerCase();
+    const newMuscle = old => isCardio(old) ? "Cardio" : (renamed([old]) ? groupOf(exercise) : old.muscle);
+    let updates = [], removed = [];
+    if(kind==="set"){
+      const old = entries.find(e=>e.id===id); if(!old) return;
+      const weight = parseFloat(val("weight")), reps = parseInt(val("reps"),10);
+      if(!(weight>=0)) return bad("Weight must be 0 or more.");
+      if(!(reps>=1)) return bad("Reps must be at least 1.");
+      updates = [Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), muscle:newMuscle(old)})];
+    } else if(kind==="chain"){
+      const olds = entries.filter(e=>e.chain===id).sort((a,b)=>a.step-b.step); if(!olds.length) return;
+      const rows = [...box.querySelectorAll("[data-step-id]")];
+      if(!rows.length) return bad("A drop set needs at least one step. Use Delete to remove it entirely.");
+      const keep = new Set(rows.map(r=>r.dataset.stepId));
+      removed = olds.filter(e=>!keep.has(e.id)).map(e=>e.id);
+      const fail = val("failure");
+      for(let i=0;i<rows.length;i++){
+        const r = rows[i], old = olds.find(e=>e.id===r.dataset.stepId);
+        const weight = parseFloat(r.querySelector('[data-sf="weight"]').value), reps = parseInt(r.querySelector('[data-sf="reps"]').value,10);
+        if(!(weight>=0) || !(reps>=1)) return bad(`Check step ${i+1}: weight 0 or more, reps at least 1.`);
+        updates.push(Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, step:i, note:val("note"), failure: !!fail && i===rows.length-1, muscle:newMuscle(old)}));
+      }
+    } else {
+      const old = entries.find(e=>e.id===id); if(!old) return;
+      const minutes = parseFloat(val("minutes"));
+      if(!(minutes>0)) return bad("Duration must be more than 0 minutes.");
+      const e = Object.assign({}, old, {exercise, date, minutes, effort:val("effort")||"moderate", note:val("note")});
+      const T = cardioTypeOf(exercise);
+      const d = parseFloat(val("distance"));
+      if(d>0){ e.distance=d; e.distUnit = old.distUnit || distUnitFor(T); } else { delete e.distance; delete e.distUnit; }
+      const hr = parseFloat(val("hr")); if(hr>0) e.hr=hr; else delete e.hr;
+      const mk = parseFloat(val("mk")); if(mk>0){ e.machineKcal=mk; e.useMachine=!!val("use"); } else { delete e.machineKcal; delete e.useMachine; }
+      const x = {};
+      box.querySelectorAll("[data-ex]").forEach(i=>{
+        const k=i.dataset.ex;
+        if(k==="split"){ const sp=parseSplit(i.value); if(sp) x.splitSec=sp; return; }
+        const n=parseFloat(i.value); if(n>0) x[k]=n;
+      });
+      if(x.speed) x.speedUnit = (old.extra&&old.extra.speedUnit) || (prefs.unit==="kg"?"kmh":"mph");
+      if(Object.keys(x).length) e.extra=x; else delete e.extra;
+      updates=[e];
+    }
+    try{
+      if(removed.length) await store.removeMany(removed);
+      editing = null;
+      await store.put(updates);
+      renderAll();
+    }catch(err){ alert("Couldn't save those changes. Try again."); }
+  }
+  document.addEventListener("click", e=>{
+    const ed = e.target.closest("[data-edit]");
+    if(ed){ editing = ed.dataset.edit; renderDay(); renderHistory(); return; }
+    if(e.target.closest("[data-edit-cancel]")){ editing = null; renderDay(); renderHistory(); return; }
+    const sv = e.target.closest("[data-edit-save]");
+    if(sv){ saveEdit(sv.closest(".edit-box")); return; }
+    const rm = e.target.closest("[data-step-rm]");
+    if(rm){ const box = rm.closest(".edit-box"); rm.closest(".edit-step").remove();
+      box.querySelectorAll(".edit-step .idx").forEach((s,i)=>s.textContent=i+1); }
+  });
+
   function setRow(e){
+    if(editing===e.id) return editSetHTML(e);
     const w = toUnit(e.weight, e.unit);
-    return `<div class="set"><span class="num">${fmt(w)}<span class="x"> ${prefs.unit} × </span>${e.reps}</span>${(e.note||e.equip)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
+    return `<div class="set"><span class="num">${fmt(w)}<span class="x"> ${prefs.unit} × </span>${e.reps}</span>${(e.note||e.equip)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
   }
   function chainRow(c){
+    if(editing===c[0].chain) return editChainHTML(c);
     const ws = c.map(e=>toUnit(e.weight,e.unit)), peak = Math.max(...ws);
     const up = ws.some((w,i)=>i>0 && w>ws[i-1]);
     const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${ws[i]===peak?"peak":""}">${fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
     const eqt = equipText(c[0]);
     const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
-    return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
+    return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
   }
   // ---------- calorie estimate (MET method) ----------
   // Approximate published activity ratings for weight training.
