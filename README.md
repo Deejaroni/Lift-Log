@@ -17,7 +17,9 @@ Tap **Export CSV** (bottom of the app) now and then and save the file somewhere 
 
 Tip: on iPhone, the home-screen app and Safari keep separate data — log from the home-screen icon.
 
-## Updating the app
+## How to use it
 
-Edit the files, then open `sw.js` and change `VERSION` (e.g. `liftlog-v2`) before re-uploading.
-Users get the new version the next time they open the app with a connection. Their data is untouched.
+Start by selecting cardio (if doing cardio) or a muscle group; the app format changes depending on selections.
+Either use the search bar for the exercise or lift, or select from the dropdown
+Work out
+Hit the "Log Set" to finalize it
