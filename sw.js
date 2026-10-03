@@ -1,6 +1,6 @@
 // Lift Log service worker: caches the app so it works offline.
 // When you change any file, bump VERSION so users get the update.
-const VERSION = "liftlog-v16";
+const VERSION = "liftlog-v18";
 const FILES = [
   "./", "index.html", "manifest.webmanifest", "vendor/chart.umd.min.js",
   "fonts/barlow-latin-400-normal.woff2", "fonts/barlow-latin-500-normal.woff2", "fonts/barlow-latin-600-normal.woff2",

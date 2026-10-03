@@ -265,7 +265,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 
       <div class="steppers" id="straight-wrap">
         <div class="stepper w">
-          <label class="lbl" for="weight">Weight <span class="num-unit" id="w-unit">lb</span></label>
+          <label class="lbl" for="weight"><span id="w-label">Weight</span> <span class="num-unit" id="w-unit">lb</span></label>
           <input id="weight" type="number" inputmode="decimal" min="0" step="any" value="0">
           <div class="btns"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
         </div>
@@ -301,6 +301,11 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
           <button type="button" data-effort="hard" aria-pressed="false">Hard</button>
         </div>
         <div id="cardio-details"></div>
+      </div>
+
+      <div id="bw-today-wrap" hidden style="margin-top:14px">
+        <label class="lbl" for="bw-today">Your body weight today</label>
+        <div class="cal-bw" style="margin-top:0"><input type="number" id="bw-today" inputmode="decimal" min="0" step="any" placeholder="Body weight"><span id="bw-today-unit">lb</span></div>
       </div>
 
       <div class="equip">
@@ -388,9 +393,28 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 
   // ---------- personal settings: body weight + per-day calorie adjustments ----------
   const SET_KEY = "liftlog.settings.v1";
-  let settings = {bw:null, bwUnit:"lb", days:{}};
+  let settings = {bw:null, bwUnit:"lb", days:{}, bwLog:{}};
   try { settings = Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY)||"{}")); } catch(e){}
   if(!settings.days || typeof settings.days!=="object") settings.days = {};
+  if(!settings.bwLog || typeof settings.bwLog!=="object") settings.bwLog = {};
+  // Body weight for a given day: that day's entry, else the latest earlier one, else the general setting.
+  function bwEntryOn(date){
+    const log = settings.bwLog || {};
+    const ds = Object.keys(log).filter(d=>log[d] && log[d].w>0).sort();
+    const before = ds.filter(d=>d<=date);
+    if(before.length){ const r=log[before[before.length-1]]; return {w:r.w, unit:r.unit||"lb", date:before[before.length-1]}; }
+    if(settings.bw>0) return {w:settings.bw, unit:settings.bwUnit||"lb", date:null};
+    if(ds.length){ const r=log[ds[0]]; return {w:r.w, unit:r.unit||"lb", date:ds[0]}; }
+    return null;
+  }
+  const bwKgOn = date => { const r=bwEntryOn(date); return r ? (r.unit==="kg" ? r.w : r.w*KG_PER_LB) : null; };
+  const hasBW = date => bwKgOn(date)!=null;
+  function recordBW(date, n){
+    settings.bwLog = settings.bwLog || {};
+    settings.bwLog[date] = {w:n, unit:prefs.unit};
+    const latest = Object.keys(settings.bwLog).sort().pop();
+    if(date>=latest){ settings.bw = n; settings.bwUnit = prefs.unit; }
+  }
   async function saveSettings(){
     try{ localStorage.setItem(SET_KEY, JSON.stringify(settings)); }catch(e){}
     if(typeof col!=="undefined" && col && typeof backend!=="undefined" && backend==="db"){
@@ -520,6 +544,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     Object.values(equipState).forEach(st=>{ const n=parseFloat(st.vals && st.vals.bar); if(n>=0) st.vals.bar=fmt(toUnit(n,old)); });
     renderEquipFields();
     if(isCardioForm()){ const v=readCardioVals(); renderCardioDetails(cardioTypeOf($("#exercise").value), v); }
+    { const b=parseFloat($("#bw-today").value); if(b>0) $("#bw-today").value = fmt(toUnit(b, old)); }
     readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); if(mode==="drop") renderDropRows();
     renderAll();
   });
@@ -568,7 +593,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   function renderDropRows(){
     const peak = dropRows.reduce((m,r,i)=> (parseFloat(r.weight)||0) > (parseFloat(dropRows[m]?.weight)||0) ? i : m, 0);
     const cell = (f,i,val,attrs,label)=>`<div class="dcell"><button type="button" data-dstep="${f}" data-dir="-1" aria-label="Decrease set ${i+1} ${label}">−</button><input data-f="${f}" type="number" ${attrs} value="${esc(val)}" aria-label="Set ${i+1} ${label}"><button type="button" data-dstep="${f}" data-dir="1" aria-label="Increase set ${i+1} ${label}">+</button></div>`;
-    $("#drop-rows").innerHTML = `<div class="drop-head"><span>#</span><span>Weight (${prefs.unit})</span><span>Reps</span><span></span></div>` +
+    $("#drop-rows").innerHTML = `<div class="drop-head"><span>#</span><span>${(typeof isBWForm==="function" && isBWForm())?"Added":"Weight"} (${prefs.unit})</span><span>Reps</span><span></span></div>` +
       dropRows.map((r,i)=>`<div class="drop-row${i===peak&&dropRows.length>1?" peak":""}">
         <span class="idx">${i+1}</span>
         ${cell("w",i,r.weight,'inputmode="decimal" min="0" step="any"',"weight")}
@@ -638,12 +663,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const name = existing || exercise;
     const note = $("#note").value.trim();
     const base = Date.now();
-    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ts:base+i}));
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ts:base+i}));
+    rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
       flash(`Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`);
-      $("#note").value=""; $("#sets").value=1;
+      resetForm();
     }catch(e){ flash("Couldn't save that set. Try again.", true); }
     btn.disabled=false;
   };
@@ -652,7 +678,9 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   // For an exercise you haven't logged yet, switch on the likely equipment from its name.
   function suggestEquip(name){
     const n = (name||"").toLowerCase(), eq = {};
-    if(/smith/.test(n)) eq.smith = {};
+    if(/kettlebell|turkish get-up|renegade row/.test(n)) eq.kb = {count: /double/.test(n) ? "Two kettlebells" : "One kettlebell"};
+    else if(BW_NAMES.has(n)) eq.bw = {};
+    else if(/smith/.test(n)) eq.smith = {};
     else if(/plate-loaded|t-bar|hammer row|hammer-style|leverage|pendulum|hack squat|v-squat|belt squat|glute drive|leg press/.test(n)) eq.plate = {};
     else if(/cable|pushdown|face pull|straight-arm|lat pulldown|pulldown|pull-through|pallof|woodchop|cable chop/.test(n)){
       const a = /rope/.test(n) ? "Rope pulldown" : /v-bar/.test(n) ? "V bar" : /straight.?bar|bar straight/.test(n) ? "Straight bar" : /ez/.test(n) ? "EZ bar" : null;
@@ -663,7 +691,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     else if(/barbell|ez-bar|bench press|deadlift|\brdl\b|squat|pendlay|yates|seal row|snatch|good morning|overhead press|skull crusher|drag curl|shrug|hip thrust|glute bridge/.test(n))
       eq.barbell = /ez-bar/.test(n) ? {type:"EZ bar"} : /trap bar/.test(n) ? {type:"Trap bar"} : {type:"Straight bar"};
     const key = Object.keys(eq)[0];
-    if(key && key!=="barbell"){
+    if(key && key!=="barbell" && key!=="bw"){
       if(/single-arm|single-leg|one-arm|one-leg|unilateral|single arm|single leg/.test(n)) eq[key].side = "One side (unilateral)";
       else eq[key].side = "Both sides";
     }
@@ -676,6 +704,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"db",      label:"Dumbbells",        fields:[{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per hand",check:true}]},
+    {key:"kb",      label:"Kettlebell",       fields:[{k:"count",label:"Bells",options:["One kettlebell","Two kettlebells"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per bell",check:true}]},
+    {key:"bw",      label:"Bodyweight",       fields:[], info:"The weight box now means added weight (vest, belt or held weight). Leave it at 0 for plain bodyweight. Your body weight for the day is used for calories."},
     {key:"band",    label:"Band / assist",    fields:[{k:"level",label:"Band color or level",ph:"Red, heavy"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
   ];
   let equipState = {};
@@ -695,6 +725,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
         const lbl = fd.num ? `${fd.label} (${prefs.unit})` : fd.label;
         return `<div><label class="lbl" for="${id}">${lbl}</label><input id="${id}" type="${fd.num?"number":"text"}" ${fd.num?'inputmode="decimal" min="0" step="any"':""} ${fd.brand?'list="brand-list" autocomplete="off"':""} placeholder="${esc(fd.ph||"")}" data-eqk="${q.key}" data-eqf="${fd.k}" value="${esc(v[fd.k]??"")}"></div>`;
       }).join("");
+      if(!q.fields.length) return `<div class="eq-fields"><h4>${q.label}</h4><p class="cal-sub" style="margin:0">${q.info||""}</p></div>`;
       return `<div class="eq-fields"><h4>${q.label}</h4><div class="eq-grid">${f}</div></div>`;
     }).join("");
   }
@@ -702,7 +733,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const k = e.target.dataset.eq; if(!k) return;
     equipState[k] = equipState[k] || {vals:{}};
     equipState[k].on = e.target.checked;
-    renderEquipFields();
+    renderEquipFields(); updateBWForm();
     if(e.target.checked){ const f=document.querySelector(`#equip-fields [data-eqk="${k}"]`); if(f) f.focus(); }
   });
   $("#equip-fields").addEventListener("input", e=>{
@@ -732,6 +763,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       equipState[k] = {on:true, vals};
     });
     renderEquipToggles(); renderEquipFields();
+    if(typeof updateBWForm==="function") updateBWForm();
   }
   function equipText(e){
     if(!e.equip) return "";
@@ -740,6 +772,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       if(o.type) parts.push(o.type);
       if(o.brand) parts.push(o.brand);
       if(typeof o.bar==="number") parts.push(`${fmt(toUnit(o.bar,e.unit))} ${prefs.unit} bar`);
+      if(o.count) parts.push(o.count.toLowerCase());
       if(o.attach) parts.push(o.attach);
       if(o.side) parts.push(o.side==="Both sides" ? "both sides" : "one side");
       if(o.seat) parts.push(o.seat);
@@ -788,6 +821,24 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   const parseSplit = v => { v=String(v||"").trim(); if(!v) return null; const m=v.match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/); if(m) return (+m[1])*60+(+m[2]); const n=parseFloat(v); return n>0? n : null; };
   let effort = "moderate";
   function isCardioForm(){ return $("#muscle").value==="Cardio"; }
+  const isBWForm = () => !isCardioForm() && !!(equipState.bw && equipState.bw.on);
+  function updateBWForm(){
+    const on = isBWForm();
+    $("#bw-today-wrap").hidden = !on;
+    $("#w-label").textContent = on ? "Added weight" : "Weight";
+    $("#bw-today-unit").textContent = prefs.unit;
+    const inp = $("#bw-today");
+    if(document.activeElement!==inp){ const r = bwEntryOn($("#date").value||today()); inp.value = r ? fmt(toUnit(r.w, r.unit)) : ""; }
+    if(mode==="drop" && !$("#drop-wrap").hidden){ readDropRows(); renderDropRows(); }
+  }
+  function rememberBodyWeight(){
+    if(!isBWForm()) return null;
+    const n = parseFloat($("#bw-today").value); if(!(n>0)) return null;
+    const date = $("#date").value||today(), r = bwEntryOn(date);
+    if(!r || r.date!==date || Math.abs(toUnit(r.w,r.unit)-n)>0.01){ recordBW(date, n); saveSettings(); }
+    return n;
+  }
+  const bwFields = () => { if(!isBWForm()) return {}; const n=parseFloat($("#bw-today").value); return n>0 ? {bodyWeight:n, bodyWeightUnit:prefs.unit} : {}; };
   function applyFormKind(){
     const c = isCardioForm();
     $("#cardio-wrap").hidden = !c;
@@ -797,6 +848,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     $("#straight-wrap").hidden = c || mode==="drop";
     $("#save").textContent = c ? "Log cardio" : (mode==="drop" ? "Log drop set" : "Log set");
     if(c && !$("#cardio-details").dataset.type) renderCardioDetails(cardioTypeOf($("#exercise").value), {});
+    updateBWForm();
   }
   function setEffort(v){ effort = v||"moderate"; document.querySelectorAll("#effort-seg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.effort===effort))); }
   document.querySelectorAll("#effort-seg button").forEach(b=>b.onclick=()=>setEffort(b.dataset.effort));
@@ -843,8 +895,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       if(split>0) watts = 2.80/Math.pow(split/500,3);   // Concept2 pace-to-watts formula
     }
     if(watts) return {kcal: watts*mins*60/1000, method:"from watts"};   // ~1 kcal burned per kJ of work
-    if(!(settings.bw>0)) return null;
-    const kg = settings.bwUnit==="kg" ? settings.bw : settings.bw*KG_PER_LB;
+    const kg = bwKgOn(e.date);
+    if(!kg) return null;
     if(T==="treadmill"||T==="walk"||T==="run"){
       let mpm = null;
       if(x.speed>0) mpm = x.speedUnit==="kmh" ? x.speed*1000/60 : x.speed*1609.344/60;
@@ -890,6 +942,24 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
       ${bits.length?`<span class="cardio-meta">${esc(bits.join(" · "))}</span>`:""}${machine?`<span class="cardio-meta">${esc(machine)}</span>`:""}${e.note?`<span class="cardio-meta">${esc(e.note)}</span>`:""}</span>
       <button class="edit" data-edit="${esc(e.id)}" aria-label="Edit cardio entry">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
   }
+  // After a successful log: back to "All muscle groups" with a blank form (date is kept for backfilling).
+  function resetForm(){
+    $("#group-filter").value = ""; prefs.group = ""; savePrefs();
+    $("#exercise-search").value = "";
+    $("#exercise").value = "";
+    $("#exercise-pick").value = "";
+    $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = false;
+    $("#muscle").value = "Other"; muscleTouched = false;
+    applyEquip({}, prefs.unit);
+    $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
+    mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = "";
+    document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
+    $("#to-failure").checked = true;
+    $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
+    $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
+    renderChips(); applyFormKind();
+  }
+
   async function saveCardio(exercise){
     if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); return; }
     const minutes = parseFloat($("#c-min").value);
@@ -907,12 +977,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     });
     if(x.speed) x.speedUnit = prefs.unit==="kg" ? "kmh" : "mph";
     if(Object.keys(x).length) e.extra = x;
+    rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add([e]);
       const k = countedKcal(e);
       flash(`Logged ${fmtMin(minutes)} — ${name}${k!=null?` (≈ ${Math.round(k)} cal)`:""}`);
-      $("#note").value=""; if($("#cx-mk")) $("#cx-mk").value=""; if($("#cx-use")) $("#cx-use").checked=false;
+      resetForm();
     }catch(err){ flash("Couldn't save that entry. Try again.", true); }
     btn.disabled=false;
   }
@@ -927,13 +998,13 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
     const name = existing || exercise, note = $("#note").value.trim(), date = $("#date").value || today();
     const chain = uid(), base = Date.now(), fail = $("#to-failure").checked;
-    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ts:base+i, chain, step:i, failure: fail && i===rows.length-1}));
+    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ts:base+i, chain, step:i, failure: fail && i===rows.length-1}));
+    rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
       flash(`Logged ${rows.length}-step drop set — ${name}`);
-      $("#note").value="";
-      dropRows=[{weight:fmt(rows[0].weight), reps:rows[0].reps}]; renderDropRows();
+      resetForm();
     }catch(e){ flash("Couldn't save that drop set. Try again.", true); }
     btn.disabled=false;
   }
@@ -947,7 +1018,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}"><h4>Edit set</h4><div class="eq-grid">
       ${fld("Exercise","exercise",e.exercise)}
       ${fld("Date","date",e.date,'type="date"')}
-      ${fld(`Weight (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
+      ${fld(`${e.equip&&e.equip.bw?"Added weight":"Weight"} (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
       ${fld("Reps","reps",e.reps,'type="number" inputmode="numeric" min="1" step="1"')}
       ${fld("Note","note",e.note)}
     </div>${editActions(e.id)}</div>`;
@@ -1059,13 +1130,15 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   function setRow(e){
     if(editing===e.id) return editSetHTML(e);
     const w = toUnit(e.weight, e.unit);
-    return `<div class="set"><span class="num">${fmt(w)}<span class="x"> ${prefs.unit} × </span>${e.reps}</span>${(e.note||e.equip)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
+    const isBW = e.equip && e.equip.bw;
+    const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
+    return `<div class="set"><span class="num">${load}${e.reps}</span>${(e.note||e.equip)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
   }
   function chainRow(c){
     if(editing===c[0].chain) return editChainHTML(c);
     const ws = c.map(e=>toUnit(e.weight,e.unit)), peak = Math.max(...ws);
     const up = ws.some((w,i)=>i>0 && w>ws[i-1]);
-    const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${ws[i]===peak?"peak":""}">${fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
+    const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${ws[i]===peak?"peak":""}">${e.equip&&e.equip.bw ? (ws[i]>0?`BW+${fmt(ws[i])}`:"BW") : fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
     const eqt = equipText(c[0]);
     const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
     return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
@@ -1077,8 +1150,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
   let calOpen = false;
   function dayCalc(date, list){
     list = (list || entries.filter(e=>e.date===date)).filter(e=>!isCardio(e));
-    if(!list.length || !(settings.bw>0)) return null;
-    const kg = settings.bwUnit==="kg" ? settings.bw : settings.bw*KG_PER_LB;
+    const kg = bwKgOn(date);
+    if(!list.length || !kg) return null;
     const o = settings.days[date] || {};
     const ts = list.map(e=>e.ts).filter(t=>typeof t==="number" && t>1e12);
     const sameDay = ts.length>0 && ts.every(t=>isoOf(new Date(t))===date);
@@ -1103,7 +1176,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const date = list[0].date, strength = list.filter(e=>!isCardio(e)), cardio = list.filter(isCardio);
     const bwPrompt = `<p class="cal-sub" style="margin:0">Add your body weight to estimate calories burned.</p>
         <div class="cal-bw"><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" placeholder="Body weight" aria-label="Body weight in ${prefs.unit}"><span>${prefs.unit}</span></div>`;
-    if(!(settings.bw>0) && !cardio.some(e=>countedKcal(e)!=null)) return editable ? `<div class="cal">${bwPrompt}</div>` : "";
+    const bwr = bwEntryOn(date), bwVal = bwr ? fmt(toUnit(bwr.w, bwr.unit)) : "";
+    if(!hasBW(date) && !cardio.some(e=>countedKcal(e)!=null)) return editable ? `<div class="cal">${bwPrompt}</div>` : "";
     const c = strength.length ? dayCalc(date, strength) : null;
     const cardKc = cardio.map(countedKcal).filter(k=>k!=null).reduce((a,b)=>a+b,0);
     const cardMin = cardio.reduce((a,e)=>a+(e.minutes||0),0);
@@ -1118,19 +1192,20 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
         <div><label class="lbl" for="cal-int">Intensity</label><select id="cal-int">
           <option value="" ${c.isAuto?"selected":""}>Auto (${cap(c.autoLvl)})</option>
           ${["light","moderate","vigorous"].map(l=>`<option value="${l}" ${!c.isAuto&&c.lvl===l?"selected":""}>${cap(l)}</option>`).join("")}</select></div>
-        <div><label class="lbl" for="bw-input">Body weight (${prefs.unit}), all days</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${fmt(toUnit(settings.bw, settings.bwUnit))}"></div>
-      </div><p class="cal-sub">Clear the time box to go back to the automatic estimate. Cardio is estimated per entry. All calories are rough estimates.</p></div>`;
+        <div><label class="lbl" for="bw-input">Body weight this day (${prefs.unit})</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${bwVal}"></div>
+      </div><p class="cal-sub">Clear the time box to go back to the automatic estimate. Body weight is saved for this day and carries forward until you change it. Cardio is estimated per entry. All calories are rough estimates.</p></div>`;
     } else if(editable && calOpen && !c){
-      adj = `<div class="eq-fields"><div class="eq-grid"><div><label class="lbl" for="bw-input">Body weight (${prefs.unit}), all days</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${settings.bw>0?fmt(toUnit(settings.bw, settings.bwUnit)):""}"></div></div></div>`;
+      adj = `<div class="eq-fields"><div class="eq-grid"><div><label class="lbl" for="bw-input">Body weight this day (${prefs.unit})</label><input type="number" id="bw-input" inputmode="decimal" min="0" step="any" value="${bwVal}"></div></div></div>`;
     }
     return `<div class="cal"><div class="cal-main"><span class="num">≈ ${Math.round(total).toLocaleString()}</span><span>calories burned</span></div>
       ${lines.map(l=>`<p class="cal-sub">${esc(l)}</p>`).join("")}
-      ${!(settings.bw>0) && editable ? `<div style="margin-top:8px">${bwPrompt}</div>` : ""}
-      ${editable && settings.bw>0 ?`<button class="note-toggle" id="cal-adjust" aria-expanded="${calOpen}">${calOpen?"Done":"Adjust"}</button>${adj}`:""}</div>`;
+      ${bwr && editable ? `<p class="cal-sub">Body weight used: ${bwVal} ${prefs.unit}${bwr.date===date?"":bwr.date?` (from ${niceDate(bwr.date)})`:""}</p>` : ""}
+      ${!hasBW(date) && editable ? `<div style="margin-top:8px">${bwPrompt}</div>` : ""}
+      ${editable && hasBW(date) ?`<button class="note-toggle" id="cal-adjust" aria-expanded="${calOpen}">${calOpen?"Done":"Adjust"}</button>${adj}`:""}</div>`;
   }
   document.addEventListener("change", e=>{
     const t = e.target, date = $("#date").value || today();
-    if(t.id==="bw-input"){ const n=parseFloat(t.value); settings.bw = n>0 ? n : null; settings.bwUnit = prefs.unit; saveSettings(); }
+    if(t.id==="bw-input"){ const n=parseFloat(t.value); if(n>0) recordBW(date, n); else if(settings.bwLog) delete settings.bwLog[date]; saveSettings(); }
     else if(t.id==="cal-min"){ const n=parseInt(t.value,10); settings.days[date] = Object.assign({}, settings.days[date], {min: n>0 ? n : null}); saveSettings(); }
     else if(t.id==="cal-int"){ settings.days[date] = Object.assign({}, settings.days[date], {int: t.value || null}); saveSettings(); }
   });
@@ -1176,7 +1251,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
     const list = sorted().filter(e=>e.date===d);
     $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
   }
-  $("#date").addEventListener("change", renderDay);
+  $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); });
 
   // ---------- muscle groups & exercise dropdown ----------
   const MUSCLES = ["Cardio","Chest","Back","Shoulders","Biceps","Triceps","Quadriceps","Hamstrings","Glutes","Calves","Abdominals","Lower back","Forearms","Full body","Other"];
@@ -1749,10 +1824,147 @@ Barbell holds
 Plate pinch
 Plate holds
 Dead hangs
-Towel hangs`;
+Towel hangs
+# Full body
+## Kettlebell
+Kettlebell swing — two-hand
+Kettlebell swing — single-arm
+American kettlebell swing
+Kettlebell clean
+Double kettlebell clean
+Kettlebell snatch
+Kettlebell clean and press
+Kettlebell thruster
+Turkish get-up
+## Bodyweight
+Burpee
+Squat thrust
+Bear crawl
+Inchworm
+# Chest
+## Kettlebell
+Kettlebell floor press
+Kettlebell bench press
+## Bodyweight
+Push-up
+Incline push-up
+Decline push-up
+Knee push-up
+Wide-grip push-up
+Archer push-up
+Clap push-up
+Ring push-up
+Ring dips
+# Back
+## Kettlebell
+Kettlebell bent-over row
+Kettlebell gorilla row
+Kettlebell high pull
+Renegade row
+## Bodyweight
+Inverted row
+Ring row
+Muscle-up
+Scapular pull-up
+Archer pull-up
+# Shoulders
+## Kettlebell
+Kettlebell overhead press
+Kettlebell push press
+Bottoms-up kettlebell press
+Kettlebell halo
+## Bodyweight
+Pike push-up
+Elevated pike push-up
+Handstand push-up
+Wall walk
+Handstand hold
+# Biceps
+## Kettlebell
+Kettlebell curl
+Kettlebell hammer curl
+## Bodyweight
+Ring / suspension curl
+# Triceps
+## Kettlebell
+Kettlebell overhead triceps extension
+## Bodyweight
+Diamond push-up
+Parallel bar dips
+Ring dips
+Bodyweight triceps extension
+# Quadriceps
+## Kettlebell
+Kettlebell goblet squat
+Double kettlebell front squat
+## Bodyweight
+Bodyweight squat
+Jump squat
+Pistol squat
+Assisted pistol squat
+Cossack squat
+Shrimp squat
+Sissy squat
+Wall sit
+# Hamstrings
+## Kettlebell
+Kettlebell deadlift
+Kettlebell Romanian deadlift
+Single-leg kettlebell RDL
+Kettlebell sumo deadlift
+## Bodyweight
+Glute-ham raise
+Single-leg bodyweight RDL
+# Glutes
+## Kettlebell
+Kettlebell reverse lunge
+Kettlebell split squat
+Kettlebell step-up
+Kettlebell hip thrust
+## Bodyweight
+Glute bridge
+Single-leg glute bridge
+Bodyweight lunge
+Jumping lunge
+Bodyweight Bulgarian split squat
+Donkey kick
+Fire hydrant
+# Calves
+## Kettlebell
+Kettlebell calf raise
+## Bodyweight
+Bodyweight calf raise
+Single-leg bodyweight calf raise
+# Abdominals
+## Kettlebell
+Kettlebell windmill
+Kettlebell Russian twist
+## Bodyweight: planks & calisthenics
+Plank
+Side plank
+Mountain climber
+Dead bug
+Hollow body hold
+Bicycle crunch
+V-up
+L-sit
+Toes-to-bar
+Flutter kicks
+Ab wheel rollout
+# Lower back
+## Bodyweight
+Superman
+Bird dog
+Bodyweight good morning
+# Forearms
+## Kettlebell
+Kettlebell farmer's carry
+Kettlebell suitcase carry
+Bottoms-up kettlebell hold`;
   const CATALOG = []; // {muscle, sub, names[]}
   const CAT_MUSCLE = new Map(); // lowercased name -> first muscle it appears under
   const CARDIO_TYPE = new Map(); // lowercased cardio name -> activity type
+  const BW_NAMES = new Set();     // lowercased names of bodyweight exercises
   (function(){
     let m=null, g=null; const seenInMuscle = new Set();
     CATALOG_TEXT.split("\n").forEach(line=>{
@@ -1763,6 +1975,7 @@ Towel hangs`;
         let type=null; if(line.includes("|")){ [line, type] = line.split("|").map(x=>x.trim()); }
         const k=line.toLowerCase();
         if(type) CARDIO_TYPE.set(k, type);
+        if(/bodyweight|pull-ups/i.test(g.sub) || (/\bdips?\b|push-up|pull-up|chin-up|muscle-up|\bhangs?\b/.test(k) && !/assisted|machine/.test(k))) BW_NAMES.add(k);
         if(seenInMuscle.has(k)) return;           // same exercise listed twice under one muscle
         seenInMuscle.add(k); g.names.push(line);
         if(!CAT_MUSCLE.has(k)) CAT_MUSCLE.set(k, m);
@@ -1961,25 +2174,29 @@ Towel hangs`;
       const byDay = new Map();
       list.forEach(e=>{
         const w = toUnit(e.weight,e.unit);
-        const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0};
-        d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += w*e.reps; d.reps += e.reps;
+        const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0,best:0};
+        d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += w*e.reps; d.reps += e.reps; d.best = Math.max(d.best, e.reps);
         byDay.set(e.date,d);
       });
       days = [...byDay.keys()];
       const pts = days.map(d=>byDay.get(d));
-      metrics = STR_METRICS;
-      if(!metrics.some(m=>m[0]===metric)) metric="top";
+      const bwEx = list.length>0 && list.every(e=>e.equip && e.equip.bw);
+      metrics = bwEx ? [["best","Best set (reps)"],["reps","Total reps"],["top","Added weight"]] : STR_METRICS;
+      if(!metrics.some(m=>m[0]===metric)) metric = bwEx ? "best" : "top";
       series = pts.map(p=>p[metric]);
       const best = pts.reduce((m,p)=>Math.max(m,p.top),0), bestE = pts.reduce((m,p)=>Math.max(m,p.e1rm),0);
-      $("#prog-stats").innerHTML = list.length ? `
+      $("#prog-stats").innerHTML = !list.length ? "" : bwEx ? `
+        <div class="stat"><div class="num">${pts.reduce((m,p)=>Math.max(m,p.best),0)}</div><small>Best set (reps)</small></div>
+        <div class="stat"><div class="num">${pts.reduce((m,p)=>Math.max(m,p.reps),0)}</div><small>Most reps in a day</small></div>
+        <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>` : `
         <div class="stat"><div class="num">${fmt(best)}</div><small>Best ${prefs.unit}</small></div>
         <div class="stat"><div class="num">${fmt(bestE)}</div><small>Best est. 1RM</small></div>
-        <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>` : "";
+        <div class="stat"><div class="num">${days.length}</div><small>Sessions</small></div>`;
       $("#prog-empty").hidden = days.length>0;
       $("#prog-empty").textContent = "Log this exercise on at least one day to see a chart.";
-      color = {top:css("--red"), e1rm:css("--blue"), vol:css("--yellow"), reps:css("--green")}[metric];
+      color = {top:css("--red"), e1rm:css("--blue"), vol:css("--yellow"), reps:css("--green"), best:css("--red")}[metric];
       isBar = metric==="vol" || metric==="reps";
-      unitLabel = metric==="reps" ? "" : prefs.unit;
+      unitLabel = (metric==="reps"||metric==="best") ? "reps" : prefs.unit;
     }
     $("#metric-seg").innerHTML = metrics.map(([k,l])=>`<button data-metric="${k}" aria-pressed="${k===metric}">${l}</button>`).join("");
     const label = metrics.find(m=>m[0]===metric)[1];
@@ -2032,7 +2249,7 @@ Towel hangs`;
     if(calSum) parts.push(`≈ ${Math.round(calSum).toLocaleString()} calories`);
     $("#range-total").textContent = !days.size ? "Nothing logged in this range yet." :
       parts.join(" · ") + ` across ${days.size} workout day${days.size===1?"":"s"}` +
-      (tot==="cal" && !(settings.bw>0) ? ". Add your body weight under Day total on the Log tab to see calories." : "");
+      (tot==="cal" && !(settings.bw>0) && !Object.keys(settings.bwLog||{}).length ? ". Add your body weight under Day total on the Log tab to see calories." : "");
     const showCal = tot==="cal", showMin = tot==="min";
     if(wkChart) wkChart.destroy();
     wkChart = new Chart($("#week-chart"),{
@@ -2077,6 +2294,7 @@ Towel hangs`;
   applyUnit();
   renderAll();
   applyFormKind();
+  updateBWForm();
 })();
 </script>
 </body>
