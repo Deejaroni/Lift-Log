@@ -1,6 +1,6 @@
 // Lift Log service worker: caches the app so it works offline.
 // When you change any file, bump VERSION so users get the update.
-const VERSION = "liftlog-v20";
+const VERSION = "liftlog-v23";
 const FILES = [
   "./", "index.html", "manifest.webmanifest", "vendor/chart.umd.min.js",
   "fonts/barlow-latin-400-normal.woff2", "fonts/barlow-latin-500-normal.woff2", "fonts/barlow-latin-600-normal.woff2",
@@ -22,4 +22,13 @@ self.addEventListener("fetch", e => {
     return;
   }
   e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));
+});
+
+// Tapping a rest-timer notification brings the app back to the front.
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({type:"window", includeUncontrolled:true}).then(cs => {
+    for (const c of cs) { if ("focus" in c) return c.focus(); }
+    return self.clients.openWindow("./");
+  }));
 });
