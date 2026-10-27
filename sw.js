@@ -1,5 +1,5 @@
 // Lift Log service worker: caches the app so it works offline.
-// The deploy workflow replaces __BUILD__ with the build version, so every deploy gets a fresh cache.
+// The publish workflow fills in VERSION on each deploy, so every deploy gets a fresh cache.
 const VERSION = "__BUILD__";
 const FILES = [
   "./", "index.html", "manifest.webmanifest", "css/app.css", "js/version.js", "vendor/chart.umd.min.js",
