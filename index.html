@@ -2843,8 +2843,33 @@ Scaption raise (thumbs-up, scapular plane)`;
     }
     return `<div class="std-row"><div class="std-top"><span class="std-name">${def.label}</span><span class="tier" style="--tc:var(${TIER_COLOR[t]})">${TIERS[t]}</span></div>
       <span class="cardio-meta">${detail}</span>
-      <div class="std-bar" role="img" aria-label="${Math.round(pct)}% of the way to the next tier"><i style="width:${pct.toFixed(0)}%;background:var(${TIER_COLOR[Math.min(4,t+ (hi?1:0))]})"></i></div>
+      ${ladderHTML(t, pct)}
       <span class="cardio-meta">${hi ? next : "Top tier reached"}</span></div>`;
+  }
+  // Tier ladder: Novice → Elite, filled through the tiers you've reached plus your progress toward the next.
+  function ladderHTML(t, pct){
+    return `<div class="ladder" role="img" aria-label="${TIERS[t]}, ${t<4 ? `${Math.round(pct)}% of the way to ${TIERS[t+1]}` : "top tier"}">${TIERS.slice(1).map((x,i)=>
+      `<i><b style="width:${i<t ? 100 : i===t ? Math.round(pct) : 0}%"></b><span>${x}</span></i>`).join("")}</div>`;
+  }
+  // Lift card: best est. 1RM in the window, change over 30 days, a trend line of each day's best, and the tier.
+  function liftCard(def, std, af, bwNowKg, since){
+    const names = new Set(def.names);
+    const list = entries.filter(e=>!isCardio(e) && names.has(e.exercise.toLowerCase()) && e.weight>0 && rankable(e));
+    const inWin = list.filter(e=>e.date>=since); if(!inWin.length) return null;
+    const d30 = new Date(today()+"T00:00:00"); d30.setDate(d30.getDate()-30); const cut = isoOf(d30);
+    const best = bestE1rm(inWin), recent = bestE1rm(list.filter(e=>e.date>=cut)), before = bestE1rm(list.filter(e=>e.date<cut));
+    const diff = Math.round(recent - before);
+    const change = recent>0 && before>0 ? (diff===0 ? "Same as 30 days ago" : `${diff>0?"+":"−"}${Math.abs(diff)} ${prefs.unit} in 30 days`) : "";
+    const byDay = new Map(); inWin.forEach(e=>byDay.set(e.date, Math.max(byDay.get(e.date)||0, e1rm(loadOf(e), e.reps))));
+    const pts = [...byDay.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(x=>x[1]);
+    const lo = Math.min(...pts), span = Math.max(...pts)-lo || 1;
+    const spark = pts.length>1 ? `<svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map((v,i)=>`${(200*i/(pts.length-1)).toFixed(1)},${(36-32*(v-lo)/span).toFixed(1)}`).join(" ")}"/></svg>` : "";
+    let tier = "", ladder = "";
+    const b = std && bwNowKg ? bestFor(def, since) : null;
+    if(b){ const th = def[std], adj = b.ratio*af, t = tierOf(adj, th), lo2 = t>0 ? th[t-1] : 0, hi = t<4 ? th[t] : null;
+      tier = `<span class="lc-tier">${TIERS[t]}</span>`; ladder = ladderHTML(t, hi ? Math.max(0, Math.min(100, (adj-lo2)/(hi-lo2)*100)) : 100); }
+    return `<div class="lift-card"><div class="std-top"><span class="lc-name">${def.label}</span>${tier}</div>
+      <div class="lc-big"><span class="lc-num">${Math.round(best)}</span><span class="lc-unit">${prefs.unit} est. 1RM</span>${change?`<span class="lc-change">${change}</span>`:""}</div>${spark}${ladder}</div>`;
   }
   function renderStandards(){
     const box = $("#std-panel"); if(!box) return;
@@ -2852,11 +2877,12 @@ Scaption raise (thumbs-up, scapular plane)`;
     const seg = `<div class="seg" role="group" aria-label="Standards to compare against">${[["men","Men's standards"],["women","Women's standards"]].map(([k,l])=>`<button data-std="${k}" aria-pressed="${std===k}">${l}</button>`).join("")}</div>`;
     const birth = `<div class="cal-bw" style="margin-top:10px"><label class="lbl" for="std-birth" style="margin:0">Birth year (optional)</label><input id="std-birth" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()-10}" step="1" placeholder="e.g. 1985" value="${pr.birthYear||""}" style="max-width:130px"></div>`;
     if(!std){
-      box.innerHTML = `<h2>Strength standards</h2><p class="cal-sub" style="margin-top:0">See how your lifts compare with typical strength levels for your sex, age and body weight. Choose which standards to compare against:</p>${seg}${birth}`;
+      const cards = STD.filter(d=>!d.reps).map(d=>liftCard(d, null, af, null, stdSince())).filter(Boolean).join("");
+      box.innerHTML = `${cards ? `<h2>Your lifts</h2><div class="lift-cards">${cards}</div>` : ""}<h2${cards?' style="margin-top:16px"':""}>Strength standards</h2><p class="cal-sub" style="margin-top:0">See how your lifts compare with typical strength levels for your sex, age and body weight. Choose which standards to compare against:</p>${seg}${birth}`;
       return;
     }
     const since = stdSince(), bwNowKg = bwKgOn(today());
-    const rows = STD.map(d=>stdRow(d, std, af, bwNowKg, since)).join("");
+    const rows = STD.map(d=>(!d.reps && liftCard(d, std, af, bwNowKg, since)) || stdRow(d, std, af, bwNowKg, since)).join("");
     const big = STD.slice(0,3).map(d=>bestFor(d, since));
     let dots;
     if(big.every(Boolean) && bwNowKg){

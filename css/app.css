@@ -243,8 +243,22 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .std-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .std-name{font-family:Archivo,sans-serif;font-stretch:80%;font-size:1.2rem;font-weight:600}
 .tier{font-size:.8rem;font-weight:700;padding:2px 10px;border-radius:999px;border:1px solid var(--tc);color:var(--tc)}
-.std-bar{height:6px;background:var(--field);border-radius:999px;margin:6px 0 4px;overflow:hidden}
-.std-bar i{display:block;height:100%;border-radius:999px}
+.ladder{display:flex;gap:3px;margin:8px 0 4px}
+.ladder i{flex:1;min-width:0;font-style:normal}
+.ladder b{display:block;height:8px;border-radius:2px;background:var(--blue);position:relative}
+.ladder i::before{content:"";display:block;height:8px;border-radius:2px;background:var(--line);margin-bottom:-8px}
+.ladder span{display:block;margin-top:4px;font-size:.7rem;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lift-cards{display:grid;gap:10px}
+.lift-card{background:var(--field);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0}
+.lift-cards .lift-card{margin:0}
+.lc-name{font-weight:800;font-stretch:85%;font-size:1.15rem}
+.lc-tier{font-size:.82rem;font-weight:800;color:var(--blue)}
+.lc-big{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:2px}
+.lc-num{font-size:2.6rem;font-weight:800;font-stretch:75%;line-height:1}
+.lc-unit{font-size:.85rem;font-weight:600;color:var(--muted)}
+.lc-change{margin-left:auto;font-size:.85rem;font-weight:800;color:var(--green)}
+.spark{display:block;width:100%;height:40px;margin:6px 0 2px}
+.spark polyline{fill:none;stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
 .rest-set{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
 .rest-set select{width:auto;padding:8px 10px;font-size:.95rem}
 .rest-set .secondary{padding:8px 12px}
