@@ -118,7 +118,7 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .edit-box h4{margin:0 0 8px;font-family:"Barlow Condensed",sans-serif;font-size:1.1rem;font-weight:600}
 .edit-box .eq-grid input,.edit-box .eq-grid select{background:var(--surface);padding:10px;font-size:1rem}
 .edit-steps{display:grid;gap:6px;margin-top:10px}
-.edit-step{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;align-items:center}
+.edit-step{display:grid;grid-template-columns:30px 1fr 1fr 34px;gap:6px;align-items:center}
 .edit-step input{background:var(--surface);text-align:center;padding:8px 4px;font-size:1.05rem}
 .edit-step .rm{height:40px;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--muted);padding:0}
 .edit-actions{display:flex;gap:8px;margin-top:12px}
@@ -140,16 +140,15 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .mode button{flex:1;border:0;background:var(--field);padding:10px;font-weight:600;color:var(--muted)}
 .mode button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .drop-rows{margin-top:14px;display:grid;gap:8px}
-.drop-row{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;align-items:center}
+.drop-row{display:grid;grid-template-columns:30px 1fr 1fr 34px;gap:6px;align-items:center}
 .dcell{display:flex;align-items:center;gap:4px;min-width:0}
 .dcell button{flex:none;width:30px;height:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:1.25rem;font-weight:600;line-height:1;padding:0}
 .dcell input{flex:1;min-width:0}
 .drop-row .idx{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.2rem;color:var(--muted);text-align:center}
-.drop-row.peak .idx{color:var(--red)}
 .drop-row input{text-align:center;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.4rem;padding:8px 2px;-moz-appearance:textfield}
 .drop-row input::-webkit-outer-spin-button,.drop-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .drop-row .rm{height:42px;padding:0;border:1px solid var(--line);background:var(--surface);border-radius:9px;color:var(--muted);font-size:1.1rem}
-.drop-head{display:grid;grid-template-columns:20px 1fr 1fr 34px;gap:6px;font-size:.8rem;font-weight:600;color:var(--muted);text-align:center}
+.drop-head{display:grid;grid-template-columns:30px 1fr 1fr 34px;gap:6px;font-size:.8rem;font-weight:600;color:var(--muted);text-align:center}
 .drop-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .drop-tools button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;font-weight:600}
 .drop-tools select{width:auto;padding:8px 10px;font-size:.95rem}
@@ -160,7 +159,8 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .tag{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--field);color:var(--muted);border:1px solid var(--line)}
 .chain-steps{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;font-family:"Barlow Condensed",sans-serif;font-size:1.3rem;font-weight:600;margin-top:2px}
 .chain-steps .arrow{color:var(--muted);font-size:1rem}
-.chain-steps .peak{color:var(--red)}
+.chain-steps .peak{text-decoration:underline;text-underline-offset:3px}
+.chain-steps .failed{color:var(--red)}
 .chain-steps .fail{font-size:.75rem;font-weight:700;color:var(--red);font-family:Barlow,sans-serif;margin-left:2px}
 .equip{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
 .equip-toggles{display:flex;flex-wrap:wrap;gap:8px}
@@ -301,6 +301,14 @@ header{align-items:center}
 .dlg-actions{display:flex;gap:8px;justify-content:flex-end}
 .dlg-actions button{flex:none;padding:10px 18px;font-size:1rem}
 .dlg-actions .primary:not(.danger-btn){background:var(--ink);color:var(--bg)}
+button.idx{height:42px;width:100%;padding:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.15rem;color:var(--muted)}
+button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.fail-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fail-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--field);font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.1rem;color:var(--muted);padding:0}
+.fchip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.set.failed .num{color:var(--red)}
+.fail-badge{font-size:.75rem;font-weight:700;color:var(--red);font-family:Barlow,sans-serif;margin-left:4px;vertical-align:super}
 .foot{color:var(--muted);font-size:.85rem;text-align:center;margin-top:8px}
 .foot button{border:0;background:none;color:var(--blue);font-weight:600;padding:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -367,7 +375,7 @@ header{align-items:center}
             <option value="10">10%</option><option value="20" selected>20%</option><option value="25">25%</option><option value="30">30%</option>
           </select>
         </div>
-        <label class="check"><input type="checkbox" id="to-failure" checked> Last set taken to failure</label>
+        <p class="cal-sub">Tap a set number to mark it taken to failure (shown in red).</p>
       </div>
 
       <div class="steppers" id="straight-wrap">
@@ -387,6 +395,7 @@ header{align-items:center}
           <div class="btns"><button data-step="sets" data-dir="-1" aria-label="Decrease sets">−</button><button data-step="sets" data-dir="1" aria-label="Increase sets">+</button></div>
         </div>
       </div>
+      <div class="fail-row" id="fail-row"><span class="lbl" style="margin:0">To failure</span><span class="fail-chips" id="fail-chips" role="group" aria-label="Sets taken to failure"></span><span class="cal-sub" style="margin:0">Tap any set that went to failure.</span></div>
 
       <div id="cardio-wrap" hidden>
         <div class="steppers c2">
@@ -774,15 +783,15 @@ header{align-items:center}
   const roundStep = w => Math.max(0, Math.round(w/stepSize())*stepSize());
   function readDropRows(){
     document.querySelectorAll("#drop-rows .drop-row").forEach((r,i)=>{
-      dropRows[i] = {weight:r.querySelector("[data-f=w]").value, reps:r.querySelector("[data-f=r]").value};
+      dropRows[i] = {weight:r.querySelector("[data-f=w]").value, reps:r.querySelector("[data-f=r]").value, fail: !!(dropRows[i] && dropRows[i].fail)};
     });
   }
   function renderDropRows(){
     const peak = dropRows.reduce((m,r,i)=> (parseFloat(r.weight)||0) > (parseFloat(dropRows[m]?.weight)||0) ? i : m, 0);
     const cell = (f,i,val,attrs,label)=>`<div class="dcell"><button type="button" data-dstep="${f}" data-dir="-1" aria-label="Decrease set ${i+1} ${label}">−</button><input data-f="${f}" type="number" ${attrs} value="${esc(val)}" aria-label="Set ${i+1} ${label}"><button type="button" data-dstep="${f}" data-dir="1" aria-label="Increase set ${i+1} ${label}">+</button></div>`;
-    $("#drop-rows").innerHTML = `<div class="drop-head"><span>#</span><span>${(typeof isBWForm==="function" && isBWForm())?"Added":"Weight"} (${prefs.unit})</span><span>Reps</span><span></span></div>` +
-      dropRows.map((r,i)=>`<div class="drop-row${i===peak&&dropRows.length>1?" peak":""}">
-        <span class="idx">${i+1}</span>
+    $("#drop-rows").innerHTML = `<div class="drop-head"><span>#</span><span>${weightLabel().replace(" weight","")} (${prefs.unit})</span><span>Reps</span><span></span></div>` +
+      dropRows.map((r,i)=>`<div class="drop-row${r.fail?" fail":""}">
+        <button type="button" class="idx" data-dfail="${i}" aria-pressed="${!!r.fail}" aria-label="Set ${i+1}${r.fail?", taken to failure":""}. Tap to ${r.fail?"unmark":"mark"} failure">${i+1}</button>
         ${cell("w",i,r.weight,'inputmode="decimal" min="0" step="any"',"weight")}
         ${cell("r",i,r.reps,'inputmode="numeric" min="1" step="1"',"reps")}
         <button class="rm" data-rm="${i}" aria-label="Remove set ${i+1}" ${dropRows.length===1?"disabled":""}>×</button></div>`).join("");
@@ -797,12 +806,11 @@ header{align-items:center}
   });
 
   $("#drop-rows").addEventListener("input", readDropRows);
-  // Update the heaviest-row highlight without rebuilding the inputs (rebuilding would steal focus mid-entry)
-  $("#drop-rows").addEventListener("change", ()=>{
-    readDropRows();
-    const rows=[...document.querySelectorAll("#drop-rows .drop-row")];
-    const peak = dropRows.reduce((m,r,i)=> (parseFloat(r.weight)||0) > (parseFloat(dropRows[m]?.weight)||0) ? i : m, 0);
-    rows.forEach((r,i)=>r.classList.toggle("peak", i===peak && rows.length>1));
+  $("#drop-rows").addEventListener("change", readDropRows);
+  $("#drop-rows").addEventListener("click", e=>{
+    const b = e.target.closest("[data-dfail]"); if(!b) return;
+    readDropRows(); const r = dropRows[+b.dataset.dfail]; r.fail = !r.fail; renderDropRows();
+    const nb = document.querySelector(`#drop-rows [data-dfail="${b.dataset.dfail}"]`); if(nb) nb.focus();
   });
   $("#drop-rows").addEventListener("click", e=>{
     const b=e.target.closest("[data-rm]"); if(!b) return;
@@ -814,7 +822,7 @@ header{align-items:center}
     const w = parseFloat(last.weight)||0, pct = +$("#drop-pct").value/100;
     let nw = w;
     if(dir!==0){ nw = roundStep(dir>0 ? w*(1+pct) : w*(1-pct)); if(nw===w) nw = Math.max(0, w + dir*stepSize()); }
-    dropRows.push({weight:fmt(nw), reps:last.reps});
+    dropRows.push({weight:fmt(nw), reps:last.reps, fail:false});
     renderDropRows();
     const inputs=document.querySelectorAll("#drop-rows [data-f=r]"); inputs[inputs.length-1]?.focus();
   }
@@ -851,7 +859,7 @@ header{align-items:center}
     const name = existing || exercise;
     const note = $("#note").value.trim();
     const base = Date.now();
-    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i}));
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, ...(failSets.has(i)?{failure:true}:{})}));
     rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
@@ -879,7 +887,30 @@ header{align-items:center}
     if(eq.kb && eq.kb.each && eq.kb.count==="Two kettlebells") return "two kettlebells";
     return "";
   }
-  const volOf = e => toUnit(e.weight,e.unit) * e.reps * loadMult(e.equip);
+  // Bar weight: Smith machine / barbell can add the bar to the weight you enter (plates only).
+  const LOAD_OPTS = ["Plates only (bar added)","Total, including bar"];
+  const loadModeOf = (k, o) => (o && o.load) || (k==="smith" ? LOAD_OPTS[0] : LOAD_OPTS[1]);
+  function barAddRaw(eq){
+    if(!eq) return 0;
+    for(const k of ["smith","barbell"]){ const o = eq[k], b = o ? parseFloat(o.bar) : 0; if(b>0 && loadModeOf(k,o)===LOAD_OPTS[0]) return b; }
+    return 0;
+  }
+  const totalRaw = e => (e.weight||0) + barAddRaw(e.equip);   // in the entry's own unit
+  const loadOf = e => toUnit(totalRaw(e), e.unit);               // in the display unit
+  let failSets = new Set(), failN = 0;
+  function renderFailChips(){
+    const n = Math.max(1, Math.min(20, parseInt($("#sets").value,10)||1));
+    if(n===failN && $("#fail-chips").childElementCount===n) return;
+    failN = n; [...failSets].forEach(i=>{ if(i>=n) failSets.delete(i); });
+    $("#fail-chips").innerHTML = Array.from({length:n},(_,i)=>`<button type="button" class="fchip" data-fset="${i}" aria-pressed="${failSets.has(i)}" aria-label="Set ${i+1} taken to failure">${i+1}</button>`).join("");
+  }
+  $("#fail-chips").addEventListener("click", e=>{
+    const b = e.target.closest("[data-fset]"); if(!b) return;
+    const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
+    b.setAttribute("aria-pressed", String(failSets.has(i)));
+  });
+  function weightLabel(){ return isBWForm() ? "Added weight" : barAddRaw(equipField().equip)>0 ? "Plates" : "Weight"; }
+  const volOf = e => loadOf(e) * e.reps * loadMult(e.equip);
   // ---------- exercise how-to hints & lateral raise details ----------
   const EX_INFO = [
     [/\b21s\b/, "One set = 21 reps: 7 from the bottom to halfway up, 7 from halfway to the top, then 7 full reps. Log 21 reps per set."],
@@ -933,20 +964,22 @@ header{align-items:center}
     refreshExerciseExtras();
     if(typeof updateEquipSummary==="function") updateEquipSummary();
     const el = $("#vol-preview"); if(!el) return;
+    if(!isCardioForm()){ $("#w-label").textContent = weightLabel(); const dh = document.querySelector("#drop-rows .drop-head span:nth-child(2)"); if(dh) dh.textContent = `${weightLabel().replace(" weight","")} (${prefs.unit})`; }
+    renderFailChips();
     if(isCardioForm() || !$("#exercise").value.trim()){ el.textContent = ""; return; }
-    const eq = (equipField().equip) || null, m = loadMult(eq), why = multReason(eq), u = prefs.unit;
+    const eq = (equipField().equip) || null, m = loadMult(eq), why = multReason(eq), u = prefs.unit, bar = barAddRaw(eq);
     const mtxt = m>1 ? ` × 2 (${why})` : "";
     if(mode==="drop"){
       readDropRows();
-      const rows = dropRows.map(r=>({w:parseFloat(r.weight)||0, r:parseInt(r.reps,10)||0}));
+      const rows = dropRows.map(r=>({w:(parseFloat(r.weight)||0)+bar, r:parseInt(r.reps,10)||0}));
       const tot = rows.reduce((a,x)=>a+x.w*x.r,0)*m;
       el.textContent = isBWForm() && !tot ? "Bodyweight only: counts reps, not pounds." :
-        `Counts toward volume: ${m>1&&rows.length>1?"(":""}${rows.map(x=>`${fmt(x.w)}×${x.r}`).join(" + ")}${m>1&&rows.length>1?")":""}${mtxt} = ${Math.round(tot).toLocaleString()} ${u}`;
+        `Counts toward volume: ${m>1&&rows.length>1?"(":""}${rows.map(x=>`${fmt(x.w)}×${x.r}`).join(" + ")}${m>1&&rows.length>1?")":""}${mtxt} = ${Math.round(tot).toLocaleString()} ${u}${bar?` (each includes the ${fmt(bar)} ${u} bar)`:""}`;
       return;
     }
     const w = parseFloat($("#weight").value)||0, r = parseInt($("#reps").value,10)||0, n = parseInt($("#sets").value,10)||1;
     if(isBWForm() && !w){ el.textContent = "Bodyweight only: counts reps, not pounds."; return; }
-    el.textContent = `Counts toward volume: ${fmt(w)} ${u} × ${r} reps × ${n} set${n===1?"":"s"}${mtxt} = ${Math.round(w*r*n*m).toLocaleString()} ${u}` +
+    el.textContent = `Counts toward volume: ${bar?`(${fmt(w)} plates + ${fmt(bar)} bar) `:`${fmt(w)} `}${u} × ${r} reps × ${n} set${n===1?"":"s"}${mtxt} = ${Math.round((w+bar)*r*n*m).toLocaleString()} ${u}` +
       (m>1 && why==="each side" ? ". Log reps for one side; the other side is counted for you." : m>1 ? ". Enter the weight of one." : "");
   }
 
@@ -974,8 +1007,8 @@ header{align-items:center}
     return eq;
   }
   const EQUIP = [
-    {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-    {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true}]},
+    {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS}]},
     {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","MAG grip","Rope pulldown","Long single rope","V bar","Close-grip V handle","Straight bar","EZ bar","Elbow strap","Wrist cuff","Ankle cuff"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
@@ -1009,6 +1042,7 @@ header{align-items:center}
     const k = e.target.dataset.eq; if(!k) return;
     equipState[k] = equipState[k] || {vals:{}};
     equipState[k].on = e.target.checked;
+    if((k==="smith"||k==="barbell") && !equipState[k].vals.load) equipState[k].vals.load = loadModeOf(k, null);
     renderEquipFields(); updateBWForm();
     if(e.target.checked){ const f=document.querySelector(`#equip-fields [data-eqk="${k}"]`); if(f) f.focus(); }
   });
@@ -1036,6 +1070,7 @@ header{align-items:center}
     Object.entries(eq||{}).forEach(([k,o])=>{
       const vals = Object.assign({}, o);
       if(typeof vals.bar==="number") vals.bar = fmt(toUnit(vals.bar, unit));
+      if((k==="smith"||k==="barbell") && !vals.load) vals.load = loadModeOf(k, null);
       equipState[k] = {on:true, vals};
     });
     renderEquipToggles(); renderEquipFields();
@@ -1047,7 +1082,7 @@ header{align-items:center}
       const o=e.equip[q.key], parts=[];
       if(o.type) parts.push(o.type);
       if(o.brand) parts.push(o.brand);
-      if(typeof o.bar==="number") parts.push(`${fmt(toUnit(o.bar,e.unit))} ${prefs.unit} bar`);
+      if(typeof o.bar==="number") parts.push(`${fmt(toUnit(o.bar,e.unit))} ${prefs.unit} bar${(q.key==="smith"||q.key==="barbell") ? (loadModeOf(q.key,o)===LOAD_OPTS[0] ? " added" : " included") : ""}`);
       if(o.count) parts.push(o.count.toLowerCase());
       if(o.attach) parts.push(o.attach);
       if(o.side) parts.push(o.side==="Both sides" ? "both sides" : "one side");
@@ -1103,7 +1138,7 @@ header{align-items:center}
   function updateBWForm(){
     const on = isBWForm();
     $("#bw-today-wrap").hidden = !on;
-    $("#w-label").textContent = on ? "Added weight" : "Weight";
+    $("#w-label").textContent = weightLabel();
     $("#bw-today-unit").textContent = prefs.unit;
     const inp = $("#bw-today");
     if(document.activeElement!==inp){ const r = bwEntryOn($("#date").value||today()); inp.value = r ? fmt(toUnit(r.w, r.unit)) : ""; }
@@ -1124,6 +1159,7 @@ header{align-items:center}
     document.querySelector(".equip").hidden = c;
     $("#drop-wrap").hidden = c || mode!=="drop";
     $("#straight-wrap").hidden = c || mode==="drop";
+    $("#fail-row").hidden = c || mode==="drop";
     $("#save").textContent = c ? (isMobForm() ? "Log mobility" : "Log cardio") : (mode==="drop" ? "Log drop set" : "Log set");
     $("#c-dist-box").hidden = isMobForm(); $("#cardio-details").hidden = isMobForm();
     $("#cardio-wrap .steppers").classList.toggle("c2", !isMobForm());
@@ -1235,7 +1271,7 @@ header{align-items:center}
     $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
     mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = "";
     document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
-    $("#to-failure").checked = true;
+    failSets = new Set(); failN = 0;
     $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
     $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
     renderChips(); applyFormKind();
@@ -1273,14 +1309,14 @@ header{align-items:center}
   async function saveDrop(exercise){
     if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
     readDropRows();
-    const rows = dropRows.map(r=>({weight:parseFloat(r.weight), reps:parseInt(r.reps,10)}));
+    const rows = dropRows.map(r=>({weight:parseFloat(r.weight), reps:parseInt(r.reps,10), fail:!!r.fail}));
     if(rows.length<2){ flash("Add at least two rows for a drop set.", true); return; }
     const bad = rows.findIndex(r=>!(r.weight>=0) || !(r.reps>=1));
     if(bad>=0){ flash(`Check row ${bad+1}: weight 0 or more, reps at least 1.`, true); return; }
     const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
     const name = existing || exercise, note = $("#note").value.trim(), date = $("#date").value || today();
-    const chain = uid(), base = Date.now(), fail = $("#to-failure").checked;
-    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, chain, step:i, failure: fail && i===rows.length-1}));
+    const chain = uid(), base = Date.now();
+    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, chain, step:i, failure: r.fail}));
     rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
@@ -1301,13 +1337,13 @@ header{align-items:center}
     return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}"><h4>Edit set</h4><div class="eq-grid">
       ${fld("Exercise","exercise",e.exercise)}
       ${fld("Date","date",e.date,'type="date"')}
-      ${fld(`${e.equip&&e.equip.bw?"Added weight":"Weight"} (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
+      ${fld(`${e.equip&&e.equip.bw?"Added weight":barAddRaw(e.equip)>0?"Plates":"Weight"} (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
       ${fld("Reps","reps",e.reps,'type="number" inputmode="numeric" min="1" step="1"')}
       ${fld("Note","note",e.note)}
-    </div>${editActions(e.id)}</div>`;
+    </div><label class="check"><input type="checkbox" data-ef="failure" ${e.failure?"checked":""}> Taken to failure</label>${editActions(e.id)}</div>`;
   }
   function editChainHTML(c){
-    const steps = c.map((e,i)=>`<div class="edit-step" data-step-id="${esc(e.id)}"><span class="idx">${i+1}</span>
+    const steps = c.map((e,i)=>`<div class="edit-step" data-step-id="${esc(e.id)}"><button type="button" class="idx" data-step-fail aria-pressed="${!!e.failure}" aria-label="Step ${i+1}. Tap to toggle failure">${i+1}</button>
       <input data-sf="weight" type="number" inputmode="decimal" min="0" step="any" value="${fmt(toUnit(e.weight,e.unit))}" aria-label="Step ${i+1} weight">
       <input data-sf="reps" type="number" inputmode="numeric" min="1" step="1" value="${e.reps}" aria-label="Step ${i+1} reps">
       <button class="rm" data-step-rm aria-label="Remove step ${i+1}">×</button></div>`).join("");
@@ -1316,9 +1352,9 @@ header{align-items:center}
       ${fld("Date","date",c[0].date,'type="date"')}
       ${fld("Note","note",c[0].note)}
     </div>
-    <div class="drop-head" style="margin-top:10px;grid-template-columns:20px 1fr 1fr 34px"><span>#</span><span>Weight (${prefs.unit})</span><span>Reps</span><span></span></div>
+    <div class="drop-head" style="margin-top:10px;grid-template-columns:30px 1fr 1fr 34px"><span>#</span><span>${barAddRaw(c[0].equip)>0?"Plates":"Weight"} (${prefs.unit})</span><span>Reps</span><span></span></div>
     <div class="edit-steps">${steps}</div>
-    <label class="check"><input type="checkbox" data-ef="failure" ${c[c.length-1].failure?"checked":""}> Last set taken to failure</label>
+    <p class="cal-sub">Tap a step number to mark it taken to failure.</p>
     ${editActions(c[0].chain)}</div>`;
   }
   function editCardioHTML(e){
@@ -1358,19 +1394,18 @@ header{align-items:center}
       const weight = parseFloat(val("weight")), reps = parseInt(val("reps"),10);
       if(!(weight>=0)) return bad("Weight must be 0 or more.");
       if(!(reps>=1)) return bad("Reps must be at least 1.");
-      updates = [Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), muscle:newMuscle(old)})];
+      updates = [Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), failure: !!val("failure"), muscle:newMuscle(old)})];
     } else if(kind==="chain"){
       const olds = entries.filter(e=>e.chain===id).sort((a,b)=>a.step-b.step); if(!olds.length) return;
       const rows = [...box.querySelectorAll("[data-step-id]")];
       if(!rows.length) return bad("A drop set needs at least one step. Use Delete to remove it entirely.");
       const keep = new Set(rows.map(r=>r.dataset.stepId));
       removed = olds.filter(e=>!keep.has(e.id)).map(e=>e.id);
-      const fail = val("failure");
       for(let i=0;i<rows.length;i++){
         const r = rows[i], old = olds.find(e=>e.id===r.dataset.stepId);
         const weight = parseFloat(r.querySelector('[data-sf="weight"]').value), reps = parseInt(r.querySelector('[data-sf="reps"]').value,10);
         if(!(weight>=0) || !(reps>=1)) return bad(`Check step ${i+1}: weight 0 or more, reps at least 1.`);
-        updates.push(Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, step:i, note:val("note"), failure: !!fail && i===rows.length-1, muscle:newMuscle(old)}));
+        updates.push(Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, step:i, note:val("note"), failure: r.querySelector("[data-step-fail]").getAttribute("aria-pressed")==="true", muscle:newMuscle(old)}));
       }
     } else {
       const old = entries.find(e=>e.id===id); if(!old) return;
@@ -1405,6 +1440,8 @@ header{align-items:center}
     if(e.target.closest("[data-edit-cancel]")){ editing = null; renderDay(); renderHistory(); return; }
     const sv = e.target.closest("[data-edit-save]");
     if(sv){ saveEdit(sv.closest(".edit-box")); return; }
+    const sf = e.target.closest("[data-step-fail]");
+    if(sf){ sf.setAttribute("aria-pressed", String(sf.getAttribute("aria-pressed")!=="true")); return; }
     const rm = e.target.closest("[data-step-rm]");
     if(rm){ const box = rm.closest(".edit-box"); rm.closest(".edit-step").remove();
       box.querySelectorAll(".edit-step .idx").forEach((s,i)=>s.textContent=i+1); }
@@ -1412,17 +1449,17 @@ header{align-items:center}
 
   function setRow(e){
     if(editing===e.id) return editSetHTML(e);
-    const w = toUnit(e.weight, e.unit);
+    const w = loadOf(e), plates = toUnit(e.weight, e.unit), barA = barAddRaw(e.equip);
     const isBW = e.equip && e.equip.bw;
     const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
-    const vt = variantText(e);
-    return `<div class="set"><span class="num">${load}${e.reps}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
+    const vt = variantText(e) + (barA>0 ? `${variantText(e)?" · ":""}${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : "");
+    return `<div class="set${e.failure?" failed":""}"><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
   }
   function chainRow(c){
     if(editing===c[0].chain) return editChainHTML(c);
-    const ws = c.map(e=>toUnit(e.weight,e.unit)), peak = Math.max(...ws);
+    const ws = c.map(e=>loadOf(e)), peak = Math.max(...ws);
     const up = ws.some((w,i)=>i>0 && w>ws[i-1]);
-    const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${ws[i]===peak?"peak":""}">${e.equip&&e.equip.bw ? (ws[i]>0?`BW+${fmt(ws[i])}`:"BW") : fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
+    const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${[ws[i]===peak&&c.length>1?"peak":"", e.failure?"failed":""].filter(Boolean).join(" ")}">${e.equip&&e.equip.bw ? (ws[i]>0?`BW+${fmt(ws[i])}`:"BW") : fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
     const eqt = [equipText(c[0]) + (loadMult(c[0].equip)>1 ? ` · volume ×2 (${multReason(c[0].equip)})` : ""), variantText(c[0])].filter(Boolean).join(" · ");
     const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
     return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
@@ -2493,7 +2530,7 @@ Scaption raise (thumbs-up, scapular plane)`;
     } else {
       const byDay = new Map();
       list.forEach(e=>{
-        const w = toUnit(e.weight,e.unit);
+        const w = loadOf(e);
         const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0,best:0};
         d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += volOf(e); d.reps += e.reps; d.best = Math.max(d.best, e.reps);
         byDay.set(e.date,d);
@@ -3011,7 +3048,7 @@ Scaption raise (thumbs-up, scapular plane)`;
     }
     let best = null;
     list.filter(e=>e.weight>0 && e.reps>=1 && e.reps<=10).forEach(e=>{
-      const one = e1rm(e.unit==="kg"?e.weight:e.weight*KG_PER_LB, e.reps), bw = bwKgOn(e.date);
+      const one = e1rm(e.unit==="kg"?totalRaw(e):totalRaw(e)*KG_PER_LB, e.reps), bw = bwKgOn(e.date);
       if(!bw) return;
       if(!best || one/bw>best.ratio) best = {ratio:one/bw, oneKg:one, date:e.date, exercise:e.exercise};
     });
