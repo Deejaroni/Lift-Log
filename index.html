@@ -1176,7 +1176,7 @@
     const isBW = e.equip && e.equip.bw;
     const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
     const vt = variantText(e) + (barA>0 ? `${variantText(e)?" · ":""}${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : "");
-    return `<div class="set${e.failure?" failed":""}"><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
+    return `<div class="set${e.failure?" failed":""}"><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="more" type="button" data-more aria-expanded="false" aria-label="Set actions">···</button><button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
   }
   function chainRow(c){
     if(editing===c[0].chain) return editChainHTML(c);
@@ -1271,7 +1271,7 @@
     const mobStats = mob.length ? `<p class="cal-sub" style="font-weight:600;margin-top:10px">Mobility: ${fmtMin(mob.reduce((a,e)=>a+(e.minutes||0),0))} across ${mob.length} drill${mob.length===1?"":"s"}</p>` : "";
     return `<div class="day-total"><p class="lbl">Day total</p>${strStats}${carStats}${mobStats}${calHTML(list, editable)}</div>`;
   }
-  function groupHTML(list){
+  function groupHTML(list, hist){
     const groups = new Map();
     list.forEach(e=>{ const k=e.exercise.toLowerCase(); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(e); });
     return [...groups.values()].map(g=>{
@@ -1286,8 +1286,26 @@
         if(seen.has(e.chain)) return; seen.add(e.chain);
         parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step)));
       });
-      return `<div class="ex-group"><div class="ex-head"><h3>${esc(g[0].exercise)}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>${parts.join("")}</div>`;
+      const head = `<div class="ex-head"><h3>${esc(g[0].exercise)}${hist && isPR(g) ? ' <span class="pr">PR</span>' : ""}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
+      return `<div class="ex-group">${head}${hist ? setBars(g) : ""}${parts.join("")}</div>`;
     }).join("");
+  }
+  // History: one bar per set, scaled to the heaviest load; the top set (best est. 1RM, 10 reps or fewer) is red.
+  const rankable = e => e.kind!=="cardio" && e.reps>0 && e.reps<=10;
+  const bestE1rm = list => list.filter(rankable).reduce((m,e)=>Math.max(m, e1rm(loadOf(e), e.reps)), 0);
+  function setBars(g){
+    const loads = g.map(loadOf), max = Math.max(...loads), best = bestE1rm(g);
+    const top = best>0 ? g.findIndex(e=>rankable(e) && e1rm(loadOf(e), e.reps)===best) : loads.indexOf(max);
+    const bar = (e,i) => `<i class="${i===top?"top":""}" style="height:${max>0 ? Math.max(8, Math.round(100*loads[i]/max)) : 8}%"></i>`;
+    return `<div class="bars" aria-hidden="true">${g.map(bar).join("")}</div>` +
+      (g.length<=6 ? `<div class="bar-labels" aria-hidden="true">${g.map((e,i)=>`<span class="${i===top?"top":""}">${fmt(loads[i])}×${e.reps}</span>`).join("")}</div>` : "") +
+      (best>0 ? `<p class="ex-foot">est. 1RM ${Math.round(best)} ${prefs.unit}</p>` : "");
+  }
+  // A PR beats every earlier day's best est. 1RM for the exercise. The first session doesn't count.
+  function isPR(g){
+    const name = g[0].exercise.toLowerCase(), day = g[0].date;
+    const before = bestE1rm(entries.filter(e=>e.date<day && e.exercise.toLowerCase()===name));
+    return before>0 && bestE1rm(g)>before;
   }
 
   function renderDay(){
@@ -2179,11 +2197,13 @@ Scaption raise (thumbs-up, scapular plane)`;
     if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
     const days = new Map();
     list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
-    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><p class="day-date">${niceDate(d)}</p>${groupHTML(l)}${dayTotalHTML(l)}</div>`).join("");
+    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><p class="day-date">${niceDate(d)}</p>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
   }
   $("#hist-filter").addEventListener("change", renderHistory);
 
   document.addEventListener("click", async e=>{
+    const m = e.target.closest("[data-more]");
+    if(m){ const row = m.closest(".set"), open = row.classList.toggle("open"); m.setAttribute("aria-expanded", String(open)); if(open) row.querySelector("[data-edit]").focus(); return; }
     const c = e.target.closest("[data-del-chain]");
     if(c){
       if(!(await askConfirm("Delete this whole drop set?", "Delete", true))) return;

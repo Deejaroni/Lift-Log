@@ -131,6 +131,20 @@ h3{font-size:1.2rem;margin:0;font-weight:600}
 .edit-actions .primary{padding:10px;font-size:1rem}
 .edit-actions .secondary{padding:10px 14px}
 .del:hover,.del:active{color:var(--red);border-color:var(--red)}
+.more{display:none}
+#history .more{display:inline-grid;place-items:center;margin-left:auto;flex:none;width:44px;height:40px;border:0;border-radius:10px;background:none;color:var(--muted);font-size:1.3rem;font-weight:800;letter-spacing:1px;padding:0}
+#history .more:active{background:var(--field)}
+#history .set .edit,#history .set .del{display:none}
+#history .set.open .edit,#history .set.open .del{display:inline-block;min-height:40px;padding:8px 12px}
+#history .set.open .more{display:none}
+.pr{display:inline-block;vertical-align:middle;margin-left:6px;font-size:.72rem;font-weight:800;font-stretch:100%;color:var(--green);border:1.5px solid var(--green);border-radius:999px;padding:1px 8px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:56px;margin:10px 0 4px}
+.bars i{flex:1;background:var(--ink);opacity:.8;border-radius:4px 4px 0 0}
+.bars i.top{background:var(--red);opacity:1}
+.bar-labels{display:flex;gap:6px;margin-bottom:6px}
+.bar-labels span{flex:1;text-align:center;font-size:.8rem;font-weight:700;font-stretch:85%;white-space:nowrap}
+.bar-labels span.top{color:var(--red)}
+.ex-foot{margin:0 0 6px;font-size:.85rem;font-weight:600;color:var(--muted)}
 .day-date{font-family:Archivo,sans-serif;font-stretch:80%;font-size:1.3rem;font-weight:600;margin:0 0 8px}
 .empty{color:var(--muted);text-align:center;padding:24px 8px}
 
