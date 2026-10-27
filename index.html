@@ -24,9 +24,10 @@
       <div class="plates" aria-hidden="true">
         <i style="height:30px;background:var(--red)"></i><i style="height:26px;background:var(--blue)"></i><i style="height:22px;background:var(--yellow)"></i><i style="height:18px;background:var(--green)"></i>
       </div>
-      <h1>Lift Log</h1>
+      <div class="titles"><p class="kicker" id="head-kicker">Lift Log</p><h1 id="head-title">Today</h1><p class="kicker" id="head-next" hidden></p></div>
     </div>
-    <button class="icon-btn" id="open-settings" type="button" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <div class="head-right"><div id="today-ring" hidden></div>
+    <button class="icon-btn" id="open-settings" type="button" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
   </header>
 
   <!-- LOG -->
@@ -73,29 +74,25 @@
           <button id="add-same">+ Same</button>
           <button id="add-up">+ Heavier</button>
           <button id="add-down">+ Drop</button>
-          <label class="lbl" for="drop-pct" style="margin:0">by</label>
-          <select id="drop-pct" aria-label="Weight change per step">
-            <option value="10">10%</option><option value="20" selected>20%</option><option value="25">25%</option><option value="30">30%</option>
-          </select>
+          <label class="lbl" for="drop-step" style="margin:0">by</label>
+          <select id="drop-step" aria-label="Weight change per step"></select>
         </div>
         <p class="cal-sub">Tap a set number to mark it taken to failure (shown in red).</p>
       </div>
 
       <div class="steppers" id="straight-wrap">
-        <div class="stepper w">
-          <label class="lbl" for="weight"><span id="w-label">Weight</span> <span class="num-unit" id="w-unit">lb</span></label>
-          <input id="weight" type="number" inputmode="decimal" min="0" step="any" value="0">
-          <div class="btns"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
+        <div class="stepper big w">
+          <div class="st-head"><label class="lbl" for="weight"><span id="w-label">Weight</span> <span class="num-unit" id="w-unit">lb</span></label><span class="last" id="w-last"></span></div>
+          <div class="spin"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><input id="weight" type="number" inputmode="decimal" min="0" step="any" value="0"><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
+          <div class="quick" id="quick-add" role="group" aria-label="Add weight"></div>
         </div>
         <div class="stepper">
           <label class="lbl" for="reps">Reps</label>
-          <input id="reps" type="number" inputmode="numeric" min="1" step="1" value="10">
-          <div class="btns"><button data-step="reps" data-dir="-1" aria-label="Decrease reps">−</button><button data-step="reps" data-dir="1" aria-label="Increase reps">+</button></div>
+          <div class="spin"><button data-step="reps" data-dir="-1" aria-label="Decrease reps">−</button><input id="reps" type="number" inputmode="numeric" min="1" step="1" value="10"><button data-step="reps" data-dir="1" aria-label="Increase reps">+</button></div>
         </div>
         <div class="stepper">
           <label class="lbl" for="sets">Sets</label>
-          <input id="sets" type="number" inputmode="numeric" min="1" step="1" value="1">
-          <div class="btns"><button data-step="sets" data-dir="-1" aria-label="Decrease sets">−</button><button data-step="sets" data-dir="1" aria-label="Increase sets">+</button></div>
+          <div class="spin"><button data-step="sets" data-dir="-1" aria-label="Decrease sets">−</button><input id="sets" type="number" inputmode="numeric" min="1" step="1" value="1"><button data-step="sets" data-dir="1" aria-label="Increase sets">+</button></div>
         </div>
       </div>
       <div class="fail-row" id="fail-row"><span class="lbl" style="margin:0">To failure</span><span class="fail-chips" id="fail-chips" role="group" aria-label="Sets taken to failure"></span><span class="cal-sub" style="margin:0">Tap any set that went to failure.</span></div>
@@ -104,13 +101,11 @@
         <div class="steppers c2">
           <div class="stepper w">
             <label class="lbl" for="c-min">Duration <span class="num-unit">min</span></label>
-            <input id="c-min" type="number" inputmode="decimal" min="0" step="any" value="30">
-            <div class="btns"><button type="button" data-cstep="min" data-dir="-1" aria-label="Decrease duration">−</button><button type="button" data-cstep="min" data-dir="1" aria-label="Increase duration">+</button></div>
+            <div class="spin"><button type="button" data-cstep="min" data-dir="-1" aria-label="Decrease duration">−</button><input id="c-min" type="number" inputmode="decimal" min="0" step="any" value="30"><button type="button" data-cstep="min" data-dir="1" aria-label="Increase duration">+</button></div>
           </div>
           <div class="stepper" id="c-dist-box">
             <label class="lbl" for="c-dist">Distance <span class="num-unit" id="c-dist-unit">mi</span></label>
-            <input id="c-dist" type="number" inputmode="decimal" min="0" step="any" placeholder="—">
-            <div class="btns"><button type="button" data-cstep="dist" data-dir="-1" aria-label="Decrease distance">−</button><button type="button" data-cstep="dist" data-dir="1" aria-label="Increase distance">+</button></div>
+            <div class="spin"><button type="button" data-cstep="dist" data-dir="-1" aria-label="Decrease distance">−</button><input id="c-dist" type="number" inputmode="decimal" min="0" step="any" placeholder="—"><button type="button" data-cstep="dist" data-dir="1" aria-label="Increase distance">+</button></div>
           </div>
         </div>
         <p class="lbl" style="margin:14px 0 0">Effort</p>
@@ -154,7 +149,7 @@
 
       <p class="cal-sub" id="vol-preview" aria-live="polite" style="margin-top:12px"></p>
       <div class="actions">
-        <button class="primary" id="save">Log set</button>
+        <div class="save-wrap"><button class="primary" id="save">Log set</button><div class="save-rest" id="save-rest" hidden aria-hidden="true"><i class="rb-fill" id="rb-fill"></i><span id="rb-time"></span></div></div>
         <button class="secondary rest-btn" id="rest-start" type="button" aria-label="Start rest timer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg>Rest</button>
       </div>
       <div class="msg" id="msg" role="status" aria-live="polite"></div>
@@ -247,7 +242,6 @@
     <p class="foot" id="app-version"></p>
   </div>
 </div>
-<div id="rest-bar" hidden><div class="rb-fill" id="rb-fill"></div><span>Rest</span><span class="rb-time" id="rb-time">0:00</span><button type="button" data-rest="-15" aria-label="15 seconds less">−15</button><button type="button" data-rest="15" aria-label="15 seconds more">+15</button><button type="button" data-rest="skip">Skip</button></div>
 <nav class="tabs" role="tablist">
   <button role="tab" aria-selected="true" data-tab="log">Log</button>
   <button role="tab" aria-selected="false" data-tab="plan">Plan</button>
@@ -444,8 +438,8 @@
     renderEquipFields();
     if(isCardioForm()){ const v=readCardioVals(); renderCardioDetails(cardioTypeOf($("#exercise").value), v); }
     { const b=parseFloat($("#bw-today").value); if(b>0) $("#bw-today").value = fmt(toUnit(b, old)); }
-    readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); if(mode==="drop") renderDropRows();
-    renderAll();
+    readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); dropPicked = false; if(mode==="drop") renderDropRows();
+    renderQuick(); renderAll();
   });
 
   // ---------- tabs ----------
@@ -453,6 +447,7 @@
     document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
     ["log","plan","history","progress"].forEach(t=> $("#tab-"+t).hidden = t!==b.dataset.tab);
     window.scrollTo(0,0);
+    renderHead();
     if(b.dataset.tab==="plan") renderPlan();
     if(b.dataset.tab==="progress") renderProgress();
   });
@@ -465,6 +460,18 @@
     const min = f==="weight"?0:1;
     el.value = fmt(Math.max(min, (parseFloat(el.value)||0) + dir*step));
   });
+  // Quick-add chips: common plate jumps for the current unit.
+  const quickSteps = () => prefs.unit==="kg" ? [1.25,5,20] : [2.5,10,45];
+  function renderQuick(){ $("#quick-add").innerHTML = quickSteps().map(s=>`<button type="button" data-quick="${s}" aria-label="Add ${s} ${prefs.unit}">+${s}</button>`).join(""); }
+  $("#quick-add").addEventListener("click", e=>{
+    const b = e.target.closest("[data-quick]"); if(!b) return;
+    $("#weight").value = String(Math.round(((parseFloat($("#weight").value)||0) + (+b.dataset.quick))*100)/100);
+    updateVolPreview();
+  });
+  function showLast(name){
+    const last = name && lastFor(name);
+    $("#w-last").textContent = last ? `Last ${fmt(toUnit(last.weight, last.unit))} × ${last.reps}` : "";
+  }
   $("#note-toggle").onclick = ()=>{
     const w=$("#note-wrap"); w.hidden=!w.hidden;
     $("#note-toggle").setAttribute("aria-expanded", String(!w.hidden));
@@ -472,6 +479,7 @@
   };
   function prefill(name){
     const last = lastFor(name);
+    showLast(name);
     if(!last){ applyEquip(suggestEquip(name), prefs.unit); return; }
     if(last){
       applyEquip(last.equip, last.unit);
@@ -499,7 +507,19 @@
         ${cell("w",i,r.weight,'inputmode="decimal" min="0" step="any"',"weight")}
         ${cell("r",i,r.reps,'inputmode="numeric" min="1" step="1"',"reps")}
         <button class="rm" data-rm="${i}" aria-label="Remove set ${i+1}" ${dropRows.length===1?"disabled":""}>×</button></div>`).join("");
+    renderDropStep();
   }
+  // Drop step: fixed 5 lb (2.5 kg) increments, each labeled with its percent of the weight you're dropping from.
+  // Until you pick one, the step is about 20% of the first set.
+  let dropStep = 0, dropPicked = false;
+  function renderDropStep(){
+    const inc = stepSize(), last = dropRows[dropRows.length-1], w = parseFloat(last && last.weight)||0;
+    if(!dropPicked) dropStep = Math.max(inc, roundStep((parseFloat(dropRows[0] && dropRows[0].weight)||0)*0.2));
+    const n = Math.min(40, Math.max(8, Math.ceil(w*0.5/inc), dropStep/inc));
+    $("#drop-step").innerHTML = Array.from({length:n}, (_,i)=>{ const s = (i+1)*inc;
+      return `<option value="${s}" ${s===dropStep?"selected":""}>${fmt(s)} ${prefs.unit}${w>0?` (${Math.round(100*s/w)}%)`:""}</option>`; }).join("");
+  }
+  $("#drop-step").addEventListener("change", e=>{ dropStep = +e.target.value; dropPicked = true; });
   $("#drop-rows").addEventListener("click", e=>{
     const b = e.target.closest("[data-dstep]"); if(!b) return;
     const isW = b.dataset.dstep==="w";
@@ -523,9 +543,8 @@
   function addDropRow(dir){
     readDropRows();
     const last = dropRows[dropRows.length-1] || {weight:$("#weight").value, reps:$("#reps").value};
-    const w = parseFloat(last.weight)||0, pct = +$("#drop-pct").value/100;
-    let nw = w;
-    if(dir!==0){ nw = roundStep(dir>0 ? w*(1+pct) : w*(1-pct)); if(nw===w) nw = Math.max(0, w + dir*stepSize()); }
+    const w = parseFloat(last.weight)||0;
+    const nw = Math.max(0, w + dir*dropStep);
     dropRows.push({weight:fmt(nw), reps:last.reps, fail:false});
     renderDropRows();
     const inputs=document.querySelectorAll("#drop-rows [data-f=r]"); inputs[inputs.length-1]?.focus();
@@ -973,7 +992,7 @@
     $("#muscle").value = "Other"; muscleTouched = false;
     applyEquip({}, prefs.unit); setEquipOpen(false);
     $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
-    mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = "";
+    mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = ""; dropPicked = false; showLast("");
     document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
     failSets = new Set(); failN = 0;
     $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
@@ -1277,7 +1296,7 @@
     const list = sorted().filter(e=>e.date===d);
     $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
   }
-  $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); });
+  $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); renderHead(); });
 
   // ---------- muscle groups & exercise dropdown ----------
   const MUSCLES = ["Cardio","Mobility","Chest","Back","Shoulders","Biceps","Triceps","Quadriceps","Hamstrings","Glutes","Calves","Abdominals","Lower back","Forearms","Full body","Other"];
@@ -2453,8 +2472,24 @@ Scaption raise (thumbs-up, scapular plane)`;
   const repText = it => it.minutes ? `${fmt(it.minutes)} min` : `${it.sets} × ${it.lo===it.hi?it.lo:`${it.lo}–${it.hi}`}`;
 
   // ----- Today's plan (Log tab) -----
+  // Header: the tab's title, and on the Log tab the day's workout with a ring of its exercises.
+  let todayRing = null;   // {name, items:[{name, done}]} for the Log date's planned workout
+  function ringSVG(items){
+    const n = items.length, C = 2*Math.PI*24, S = C/n, gap = n>1 ? Math.min(4, S/3) : 0;
+    const cur = items.findIndex(x=>!x.done), doneN = items.filter(x=>x.done).length;
+    return `<svg viewBox="0 0 58 58" width="58" height="58" role="img" aria-label="${doneN} of ${n} exercises done">${items.map((x,i)=>
+      `<circle class="seg ${x.done?"done":i===cur?"now":"todo"}" cx="29" cy="29" r="24" stroke-dasharray="${(S-gap).toFixed(2)} ${(C-S+gap).toFixed(2)}" stroke-dashoffset="${(-i*S).toFixed(2)}" transform="rotate(-90 29 29)"/>`).join("")}<text x="29" y="34" text-anchor="middle">${doneN}/${n}</text></svg>`;
+  }
+  function renderHead(){
+    const tab = document.querySelector('nav.tabs [aria-selected="true"]').dataset.tab, log = tab==="log";
+    const date = $("#date").value || today(), r = log ? todayRing : null, next = r && r.items.find(x=>!x.done);
+    $("#head-title").textContent = !log ? {plan:"Plan", history:"History", progress:"Progress"}[tab] : date===today() ? "Today" : niceDate(date);
+    $("#head-kicker").textContent = !log ? "Lift Log" : [date===today() ? niceDate(date) : "Past day", r && r.name].filter(Boolean).join(" · ");
+    $("#head-next").hidden = !next; $("#head-next").textContent = next ? `Next: ${next.name}` : "";
+    $("#today-ring").hidden = !r; $("#today-ring").innerHTML = r ? ringSVG(r.items) : "";
+  }
   function renderPlanToday(){
-    const box = $("#plan-today");
+    const box = $("#plan-today"); todayRing = null;
     if(!hasProgram()){ box.hidden = true; return; }
     box.hidden = false;
     const pr = settings.program, date = $("#date").value || today(), wid = workoutFor(date), w = workoutById(wid);
@@ -2466,11 +2501,11 @@ Scaption raise (thumbs-up, scapular plane)`;
     const opts = `<option value="">${pr.mode==="fixed"?"As scheduled":"Next in rotation"}</option>` +
       pr.workouts.map(x=>`<option value="${esc(x.id)}" ${pr.override&&pr.override.date===date&&pr.override.wid===x.id?"selected":""}>${esc(x.name)}</option>`).join("") +
       `<option value="__rest" ${pr.override&&pr.override.date===date&&!pr.override.wid?"selected":""}>Rest day</option>`;
-    let body, doneCt = 0;
+    let body, doneCt = 0; const ringItems = [];
     if(!w) body = `<p class="empty" style="padding:8px">Rest day. Pick a workout below if you're training anyway.</p>`;
     else body = w.items.map((it,i)=>{
       const s = suggestFor(it, date), got = loggedFor(it.exercise, date);
-      const doneN = s.timed ? (got.length?1:0) : got.length, need = s.timed ? 1 : s.sets, complete = doneN>=need; if(complete) doneCt++;
+      const doneN = s.timed ? (got.length?1:0) : got.length, need = s.timed ? 1 : s.sets, complete = doneN>=need; if(complete) doneCt++; ringItems.push({name: it.exercise, done: complete});
       const target = s.timed ? `${fmt(s.minutes)} min` :
         `${s.sets} × ${s.lo===s.hi?s.lo:`${s.lo}–${s.hi}`}${s.weight>0?` @ ${s.bw?"BW + ":""}${fmt(s.weight)} ${prefs.unit}`:s.bw?" (bodyweight)":""}`;
       return `<div class="plan-item${complete?" done":""}"><div class="pi-main"><span class="pi-name">${complete?"✓ ":""}${esc(it.exercise)}</span>
@@ -2478,6 +2513,8 @@ Scaption raise (thumbs-up, scapular plane)`;
         <span class="tag">${s.timed?(complete?"Done":"—"):`${doneN}/${need}`}</span>
         <button class="edit" data-plan-start="${i}">${complete?"More":"Start"}</button></div>`;
     }).join("");
+    if(w && ringItems.length) todayRing = {name: w.name, items: ringItems};
+    renderHead();
     const open = !prefs.planCollapsed;
     box.innerHTML = `<div class="ex-head"><button type="button" class="plan-toggle" id="plan-toggle" aria-expanded="${open}"><span class="chev" aria-hidden="true">›</span><h2 style="margin:0">${w?esc(w.name):"Rest day"}</h2></button><span class="vol">${esc(head)}</span></div>
       ${open ? `${body}<div style="margin-top:12px"><label class="lbl" for="plan-switch">Switch workout for this day</label><select id="plan-switch">${opts}</select></div>`
@@ -2848,38 +2885,45 @@ Scaption raise (thumbs-up, scapular plane)`;
   }
   function startRest(sec){
     sec = sec ?? restNext ?? restDefault(); restNext = null;
-    if(!(sec>0)) return;
+    if(!(sec>0)){ if(restEnd) finishRest(true); return; }
     restTotal = sec; restEnd = Date.now()+sec*1000;
-    clearTimeout(restOverT); $("#rest-bar").classList.remove("over"); $("#rest-bar").hidden = false;
+    clearTimeout(restOverT);
     clearInterval(restIv); restIv = setInterval(tickRest, 250); tickRest(); scheduleNotify();
+  }
+  // While resting, the Log button shows the countdown (tapping it still logs) and Rest becomes +30s.
+  function showRest(text, fill, over){
+    const on = text!=null, logTab = document.querySelector('nav.tabs [data-tab="log"]');
+    $(".actions").classList.toggle("resting", on); $(".actions").classList.toggle("over", !!over);
+    $("#save-rest").hidden = !on;
+    $("#rb-time").textContent = on ? text : "";
+    $("#rb-fill").style.width = (fill||0).toFixed(1)+"%";
+    $("#rest-start").lastChild.textContent = on && !over ? "+30s" : "Rest";
+    $("#rest-start").setAttribute("aria-label", on && !over ? "Add 30 seconds of rest" : "Start rest timer");
+    logTab.textContent = on && !over ? `Log ${text.match(/\d+:\d\d/)[0]}` : "Log";
   }
   function tickRest(){
     if(!restEnd) return;
     const left = (restEnd-Date.now())/1000;
     if(left<=0){ finishRest(); return; }
-    $("#rb-time").textContent = mmss(Math.ceil(left));
-    $("#rb-fill").style.width = (100*(1-left/restTotal)).toFixed(1)+"%";
+    showRest(`Resting ${mmss(Math.ceil(left))} · tap to log`, 100*(1-left/restTotal));
   }
   function finishRest(skip){
-    clearInterval(restIv); clearTimeout(restNotifyT); restEnd = 0;
-    if(skip){ $("#rest-bar").hidden = true; return; }
-    $("#rb-time").textContent = "Go!"; $("#rb-fill").style.width = "100%"; $("#rest-bar").classList.add("over");
+    clearInterval(restIv); clearTimeout(restNotifyT); clearTimeout(restOverT); restEnd = 0;
+    if(skip){ showRest(null); return; }
+    showRest("Rest over · log your next set", 100, true);
     chime(); try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
-    restOverT = setTimeout(()=>{ $("#rest-bar").hidden = true; $("#rest-bar").classList.remove("over"); }, 5000);
+    restOverT = setTimeout(()=>showRest(null), 5000);
   }
   function scheduleNotify(){
     clearTimeout(restNotifyT);
     if(!canNotify() || Notification.permission!=="granted") return;
     restNotifyT = setTimeout(()=>{ if(document.hidden) navigator.serviceWorker.ready.then(r=>r.showNotification("Rest is over", {body:"Time for your next set.", tag:"liftlog-rest", renotify:true, icon:"icons/icon-192.png"})).catch(()=>{}); }, Math.max(0, restEnd-Date.now()));
   }
-  $("#rest-bar").addEventListener("click", e=>{
-    const b = e.target.closest("[data-rest]"); if(!b) return;
-    if(b.dataset.rest==="skip") return finishRest(true);
-    if(!restEnd) return;
-    restEnd = Math.max(Date.now()+1000, restEnd + (+b.dataset.rest)*1000);
-    restTotal = Math.max(restTotal, (restEnd-Date.now())/1000); tickRest(); scheduleNotify();
+  $("#rest-start").addEventListener("click", ()=>{
+    unlockAudio();
+    if(!restEnd) return startRest(restDefault() || 90);
+    restEnd += 30000; restTotal += 30; tickRest(); scheduleNotify();
   });
-  $("#rest-start").addEventListener("click", ()=>{ unlockAudio(); startRest(restDefault() || 90); });
   $("#rest-alerts").addEventListener("click", async ()=>{ try{ await Notification.requestPermission(); }catch(e){} renderRestSet(); });
   document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) tickRest(); });
 
@@ -2936,7 +2980,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
   function renderAll(){
-    renderChips(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderPlan(); renderRestSet(); renderSettings();
+    renderChips(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings();
     if(!$("#tab-progress").hidden) renderProgress();
   }
 

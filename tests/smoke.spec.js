@@ -46,7 +46,7 @@ test("log a drop set", async ({ page }) => {
   await expect(page.locator("#save")).toHaveText("Log drop set");
   await page.click("#save");
   await expect(page.locator(`${day} .chain .tag`)).toHaveText("Drop set · 3");
-  await expect(page.locator(`${day} .chain-steps`)).toHaveText("200×10→160×10→130×10");
+  await expect(page.locator(`${day} .chain-steps`)).toHaveText("200×10→160×10→120×10");
   expect(errors).toEqual([]);
 });
 
