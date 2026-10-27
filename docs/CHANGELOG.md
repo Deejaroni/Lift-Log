@@ -2,7 +2,7 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
-## 2026-10-27 (not yet published)
+## 2026-10-27
 - New look: the Archivo font throughout, with even-width numbers and crisper text.
 - The tab bar is a floating pill with the current tab in red. It's softer gray in dark mode.
 - The header shows each tab's title. On Log it shows today's workout, the next exercise, and a ring with one segment per planned exercise.
