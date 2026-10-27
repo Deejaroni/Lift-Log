@@ -2586,10 +2586,21 @@ Scaption raise (thumbs-up, scapular plane)`;
   function daysFor(pr, wid){ return pr.mode==="fixed" ? DOW.filter((d,i)=>pr.days[i]===wid) : []; }
   function scheduleSummary(pr){
     if(pr.mode==="fixed"){
-      const ws = weekStart(today());
-      return `<div class="week-strip">${DOW.map((d,i)=>{ const dt = new Date(ws); dt.setDate(dt.getDate()+i); const iso = isoOf(dt);
-        const w = workoutById(pr.days[i]), done = !!(pr.done && pr.done[iso]);
-        return `<div class="wd${iso===today()?" today":""}${done?" done":""}${w?"":" rest"}"><b>${d}</b><span>${w?esc(w.name):"Rest"}</span>${done?'<i aria-label="done">✓</i>':""}</div>`; }).join("")}</div>`;
+      // This week as a list of training days; today's card opens into its exercises.
+      const ws = weekStart(today()), rest = [];
+      const cards = DOW.map((d,i)=>{ const dt = new Date(ws); dt.setDate(dt.getDate()+i); const iso = isoOf(dt), isToday = iso===today();
+        const w = workoutById(isToday ? workoutFor(iso) : pr.days[i]), done = !!(pr.done && pr.done[iso]);
+        if(!w){ rest.push(d); return ""; }
+        const head = `<div class="ag-head"><b>${d} · ${esc(w.name)}</b>`;
+        if(!isToday) return `<div class="ag-day${done?" done":""}">${head}<span>${done ? "Done ✓" : iso<today() ? "Not logged" : `${w.items.length} exercise${w.items.length===1?"":"s"}`}</span></div></div>`;
+        const items = w.items.map(it=>{ const s = suggestFor(it, iso), got = loggedFor(it.exercise, iso).length;
+          return {it, s, done: s.timed ? got>0 : got>=s.sets}; });
+        const cur = items.findIndex(x=>!x.done), n = items.filter(x=>x.done).length;
+        return `<div class="ag-day today">${head}<span>Today · ${n} of ${items.length}</span></div>
+          ${items.map((x,j)=>`<div class="ag-ex${x.done?" done":j===cur?" now":""}"><span>${esc(x.it.exercise)}</span><small>${x.done?"Done":j===cur?"Now":esc(x.s.timed?`${fmt(x.s.minutes)} min`:`${x.s.sets} × ${x.s.lo===x.s.hi?x.s.lo:`${x.s.lo}–${x.s.hi}`}`)}</small></div>`).join("")}</div>`;
+      }).join("");
+      const restLine = !rest.length ? "" : `<p class="ag-rest">${rest.length===1 ? rest[0] : `${rest.slice(0,-1).join(", ")} and ${rest[rest.length-1]}`} ${rest.length===1?"is a rest day":"are rest days"}</p>`;
+      return `<div class="agenda">${cards}${restLine}</div>`;
     }
     const next = workoutFor(today()), rot = pr.rotation.filter(id=>workoutById(id));
     return rot.length ? `<div class="rot-chips">${rot.map((id,i)=>`${i?'<span class="arrow" aria-hidden="true">→</span>':""}<span class="rot-chip${id===next?" next":""}">${esc(workoutById(id).name)}${id===next?" · next":""}</span>`).join("")}</div>`
