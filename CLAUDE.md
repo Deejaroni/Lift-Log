@@ -18,7 +18,7 @@ GitHub Pages. Used daily at the gym, often one-handed, often in dark mode.
 ## Design
 - Must work at 390 px wide, in light and dark mode. Colors come from the
   tokens in css/app.css; never hard-code them.
-- Fonts: Barlow and Barlow Condensed. Accents: plate red, blue, yellow, green.
+- Font: Archivo (variable, self-hosted; use font-stretch for condensed text). Accents: plate red, blue, yellow, green.
 - Tap targets at least 40 px. Short, plain wording in sentence case.
 - After any entry is logged, the Log form resets (muscle group: All).
 
