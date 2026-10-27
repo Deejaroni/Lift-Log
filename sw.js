@@ -1,8 +1,8 @@
 // Lift Log service worker: caches the app so it works offline.
-// When you change any file, bump VERSION so users get the update.
-const VERSION = "liftlog-v24";
+// The deploy workflow replaces __BUILD__ with the build version, so every deploy gets a fresh cache.
+const VERSION = "__BUILD__";
 const FILES = [
-  "./", "index.html", "manifest.webmanifest", "vendor/chart.umd.min.js",
+  "./", "index.html", "manifest.webmanifest", "css/app.css", "js/version.js", "vendor/chart.umd.min.js",
   "fonts/barlow-latin-400-normal.woff2", "fonts/barlow-latin-500-normal.woff2", "fonts/barlow-latin-600-normal.woff2",
   "fonts/barlow-condensed-latin-500-normal.woff2", "fonts/barlow-condensed-latin-600-normal.woff2", "fonts/barlow-condensed-latin-700-normal.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"

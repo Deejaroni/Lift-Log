@@ -1,0 +1,13 @@
+{
+  "name": "lift-log",
+  "private": true,
+  "description": "Workout journal PWA. No build step: the repo is served as-is.",
+  "scripts": {
+    "serve": "http-server . -p 8080 -c-1 --silent",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "http-server": "14.1.1"
+  }
+}
