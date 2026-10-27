@@ -2,6 +2,9 @@
 
 Settled choices. Don't reverse one without a new entry saying why.
 
+## Archivo replaces Barlow
+Chosen 2026-10-27 for the visual refresh. Archivo has a width axis, so one family covers both body text and the narrow, heavy numbers that Barlow Condensed used to provide, and its tabular figures keep weights and reps from shifting as they change. It's under the SIL Open Font License and is self-hosted in `fonts/` like Barlow was.
+
 ## No build step
 The repo is the app. `index.html`, `sw.js`, `manifest.webmanifest` and the files they reference are served exactly as committed. The only change at deploy time is replacing the `__BUILD__` version placeholder. Dependencies are vendored (`vendor/`, `fonts/`) instead of bundled or loaded from a CDN, so the app works offline.
 
