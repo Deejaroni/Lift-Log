@@ -878,7 +878,7 @@
     $("#cardio-details").dataset.type = type;
     $("#c-dist-unit").textContent = distUnitFor(type);
     const fields = (CARDIO_FIELDS[type]||[]).map(f=>`<div><label class="lbl" for="cx-${f.k}">${f.label()}</label><input id="cx-${f.k}" data-cx="${f.k}" type="${f.text?"text":"number"}" ${f.text?'inputmode="numeric"':'inputmode="decimal" min="0" step="any"'} placeholder="${esc(f.ph||"")}" value="${esc(v[f.k]??"")}"></div>`).join("");
-    $("#cardio-details").innerHTML = `<div class="eq-fields" style="border-left-color:var(--blue)"><h4>Details <span class="cal-sub" style="font-family:Barlow,sans-serif;font-size:.8rem">(all optional)</span></h4><div class="eq-grid">
+    $("#cardio-details").innerHTML = `<div class="eq-fields" style="border-left-color:var(--blue)"><h4>Details <span class="cal-sub" style="font-family:Archivo,sans-serif;font-stretch:100%;font-size:.8rem">(all optional)</span></h4><div class="eq-grid">
       ${fields}
       <div><label class="lbl" for="cx-hr">Avg heart rate (bpm)</label><input id="cx-hr" data-cx="hr" type="number" inputmode="numeric" min="0" step="1" value="${esc(v.hr??"")}"></div>
       <div><label class="lbl" for="cx-mk">Machine / watch calories</label><input id="cx-mk" data-cx="mk" type="number" inputmode="numeric" min="0" step="1" value="${esc(v.mk??"")}"></div>
@@ -2182,7 +2182,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   const metricLabel = {top:"Top weight", e1rm:"Est. 1-rep max", vol:"Volume", reps:"Total reps"};
 
   function chartDefaults(){
-    Chart.defaults.font.family = "Barlow, system-ui, sans-serif";
+    Chart.defaults.font.family = "Archivo, system-ui, sans-serif";
     Chart.defaults.color = css("--muted");
     Chart.defaults.borderColor = css("--line");
   }
