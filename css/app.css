@@ -88,6 +88,12 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .stepper.big .spin button{width:60px;min-height:68px;font-size:1.9rem}
 .stepper.big .spin input{font-size:3rem}
 .spin input::-webkit-outer-spin-button,.spin input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+@media (max-width:380px){
+  .stepper:not(.big) .spin{flex-direction:column}
+  .stepper:not(.big) .spin button{width:auto;min-height:44px}
+  .stepper:not(.big) .spin button:last-child{order:-1;border-left:0;border-bottom:1px solid var(--line)}
+  .stepper:not(.big) .spin button:first-child{order:1;border-right:0;border-top:1px solid var(--line)}
+}
 .quick{display:flex;gap:8px;margin-top:8px}
 .quick button{flex:1;height:42px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--muted);font-weight:700;font-size:.95rem}
 

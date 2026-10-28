@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-10-28
+- On small phones, the reps and sets boxes stack with + on top and − below, so the number has room.
+
 ## 2026-10-27
 - New look: the Archivo font throughout, with even-width numbers and crisper text.
 - The tab bar is a floating pill with the current tab in red. It's softer gray in dark mode.
