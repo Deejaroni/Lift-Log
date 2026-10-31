@@ -3,6 +3,10 @@
 const VERSION = "__BUILD__";
 const FILES = [
   "./", "index.html", "manifest.webmanifest", "css/app.css", "js/version.js", "vendor/chart.umd.min.js",
+  "js/ui.js", "js/state.js", "js/backup.js", "js/log.js",
+  "js/equipment.js", "js/entries.js", "js/exercise-library.js", "js/catalog.js",
+  "js/search.js", "js/progress.js", "js/plan.js", "js/exercise-sheet.js",
+  "js/plan-editor.js", "js/standards.js", "js/main.js",
   "fonts/archivo-latin-wdth-normal.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"
 ];

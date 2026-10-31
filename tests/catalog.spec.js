@@ -5,7 +5,7 @@ const { set, openApp, pickExercise } = require("./helpers");
 
 // The built-in library, read straight from the page source.
 function library() {
-  const src = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const src = fs.readFileSync(path.join(__dirname, "..", "js", "exercise-library.js"), "utf8");
   const start = src.indexOf("const CATALOG_TEXT = `") + "const CATALOG_TEXT = `".length;
   const rows = []; let muscle = null, sub = null;
   src.slice(start, src.indexOf("`;", start)).split("\n").forEach(l => {
