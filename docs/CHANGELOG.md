@@ -2,7 +2,7 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
-## Next update
+## 2026-10-31 (seventh update)
 - Behind the scenes: the app's code files are now JavaScript modules, each listing what it shares. Nothing looks or works differently.
 
 ## 2026-10-31 (sixth update)
