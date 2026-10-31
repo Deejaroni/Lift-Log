@@ -405,3 +405,12 @@ button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);co
 .ss-row .tog{min-height:44px}
 .ss-row .cal-sub{margin:6px 0 0}
 .ss-tag{margin:-2px 0 6px;font-size:.85rem;font-weight:700;color:var(--blue)}
+
+/* Exercise details: main muscle group and what else it works */
+button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inherit;text-align:left;min-height:44px;justify-content:center}
+button.ex-chosen-text .ex-m::after{content:"Edit muscles";display:block;margin-top:2px;color:var(--blue);font-weight:600}
+.ex-name-btn{border:0;background:none;padding:6px 0;margin:-6px 0;color:inherit;font:inherit;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px;min-height:40px}
+.exdlg h3{margin:0 0 12px}
+.also-chips{display:flex;flex-wrap:wrap;gap:6px}
+.also-chip{min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--field);color:var(--muted);font-weight:600;font-size:.9rem}
+.also-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}

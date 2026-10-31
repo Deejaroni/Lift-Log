@@ -42,3 +42,6 @@ Each set can carry an optional `rir` (reps in reserve, 0–4, where 4 means 4 or
 
 ## Supersets only change when rest starts
 A superset is marked on the sets themselves: `ss` (a shared id) on every set in the group, and `ssLead: true` on sets logged with the switch on. Logging with the switch on skips the rest timer; the next set logged (any exercise) joins the group, and rest starts after it. The Log form still resets after every set, so you pick each exercise yourself; picking one that led a superset earlier today turns the switch back on. We chose this over switching the form to the partner exercise automatically, to keep the form-reset rule. Older entries have no `ss`, so no migration is needed.
+
+## Your muscle groups beat the library's
+Each exercise's main group and "also works" groups can be set in `settings.exercises`, keyed by lowercase name: `{muscle, also:[...]}`. `groupOf()` checks it first, so History, Progress, Plan and search follow one answer. Saving also rewrites `muscle` on every past set of that exercise, so exports and older code that reads `e.muscle` agree. "Also works" defaults to the other groups the library lists the exercise under. Saved data from before this has no `exercises` object; loading creates an empty one (the migration sits next to the other settings defaults, since there is no js/state.js yet).

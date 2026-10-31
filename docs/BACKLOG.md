@@ -21,7 +21,6 @@ Added 2026-10-27.
 
 ## Gaps review: next items
 Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo) shipped 2026-10-31, then the plate calculator, repeat a past workout, reps in reserve and supersets. Do these in order:
-- Change an exercise's muscle group (History and Progress follow), and secondary muscles (e.g. hip thrust counts for Glutes and Hamstrings). Needs a migration and an old-data test.
 - Clean up the built-in exercise list (wrong groupings, near-duplicates) and merge your own duplicates.
 - Weekly sets per muscle group.
 - Consistency calendar or streak.

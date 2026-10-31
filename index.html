@@ -53,7 +53,7 @@
           <div id="ex-results" class="ex-results" role="group" aria-label="Exercises"></div>
         </div>
         <div id="ex-chosen" class="ex-chosen" hidden>
-          <div class="ex-chosen-text"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></div>
+          <button type="button" class="ex-chosen-text" id="ex-chosen-text"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></button>
           <button type="button" id="ex-change" class="secondary">Change</button>
         </div>
         <p class="cal-sub" id="ex-hint" hidden></p>
@@ -216,6 +216,13 @@
 </div>
 
 <div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
+<div id="exsheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="exs-title">
+  <h3 id="exs-title"></h3>
+  <label class="lbl" for="exs-main">Main muscle group</label><select id="exs-main"></select>
+  <p class="lbl" style="margin:14px 0 6px">Also works</p><div class="also-chips" id="exs-also" role="group" aria-label="Also works"></div>
+  <p class="cal-sub" style="margin:12px 0 14px">Changes apply to every set of this exercise, past and future.</p>
+  <div class="dlg-actions"><button type="button" class="secondary" id="exs-cancel">Cancel</button><button type="button" class="primary" id="exs-save">Save</button></div>
+</div></div>
 <div id="settings" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
   <div class="sheet-inner">
     <div class="sheet-head"><h2 id="settings-title">Settings</h2><button class="primary" id="settings-done" type="button">Done</button></div>
@@ -315,6 +322,8 @@
   try { settings = Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY)||"{}")); } catch(e){}
   if(!settings.days || typeof settings.days!=="object") settings.days = {};
   if(!settings.bwLog || typeof settings.bwLog!=="object") settings.bwLog = {};
+  // Added 2026-10-31: your own muscle groups per exercise, {"lowercase name": {muscle, also:[...]}}. Older data has none.
+  if(!settings.exercises || typeof settings.exercises!=="object" || Array.isArray(settings.exercises)) settings.exercises = {};
   // Body weight for a given day: that day's entry, else the latest earlier one, else the general setting.
   function bwEntryOn(date){
     const log = settings.bwLog || {};
@@ -1430,7 +1439,7 @@
         if(seen.has(e.chain)) return; seen.add(e.chain);
         parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step)));
       });
-      const head = `<div class="ex-head"><h3>${esc(g[0].exercise)}${hist && isPR(g) ? ' <span class="pr">PR</span>' : ""}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
+      const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${hist && isPR(g) ? ' <span class="pr">PR</span>' : ""}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
       const ids = new Set(g.map(e=>e.ss).filter(Boolean)), l = g[0].exercise.toLowerCase();
       const mates = [...new Set(list.filter(e=>ids.has(e.ss) && e.exercise.toLowerCase()!==l).map(e=>e.exercise))];
       const ssTag = mates.length ? `<p class="ss-tag">Superset with ${esc(mates.join(", "))}</p>` : "";
@@ -2247,7 +2256,9 @@ Scaption raise (thumbs-up, scapular plane)`;
   // Older entries used "Legs" and "Core"
   const normMuscle = (m, name) => MUSCLES.includes(m) ? m : m==="Core" ? "Abdominals" :
     m==="Legs" ? (/curl|hamstring|rdl|romanian|stiff|nordic|good ?morning/.test((name||"").toLowerCase()) ? "Hamstrings" : "Quadriceps") : (CAT_MUSCLE.get((name||"").toLowerCase()) || guessMuscle(name));
+  const exSet = name => settings.exercises[(name||"").toLowerCase()];
   const groupOf = name => {
+    const o = exSet(name); if(o && MUSCLES.includes(o.muscle)) return o.muscle;
     const l=(name||"").toLowerCase();
     const e = sorted().reverse().find(x=>x.exercise.toLowerCase()===l && x.muscle);
     return e ? normMuscle(e.muscle, name) : (CAT_MUSCLE.get(l) || guessMuscle(name));
@@ -2388,8 +2399,20 @@ Scaption raise (thumbs-up, scapular plane)`;
     EX_INDEX.forEach(consider);
     return out.sort((a,b)=>b.s-a.s || a.x.order-b.x.order).map(r=>r.x);   // ties keep the library's order (most standard first)
   }
+  // Other muscles an exercise works: your own choice if you've set it, else the other groups the library lists it under.
+  function alsoOf(name){
+    const o = exSet(name), m = groupOf(name);
+    if(o && Array.isArray(o.also)) return o.also.filter(x=>MUSCLES.includes(x) && x!==m);
+    return [...new Set(((EX_INDEX.get(name.toLowerCase())||{}).muscles||[]).map(y=>y.m))].filter(x=>x!==m);
+  }
+  const worksIn = (name, f) => groupOf(name)===f || alsoOf(name).includes(f);
   // The muscle/subgroup a result is shown under: the filtered group if it's listed there, else your own grouping.
   function shownIn(x, f, mine){
+    if(exSet(x.name)){   // your own choice beats the library
+      const m = groupOf(x.name), sub = y => (x.muscles.find(z=>z.m===y)||{}).sub || "";
+      if(f && f!==m && alsoOf(x.name).includes(f)) return {m:f, sub:"Also works"};
+      return {m, sub:sub(m)};
+    }
     const hit = f && x.muscles.find(y=>y.m===f); if(hit) return hit;
     if(mine){ const m = groupOf(x.name); return x.muscles.find(y=>y.m===m) || {m, sub:""}; }
     return x.muscles[0];
@@ -2407,9 +2430,15 @@ Scaption raise (thumbs-up, scapular plane)`;
       const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0, 6);
       if(recent.length) html += sec("Recently used") + recent.map(n=>row(entryFor(n))).join("");
       if(f){
-        const own = logged.filter(n=>!EX_INDEX.has(n.toLowerCase()) && groupOf(n)===f).sort((a,b)=>a.localeCompare(b));
+        const listed = n => !!n && CATALOG.some(g=>g.muscle===f && g.names.includes(n));
+        const moved = Object.keys(settings.exercises).map(l=>logged.find(n=>n.toLowerCase()===l) || EX_INDEX.get(l)?.name).filter(Boolean);
+        const own = [...new Set([...logged.filter(n=>!EX_INDEX.has(n.toLowerCase())), ...moved])]
+          .filter(n=>worksIn(n, f) && !listed(EX_INDEX.get(n.toLowerCase())?.name)).sort((a,b)=>a.localeCompare(b));
         if(own.length) html += sec("My exercises") + own.map(n=>row(entryFor(n))).join("");
-        CATALOG.filter(g=>g.muscle===f && g.names.length).forEach(g=>{ html += sec(g.sub) + g.names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join(""); });
+        CATALOG.filter(g=>g.muscle===f && g.names.length).forEach(g=>{
+          const names = g.names.filter(n=>!exSet(n) || worksIn(n, f));
+          if(names.length) html += sec(g.sub) + names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join("");
+        });
       } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”. Or choose a muscle group above to browse.</p>`;
     } else {
       const {hits, fixed, partial} = findExercises(q, logged);
@@ -2432,12 +2461,14 @@ Scaption raise (thumbs-up, scapular plane)`;
   function chooseExercise(name, m){
     restNext = null;
     $("#exercise").value = name; $("#new-ex-wrap").hidden = true; muscleTouched = false;
-    $("#muscle").value = MUSCLES.includes(m) ? m : groupOf(name);
-    $("#ex-chosen-name").textContent = name;
-    const s = shownIn(entryFor(name), $("#muscle").value, false);
-    $("#ex-chosen-meta").textContent = [$("#muscle").value, s.m===$("#muscle").value ? s.sub : ""].filter(Boolean).join(" · ");
+    $("#muscle").value = !exSet(name) && MUSCLES.includes(m) ? m : groupOf(name);
+    $("#ex-chosen-name").textContent = name; chosenMeta(name);
     showPicker(false); applyFormKind(); supersetFor(name);
     if(isCardioForm()) prefillCardio(name); else prefill(name);
+  }
+  function chosenMeta(name){
+    const m = $("#muscle").value, s = shownIn(entryFor(name), m, false);
+    $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
   }
   function chooseNew(name){
     restNext = null;
@@ -2863,6 +2894,45 @@ Scaption raise (thumbs-up, scapular plane)`;
     restNext = s.timed ? null : (it.rest || null);
     $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
   }
+
+  // ---------- exercise details: main muscle group and what else it works ----------
+  let exsName = null, exsAlso = new Set();
+  function openExerciseInfo(name){
+    if(!name || TIMED.has(groupOf(name))) return;   // cardio and mobility have no muscle groups to set
+    exsName = name;
+    const main = groupOf(name);
+    $("#exs-title").textContent = name;
+    $("#exs-main").innerHTML = MUSCLES.filter(m=>!TIMED.has(m)).map(m=>`<option ${m===main?"selected":""}>${m}</option>`).join("");
+    exsAlso = new Set(alsoOf(name)); renderAlso();
+    $("#exsheet").hidden = false; $("#exs-main").focus();
+  }
+  function renderAlso(){
+    const main = $("#exs-main").value; exsAlso.delete(main);
+    $("#exs-also").innerHTML = MUSCLES.filter(m=>!TIMED.has(m) && m!=="Other" && m!==main)
+      .map(m=>`<button type="button" class="also-chip" data-also="${m}" aria-pressed="${exsAlso.has(m)}">${m}</button>`).join("");
+  }
+  function closeExerciseInfo(){ $("#exsheet").hidden = true; exsName = null; }
+  // Saves the choice for this exercise and moves every past set of it to the new main group.
+  function saveExerciseInfo(){
+    const name = exsName, l = name.toLowerCase(), main = $("#exs-main").value;
+    settings.exercises[l] = {muscle:main, also:MUSCLES.filter(m=>exsAlso.has(m))};
+    entries.forEach(e=>{ if(e.exercise.toLowerCase()===l && !isCardio(e)) e.muscle = main; }); saveLocal();
+    closeExerciseInfo();
+    if($("#exercise").value.toLowerCase()===l && $("#new-ex-wrap").hidden){ $("#muscle").value = main; chosenMeta(name); }
+    saveSettings();
+  }
+  $("#exs-main").addEventListener("change", renderAlso);
+  $("#exs-also").addEventListener("click", e=>{
+    const b = e.target.closest("[data-also]"); if(!b) return;
+    exsAlso.has(b.dataset.also) ? exsAlso.delete(b.dataset.also) : exsAlso.add(b.dataset.also);
+    b.setAttribute("aria-pressed", String(exsAlso.has(b.dataset.also)));
+  });
+  $("#exs-save").addEventListener("click", saveExerciseInfo);
+  $("#exs-cancel").addEventListener("click", closeExerciseInfo);
+  $("#exsheet").addEventListener("click", e=>{ if(e.target.id==="exsheet") closeExerciseInfo(); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#exsheet").hidden) closeExerciseInfo(); });
+  $("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-exinfo]"); if(b) openExerciseInfo(b.dataset.exinfo); });
+  $("#ex-chosen-text").addEventListener("click", ()=>{ if($("#new-ex-wrap").hidden) openExerciseInfo($("#exercise").value.trim()); });
 
   // ---------- repeat a past workout ----------
   // Copies a past day into a checklist for today: each exercise's top set (weight, reps, equipment) and how many sets.
