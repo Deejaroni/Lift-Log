@@ -2,6 +2,12 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-10-31 (ninth update)
+- About 50 more exercises have a moving picture: wrist curls and reverse wrist curls, side bends, cable chops and rotations (including the Pallof press), inverted and ring rows, pike and handstand push-ups, Nordic curls and glute-ham raises, mountain climbers, burpees and squat thrusts, wall sits, dead bugs, hollow holds, supermans, bird dogs, donkey kicks, reverse hyperextensions, Y-raises, and kettlebell cleans, snatches and thrusters.
+- Side bends, chops and rotations light up the sides of your waist.
+- Cardio machines move too: the stationary, spin, recumbent and air bikes pedal, the treadmill walks and the rower rows. Cardio shows no muscles, as before.
+- Fixed: the Pallof press no longer shows a bench press, and snatch-grip rows and RDLs now show a row and a hinge.
+
 ## 2026-10-31 (eighth update)
 - Exercises now show how they're done. The chosen exercise on the Log tab has a small moving picture of the movement; tap it or the name to open a sheet with a larger animation, a front and back body map, and three short steps.
 - The animated figure and body map highlight the main muscle in solid red and supporting muscles in a lighter red. Shoulder exercises show only the part of the shoulder they work: front, side or rear delts.

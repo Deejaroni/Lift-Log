@@ -161,7 +161,7 @@ let exShowAll = false;
 let exMove = null;   // movement being browsed ("Row"), or null
 let MOVES = null;    // movement title -> library exercise names, built the first time it's needed
 function movesIndex(){
-  if(!MOVES){ MOVES = new Map(); EX_INDEX.forEach(x=>{ const v = visualFor(x.name); if(v.pat){ if(!MOVES.has(v.pat.title)) MOVES.set(v.pat.title, []); MOVES.get(v.pat.title).push(x.name); } }); }
+  if(!MOVES){ MOVES = new Map(); EX_INDEX.forEach(x=>{ const v = visualFor(x.name); if(v.pat && !v.timed){ if(!MOVES.has(v.pat.title)) MOVES.set(v.pat.title, []); MOVES.get(v.pat.title).push(x.name); } }); }
   return MOVES;
 }
 // Grid of movements to browse by picture, in the pattern list's order.
@@ -214,7 +214,7 @@ function renderPicker(){
 // Either the search box and results, or the chosen exercise with a Change button.
 function showPicker(open){
   $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open;
-  $("#ex-chosen-tip").hidden = open || $("#ex-thumb").hasAttribute("hidden");
+  $("#ex-chosen-tip").hidden = open || $("#ex-thumb").hasAttribute("hidden") || $("#ex-thumb").hasAttribute("data-timed");
   if(open) stopAnimating($("#ex-thumb"));
 }
 function chooseExercise(name, m){
@@ -230,10 +230,11 @@ function chosenMeta(name){
   $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
   chosenThumb(name);
 }
-// The chosen exercise's picture: the movement playing, the body map when there's no animation, nothing for cardio.
+// The chosen exercise's picture: the movement playing, the body map when there's no animation,
+// and for cardio the machine looping (nothing if there's no machine picture).
 function chosenThumb(name){
   const v = name ? visualFor(name) : {timed:true}, th = $("#ex-thumb");
-  th.toggleAttribute("hidden", !!v.timed); $("#ex-chosen-tip").hidden = !!v.timed || $("#ex-chosen").hidden;
+  th.toggleAttribute("hidden", !!v.timed && !v.pat); th.toggleAttribute("data-timed", !!v.timed); $("#ex-chosen-tip").hidden = !!v.timed || $("#ex-chosen").hidden;
   if(v.pat) animate(th, v, true);
   else { stopAnimating(th); th.setAttribute("viewBox", "0 0 58 44"); th.innerHTML = v.timed ? "" : bodyMapMarkup(v.roles); }
 }

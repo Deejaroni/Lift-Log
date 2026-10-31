@@ -1,6 +1,7 @@
 // Lift Log: movement patterns for the exercise animations: key poses, equipment, muscle bands and how-to steps,
 // and the rules that match each exercise to a pattern. ES module (see docs/DECISIONS.md).
 import { gear, FLOOR } from "./figure.js";
+import { morePatterns } from "./movements-more.js";
 
 // Joints (side view, facing right): N head, S shoulder, E elbow, W wrist, H hip, K knee, A ankle, T toe.
 // A joint ending in 2 (K2, A2, T2) is the far-side limb when it differs from the near one.
@@ -246,21 +247,49 @@ export const PATTERNS = {
     bands:[B.forearm,{...B.lats, f:[.02,.2], m:"Back"}], gear:(p,k)=>({front: held(p,k==="barbell"?"dumbbell":k,0)}),
     steps:["Pick up heavy weights, stand tall.","Walk with short, steady steps, shoulders back.","Set them down with a flat back."]},
 };
+Object.assign(PATTERNS, morePatterns({B, STAND, PATTERNS}));
 const r = n => Math.round(n*10)/10;
 
 // ---------- matching exercises to patterns ----------
 // Tested against "muscle|subgroup|name" in lowercase; the first rule that matches wins.
 const RULES = [
+  [/^cardio\|machines\|.*bike/, "bike"],
+  [/^cardio\|machines\|.*treadmill/, "treadmill"],
+  [/^cardio\|machines\|rowing/, "rower"],
   [/^(cardio|mobility)\|/, null],
   [/kettlebell swing|american kettlebell/, "kbSwing"],
   [/face pull/, "facePull"],
   [/hanging (knee|leg) raise/, "legRaise"],
   [/standing (cable )?leg curl/, "standingCurl"],
   [/abduction/, "abduction"],
+  [/reverse nordic/, null],
+  [/nordic|glute-ham/, "nordic"],
+  [/reverse hyper/, "reverseHyper"],
+  [/reverse wrist curl/, "reverseWristCurl"],
+  [/wrist curl/, "wristCurl"],
+  [/side bend/, "sideBend"],
+  [/low-to-high.*chop/, "chopUp"],
+  [/woodchop|chop/, "chop"],
+  [/cable rotation|pallof/, "rotation"],
+  [/inverted row|ring row/, "invertedRow"],
+  [/pike/, "pikePushUp"],
+  [/handstand/, "handstandPushUp"],
+  [/mountain climber/, "mountainClimber"],
+  [/burpee|squat thrust/, "squatThrust"],
+  [/wall sit/, "wallSit"],
+  [/dead bug/, "deadBug"],
+  [/hollow/, "hollow"],
+  [/superman/, "superman"],
+  [/bird dog/, "birdDog"],
+  [/donkey kick/, "donkeyKick"],
+  [/y-raise/, "yRaise"],
+  [/kettlebell snatch/, "kbSnatch"],
+  [/thruster/, "thruster"],
+  [/kettlebell clean/, "kbClean"],
   [/block pull|rack pull/, "hinge"],
   [/ab machine/, "crunch"],
   [/triceps extension machine|plate-loaded triceps extension/, "pushdown"],
-  [/reverse nordic|nordic|glute-ham|slider|stability-ball|woodchop|chop|rotation|twist|windmill|halo|wrist curl|plate pinch|holds|hangs|adduction|pull-through|reverse hyper|superman|bird dog|dead bug|hollow|mountain climber|burpee|squat thrust|bear crawl|inchworm|wall walk|wall sit|handstand|pike|cossack|inverted row|ring row|renegade|high pull\b|clean|snatch|thruster|get-up|y-raise|scapular pull|side bend|donkey kick|fire hydrant|ring \/ suspension|bodyweight triceps extension/, null],
+  [/slider|stability-ball|twist|windmill|halo|plate pinch|holds|hangs|adduction|pull-through|bear crawl|inchworm|wall walk|cossack|renegade|high pull\b|get-up|scapular pull|fire hydrant|ring \/ suspension|bodyweight triceps extension/, null],
   [/farmer|suitcase/, "carry"],
   [/dip/, "dips"],
   [/push-up|pushup/, "pushUp"],

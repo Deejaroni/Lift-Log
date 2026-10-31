@@ -30,12 +30,13 @@ function openExerciseInfo(name){
 function renderHowTo(name){
   const v = visualFor(name), anim = $("#exs-anim");
   $("#exs-title").textContent = name;
-  $("#exs-info").hidden = !!v.timed;
+  $("#exs-info").hidden = !!v.timed && !v.pat;   // cardio machines show just the picture
+  $(".exs-cap").hidden = !!v.timed;
   anim.toggleAttribute("hidden", !v.pat);   // an SVG element has no hidden property, only the attribute
-  if(v.pat){ anim.setAttribute("aria-label", `${name}, animated, working ${v.main}`); animate(anim, v); } else stopAnimating(anim);
+  if(v.pat){ anim.setAttribute("aria-label", v.timed ? `${name}, animated` : `${name}, animated, working ${v.main}`); animate(anim, v); } else stopAnimating(anim);
   $("#exs-map").innerHTML = v.timed ? "" : bodyMapMarkup(v.roles);
   $("#exs-muscles-text").innerHTML = v.timed ? "" : `<span class="mus-dot"></span>${esc(v.main)}` + (v.also.length ? `<br><span class="mus-dot also"></span>${esc(v.also.join(" · "))}` : "");
-  $("#exs-steps").innerHTML = v.pat ? v.pat.steps.map(s=>`<li>${esc(s)}</li>`).join("") : "";
+  $("#exs-steps").innerHTML = v.pat && v.pat.steps ? v.pat.steps.map(s=>`<li>${esc(s)}</li>`).join("") : "";
 }
 function setEditOpen(open){ $("#exs-edit-wrap").hidden = !open; $("#exs-edit").setAttribute("aria-expanded", String(open)); }
 // Names that look like the same exercise (a typo or different spacing): yours first, then the library's.

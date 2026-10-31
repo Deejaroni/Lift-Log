@@ -17,7 +17,7 @@ test("most strength exercises have a movement animation, and every rule names a 
     return { total: rows.length, missing, bad: RULES.map(r => r[1]).filter(k => k && !PATTERNS[k]) };
   }, `(${library})`);
   expect(r.bad).toEqual([]);
-  expect(r.missing.length / r.total).toBeLessThan(0.15);
+  expect(r.missing.length / r.total).toBeLessThan(0.05);
   expect(errors).toEqual([]);
 });
 
@@ -110,12 +110,78 @@ test("search results show a picture, and you can browse by movement", async ({ p
   expect(errors).toEqual([]);
 });
 
-test("cardio has no picture, and its sheet goes straight to the name", async ({ page }) => {
+test("cardio machines show a looping picture with no muscles; other cardio has none", async ({ page }) => {
   const errors = await openApp(page);
   await pickExercise(page, "Treadmill");
+  const thumb = page.locator("#ex-thumb");
+  await expect(thumb).toBeVisible();
+  const first = await thumb.innerHTML();
+  expect(first).not.toContain("var(--red)");
+  await expect.poll(() => thumb.innerHTML(), { timeout: 3000 }).not.toBe(first);
+  await expect(page.locator("#ex-chosen-tip")).toBeHidden();
+  await page.click("#ex-chosen-text");
+  await expect(page.locator("#exs-anim")).toBeVisible();
+  await expect(page.locator(".exs-cap")).toBeHidden();
+  await expect(page.locator("#exs-steps li")).toHaveCount(0);
+  await expect(page.locator("#exs-name")).toBeVisible();
+  await page.click("#exs-cancel");
+  await page.click("#ex-change");
+  await pickExercise(page, "Swim");
   await expect(page.locator("#ex-thumb")).toBeHidden();
   await page.click("#ex-chosen-text");
   await expect(page.locator("#exs-anim")).toBeHidden();
   await expect(page.locator("#exs-name")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("the newer movements match the right pictures", async ({ page }) => {
+  const errors = await openApp(page);
+  const wrong = await page.evaluate(async () => {
+    const { patternKey } = await import("/js/movements.js");
+    const want = [
+      ["Dumbbell wrist curl", "Forearms", "Wrist flexors", "wristCurl"], ["Barbell reverse wrist curl", "Forearms", "Wrist extensors", "reverseWristCurl"],
+      ["Dumbbell side bend", "Abdominals", "Obliques / lateral trunk", "sideBend"], ["Cable woodchop", "Abdominals", "Obliques / lateral trunk", "chop"],
+      ["High-to-low cable chop", "Abdominals", "Obliques / lateral trunk", "chop"], ["Low-to-high cable chop", "Abdominals", "Obliques / lateral trunk", "chopUp"],
+      ["Standing cable rotation", "Abdominals", "Obliques / lateral trunk", "rotation"], ["Pallof press", "Abdominals", "Obliques / lateral trunk", "rotation"],
+      ["Stationary bike", "Cardio", "Machines", "bike"], ["Air bike", "Cardio", "Machines", "bike"], ["Treadmill", "Cardio", "Machines", "treadmill"],
+      ["Rowing machine", "Cardio", "Machines", "rower"], ["Swim", "Cardio", "Outdoor", null], ["Elliptical", "Cardio", "Machines", null],
+      ["Inverted row", "Back", "Bodyweight", "invertedRow"], ["Ring row", "Back", "Bodyweight", "invertedRow"],
+      ["Pike push-up", "Shoulders", "Bodyweight", "pikePushUp"], ["Handstand push-up", "Shoulders", "Bodyweight", "handstandPushUp"],
+      ["Nordic hamstring curl", "Hamstrings", "Leg curl: bodyweight", "nordic"], ["Glute-ham raise", "Hamstrings", "Bodyweight", "nordic"],
+      ["Reverse Nordic", "Quadriceps", "Knee extension", null], ["Mountain climber", "Abdominals", "Bodyweight: planks & calisthenics", "mountainClimber"],
+      ["Burpee", "Full body", "Bodyweight", "squatThrust"], ["Wall sit", "Quadriceps", "Bodyweight", "wallSit"],
+      ["Dead bug", "Abdominals", "Bodyweight: planks & calisthenics", "deadBug"], ["Hollow body hold", "Abdominals", "Bodyweight: planks & calisthenics", "hollow"],
+      ["Superman", "Lower back", "Bodyweight", "superman"], ["Bird dog", "Lower back", "Bodyweight", "birdDog"], ["Donkey kick", "Glutes", "Bodyweight", "donkeyKick"],
+      ["Reverse hyperextension", "Lower back", "Back extension", "reverseHyper"], ["Dumbbell Y-raise", "Back", "Mid / lower traps", "yRaise"],
+      ["Kettlebell clean", "Full body", "Kettlebell", "kbClean"], ["Kettlebell snatch", "Full body", "Kettlebell", "kbSnatch"],
+      ["Kettlebell thruster", "Full body", "Kettlebell", "thruster"], ["Snatch-grip row", "Back", "Rows: barbell", "bentRow"],
+      ["Snatch-grip RDL", "Hamstrings", "Hip hinge: barbell", "hinge"], ["Hanging knee raise with rotation", "Abdominals", "Obliques / lateral trunk", "legRaise"],
+    ];
+    return want.filter(([n, m, s, k]) => patternKey(n, m, s) !== k).map(([n, m, s, k]) => `${n}: ${patternKey(n, m, s)} (want ${k})`);
+  });
+  expect(wrong).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("looping movements come back to the start, and side bends tilt the upper body", async ({ page }) => {
+  const errors = await openApp(page);
+  const r = await page.evaluate(async () => {
+    const { PATTERNS } = await import("/js/movements.js"), { figureMarkup } = await import("/js/figure.js");
+    const loops = Object.entries(PATTERNS).filter(([, p]) => p.loop).map(([k, p]) => ({ k, moves: figureMarkup(p, 0) !== figureMarkup(p, .5), back: figureMarkup(p, 0) === figureMarkup(p, 1) }));
+    return { loops, still: figureMarkup(PATTERNS.sideBend, 0).includes("rotate("), tilted: figureMarkup(PATTERNS.sideBend, 1).includes("rotate(") };
+  });
+  expect(r.loops.map(x => x.k).sort()).toEqual(["bike", "treadmill"]);
+  for (const x of r.loops) { expect(x.moves).toBe(true); expect(x.back).toBe(true); }
+  expect(r.still).toBe(false);
+  expect(r.tilted).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("browse by movement lists lifting movements only, not cardio machines", async ({ page }) => {
+  const errors = await openApp(page);
+  await expect(page.locator('#ex-results [data-move="Row"]')).toBeVisible();
+  await expect(page.locator('#ex-results [data-move="Nordic curl"]')).toBeVisible();
+  await expect(page.locator('#ex-results [data-move="Bike"]')).toHaveCount(0);
+  await expect(page.locator('#ex-results [data-move="Treadmill"]')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

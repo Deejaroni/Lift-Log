@@ -12,8 +12,9 @@ const headLabel = h => `${h[0].toUpperCase()}${h.slice(1)} delts`;
 function visualFor(name){
   const main = groupOf(name), e = EX_INDEX.get(name.toLowerCase());
   const lib = e && (e.muscles.find(x=>x.m===main) || e.muscles[0]);
-  if(TIMED.has(main)) return {timed:true, main, also:[], roles:{}};
   const key = patternKey(name, lib ? lib.m : main, lib ? lib.sub : ""), pat = key ? PATTERNS[key] : null;
+  // Cardio machines have a picture but no muscles; other cardio and mobility have neither.
+  if(TIMED.has(main)) return {timed:true, key, pat, kind:"none", main, also:[], roles:{}};
   const head = main==="Shoulders" ? deltHead(lib && lib.m==="Shoulders" ? lib.sub : "", key) : null;
   const also = alsoOf(name).filter(m=>!TIMED.has(m));
   const tag = (m, h) => m==="Shoulders" && h ? `Shoulders:${h}` : m;
@@ -27,7 +28,7 @@ function visualFor(name){
 const stills = new Map();
 function stillMarkup(name, size=[40,36]){
   const v = visualFor(name);
-  if(v.timed) return "";
+  if(v.timed && !v.pat) return "";
   const id = `${v.key}|${v.kind}|${JSON.stringify(v.roles)}|${size}`;
   if(!stills.has(id)) stills.set(id, v.pat
     ? `<svg viewBox="${poseBox(v.pat)}" width="${size[0]}" height="${size[1]}" aria-hidden="true" focusable="false">${figureMarkup(v.pat, 1, v.roles, v.kind, {noShadow:true})}</svg>`
@@ -49,18 +50,19 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
 let raf = 0, last = 0;
 const ease = u => u<.5 ? 4*u*u*u : 1-Math.pow(-2*u+2,3)/2;
 // One rep every 3.2 s: hold at the start, move, hold at the end, return.
-function phase(ms){ const u=(ms/3200)%1; if(u<.08) return 0; if(u<.46) return ease((u-.08)/.38); if(u<.58) return 1; if(u<.94) return 1-ease((u-.58)/.36); return 0; }
+// A looping movement (cardio) just goes round, one cycle every 1.6 s.
+function phase(ms, loop){ if(loop) return (ms/1600)%1; const u=(ms/3200)%1; if(u<.08) return 0; if(u<.46) return ease((u-.08)/.38); if(u<.58) return 1; if(u<.94) return 1-ease((u-.58)/.36); return 0; }
 function draw(svg, v, t){ svg.innerHTML = figureMarkup(v.pat, t, v.roles, v.kind); }
 function tick(now){
   raf = 0;
   if(now-last >= 32){ last = now;   // about 30 frames a second is plenty for these
-    for(const [svg, v] of live){ if(!svg.isConnected){ live.delete(svg); continue; } if(svg.getClientRects().length) draw(svg, v, phase(now)); }
+    for(const [svg, v] of live){ if(!svg.isConnected){ live.delete(svg); continue; } if(svg.getClientRects().length) draw(svg, v, phase(now, v.pat.loop)); }
   }
   if(live.size) raf = requestAnimationFrame(tick);
 }
 // tight: crop to the body (small pictures); otherwise the whole scene with its equipment.
 function animate(svg, v, tight=false){
-  svg.setAttribute("viewBox", tight ? poseBox(v.pat, [0,.5,1]) : FIGURE_VIEWBOX);
+  svg.setAttribute("viewBox", tight ? poseBox(v.pat, v.pat.loop ? [0,.25,.5,.75] : [0,.5,1]) : FIGURE_VIEWBOX);
   if(reduceMotion()){ live.delete(svg); draw(svg, v, 1); svg.dataset.still = "1"; return; }   // a still of the end position
   delete svg.dataset.still; live.set(svg, v); draw(svg, v, 0);
   if(!raf) raf = requestAnimationFrame(tick);
