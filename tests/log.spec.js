@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { TODAY, set, openApp } = require("./helpers");
+const { TODAY, set, openApp, pickExercise } = require("./helpers");
 
 const bench = "Barbell bench press — flat";
 
@@ -32,7 +32,7 @@ test("the Today ring shows one segment per planned exercise", async ({ page }) =
 
 test("quick-add chips follow the unit", async ({ page }) => {
   const errors = await openApp(page);
-  await page.selectOption("#exercise-pick", bench);
+  await pickExercise(page, bench);
   await page.fill("#weight", "100");
   await expect(page.locator("#quick-add button")).toHaveText(["+2.5", "+10", "+45"]);
   await page.click('#quick-add [data-quick="10"]');
@@ -48,7 +48,7 @@ test("quick-add chips follow the unit", async ({ page }) => {
 
 test("the weight shows what was lifted last time", async ({ page }) => {
   const errors = await openApp(page, { entries: [set({ date: "2026-02-25", exercise: bench, muscle: "Chest", weight: 135, reps: 8 })] });
-  await page.selectOption("#exercise-pick", bench);
+  await pickExercise(page, bench);
   await expect(page.locator("#w-last")).toHaveText("Last 135 × 8");
   await page.click("#save");
   await expect(page.locator("#w-last")).toHaveText("");
@@ -66,7 +66,7 @@ test("the Log button becomes the rest countdown", async ({ page }) => {
   await page.click("#rest-start");
   await expect(page.locator("#save-rest")).toHaveText("Resting 2:00 · tap to log");
   // Logging the next set restarts the timer at the default 90 seconds.
-  await page.selectOption("#exercise-pick", bench);
+  await pickExercise(page, bench);
   await page.fill("#weight", "135");
   await page.click("#save");
   await expect(page.locator("#msg")).toContainText("Logged 1 × 10 @ 135 lb");
@@ -76,7 +76,7 @@ test("the Log button becomes the rest countdown", async ({ page }) => {
 
 test("drop steps come in 5 lb increments with the percent", async ({ page }) => {
   const errors = await openApp(page);
-  await page.selectOption("#exercise-pick", "Leg press");
+  await pickExercise(page, "Leg press");
   await page.fill("#weight", "50");
   await page.click('.mode [data-mode="drop"]');
   const step = page.locator("#drop-step");

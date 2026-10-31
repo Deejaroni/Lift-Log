@@ -2,6 +2,13 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-10-31
+- Finding an exercise is easier. Matches show as a list you tap, with each one's muscle group and equipment, instead of a long dropdown.
+- Search ignores hyphens, plurals and small typos ("pushup", "cable flys", "bech press") and knows common short names like RDL, OHP and pec fly.
+- You can search by equipment or position, like "seated cable" or "machine chest".
+- With a muscle group picked, matches from other groups still show under "In other groups", so an exercise filed somewhere unexpected is still one tap away.
+- The chosen exercise shows as a card with a Change button. Press Enter in the search box to take the top match.
+
 ## 2026-10-28
 - On small phones, the reps and sets boxes stack with + on top and − below, so the number has room.
 

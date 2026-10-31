@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { set, openApp } = require("./helpers");
+const { set, openApp, pickExercise } = require("./helpers");
 
 const day = "#day-list";
 
@@ -19,7 +19,7 @@ test("every tab opens", async ({ page }) => {
 
 test("log a straight set with a failure mark", async ({ page }) => {
   const errors = await openApp(page);
-  await page.selectOption("#exercise-pick", "Barbell bench press — flat");
+  await pickExercise(page, "Barbell bench press — flat");
   await page.fill("#weight", "135");
   await page.fill("#reps", "8");
   await page.fill("#sets", "2");
@@ -37,7 +37,7 @@ test("log a straight set with a failure mark", async ({ page }) => {
 
 test("log a drop set", async ({ page }) => {
   const errors = await openApp(page);
-  await page.selectOption("#exercise-pick", "Leg press");
+  await pickExercise(page, "Leg press");
   await page.fill("#weight", "200");
   await page.fill("#reps", "10");
   await page.click('.mode [data-mode="drop"]');
@@ -53,7 +53,7 @@ test("log a drop set", async ({ page }) => {
 test("log a cardio entry", async ({ page }) => {
   const errors = await openApp(page);
   await page.selectOption("#group-filter", "Cardio");
-  await page.selectOption("#exercise-pick", "Treadmill");
+  await pickExercise(page, "Treadmill");
   await expect(page.locator("#save")).toHaveText("Log cardio");
   await page.fill("#c-min", "25");
   await page.click("#save");

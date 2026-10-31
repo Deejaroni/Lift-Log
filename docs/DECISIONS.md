@@ -22,3 +22,7 @@ Confirmations and messages use the app's own dialog (`#dlg`), never `alert`, `co
 
 ## The Claude-hosted copy is retired
 The app used to run as a Claude-hosted artifact. The supported copy is now this repo, deployed to GitHub Pages. Leftover code for the old hosted storage (the `col` / `backend === "db"` branch in `saveSettings`) never runs and can be removed.
+
+
+## Exercise search is forgiving and never hides other groups
+The Log tab's exercise picker is a search box over a list of tappable results, not a native dropdown. A phone's dropdown wheel is slow to scroll through ~600 names and can't show a muscle or equipment line. Search matching ignores case, punctuation and plurals, accepts one typo in words of 4+ letters (two in 7+), and expands a short list of aliases (`ALIASES` in index.html, e.g. RDL ↔ Romanian deadlift). Names rank above muscle and subgroup words. The muscle group filter only sorts results: matches elsewhere still appear under "In other groups", because people often don't know how an exercise is filed. Nothing about stored data changed.

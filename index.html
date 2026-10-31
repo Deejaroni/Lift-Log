@@ -45,12 +45,18 @@
         </div>
       </div>
       <div style="margin-top:12px">
-        <label class="lbl" for="exercise-pick">Exercise or machine</label>
-        <input id="exercise-search" type="text" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Search exercises (optional)" aria-label="Search exercises" style="margin-bottom:8px">
-        <select id="exercise-pick"></select>
+        <label class="lbl" for="exercise-search">Exercise or machine</label>
+        <div id="ex-find">
+          <input id="exercise-search" type="text" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Search by name, muscle or equipment" aria-controls="ex-results">
+          <div id="ex-results" class="ex-results" role="group" aria-label="Exercises"></div>
+        </div>
+        <div id="ex-chosen" class="ex-chosen" hidden>
+          <div class="ex-chosen-text"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></div>
+          <button type="button" id="ex-change" class="secondary">Change</button>
+        </div>
         <p class="cal-sub" id="ex-hint" hidden></p>
       </div>
-      <div id="new-ex-wrap" style="margin-top:12px">
+      <div id="new-ex-wrap" style="margin-top:12px" hidden>
         <div class="row two">
           <div>
             <label class="lbl" for="exercise">New exercise name</label>
@@ -573,7 +579,7 @@
     const reps = parseInt($("#reps").value,10);
     const sets = parseInt($("#sets").value,10);
     const date = $("#date").value || today();
-    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or add a new one." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-search") : $("#exercise")).focus(); return; }
     if(!(weight>=0)){ flash("Enter a weight of 0 or more.", true); return; }
     if(!(reps>=1)){ flash("Reps must be at least 1.", true); return; }
     if(!(sets>=1 && sets<=50)){ flash("Sets must be between 1 and 50.", true); return; }
@@ -987,7 +993,7 @@
     $("#group-filter").value = ""; prefs.group = ""; savePrefs();
     $("#exercise-search").value = "";
     $("#exercise").value = "";
-    $("#exercise-pick").value = "";
+    showPicker(true);
     $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = false;
     $("#muscle").value = "Other"; muscleTouched = false;
     applyEquip({}, prefs.unit); setEquipOpen(false);
@@ -997,7 +1003,7 @@
     failSets = new Set(); failN = 0;
     $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
     $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
-    renderChips(); applyFormKind();
+    exShowAll = false; renderPicker(); applyFormKind();
   }
 
   async function saveCardio(exercise){
@@ -1030,7 +1036,7 @@
   }
 
   async function saveDrop(exercise){
-    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or pick ＋ New exercise." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-pick") : $("#exercise")).focus(); return; }
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or add a new one." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-search") : $("#exercise")).focus(); return; }
     readDropRows();
     const rows = dropRows.map(r=>({weight:parseFloat(r.weight), reps:parseInt(r.reps,10), fail:!!r.fail}));
     if(rows.length<2){ flash("Add at least two rows for a drop set.", true); return; }
@@ -2121,62 +2127,176 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#new-muscle-wrap").hidden = !!gf();
   let muscleTouched = false;
   $("#muscle").addEventListener("change", ()=>{ muscleTouched = true; applyFormKind(); if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals()); });
-  // Log tab: recent + full library + your own exercises
-  function renderChips(){
-    const q = ($("#exercise-search").value||"").trim().toLowerCase();
-    const logged = exercisesByRecent();
-    const cur = $("#exercise").value.trim().toLowerCase();
-    const isNew = $("#exercise-pick").value==="__new__" && !logged.some(n=>n.toLowerCase()===cur);
-    let done = false; // mark only the first matching option as selected
-    const pick = n => { if(!done && !isNew && n.toLowerCase()===cur){ done=true; return true; } return false; };
-    let html = "", count = 0;
-    const f = gf();
-    const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0,8).filter(n=>matchQ(n,q));
-    if(recent.length){ html += `<optgroup label="Recently used">${recent.map(n=>opt(n, groupOf(n), pick(n))).join("")}</optgroup>`; count += recent.length; }
-    const custom = new Map();
-    logged.filter(n=>!CAT_MUSCLE.has(n.toLowerCase()) && matchQ(n,q)).forEach(n=>{ const g=groupOf(n); if(!custom.has(g)) custom.set(g,[]); custom.get(g).push(n); });
-    MUSCLES.filter(m=>!f || m===f).forEach(m=>{
-      const pre = f ? "" : `${m.toUpperCase()} · `;
-      const mine = (custom.get(m)||[]).sort((a,b)=>a.localeCompare(b));
-      if(mine.length){ html += `<optgroup label="${esc(pre)}My exercises">${mine.map(n=>opt(n,m,pick(n))).join("")}</optgroup>`; count += mine.length; }
-      CATALOG.filter(g=>g.muscle===m).forEach(g=>{
-        const names = g.names.filter(n=>matchQ(n,q) || matchQ(m+" "+g.sub, q));
-        if(names.length){ html += `<optgroup label="${esc(pre+g.sub)}">${names.map(n=>opt(n,m,pick(n))).join("")}</optgroup>`; count += names.length; }
-      });
-    });
-    const placeholder = q ? (count ? `${count} match${count===1?"":"es"} — tap to choose` : "No matches — add it as a new exercise") : (f ? `Select a ${f.toLowerCase()} exercise…` : "Select an exercise…");
-    $("#exercise-pick").innerHTML =
-      `<option value="" disabled ${!done&&!isNew?"selected":""}>${placeholder}</option>` + html +
-      `<optgroup label="Add"><option value="__new__" ${isNew?"selected":""}>＋ New exercise…</option></optgroup>`;
-    $("#new-ex-wrap").hidden = !isNew;
+  // ---------- exercise search (Log tab) ----------
+  // Phrases that mean the same exercise. A name containing one is also found by the others.
+  const ALIASES = [
+    ["rdl","romanian deadlift"], ["sldl","stiff leg deadlift","stiff legged deadlift"],
+    ["ohp","overhead press","shoulder press","military press"],
+    ["db","dumbbell"], ["bb","barbell"], ["kb","kettlebell"], ["bw","bodyweight"],
+    ["pec deck","pec fly","butterfly","machine fly"], ["fly","flye","flies"],
+    ["skull crusher","lying triceps extension","french press"],
+    ["pulldown","pull down"], ["pushdown","push down","pressdown"], ["push up","press up"],
+    ["back extension","hyperextension","roman chair"],
+    ["leg curl","hamstring curl"], ["leg extension","quad extension","knee extension"],
+    ["calf","calves"], ["calf raise","heel raise"],
+    ["reverse fly","rear delt fly","reverse pec deck"], ["lateral raise","side raise","side lateral"],
+    ["bulgarian split squat","bss","rear foot elevated split squat","rfess"], ["glute ham raise","ghr"],
+    ["t bar","landmine row"], ["hip abduction","abductor","outer thigh"], ["hip adduction","adductor","inner thigh"],
+    ["preacher","scott curl"], ["abs","abdominal","core"],
+    ["stair climber","stairmaster","stepmill"], ["rowing machine","rower","erg"],
+    ["air bike","assault bike","fan bike"], ["elliptical","cross trainer"],
+  ];
+  // Everyday words for each muscle group; these match more weakly than the name itself.
+  const MUSCLE_WORDS = {Chest:"pec", Back:"lat", Shoulders:"delt", Abdominals:"abs core", Quadriceps:"quad leg",
+    Hamstrings:"leg", Glutes:"butt hip leg", Calves:"calf leg", Forearms:"grip wrist", Mobility:"stretch"};
+  const exNorm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ'’]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+  const exStem = w => w.length<=3 || /(ss|us|is)$/.test(w) ? w : /ies$/.test(w) ? w.slice(0,-3)+"y" : /(sses|xes|ches|shes)$/.test(w) ? w.slice(0,-2) : w.endsWith("s") ? w.slice(0,-1) : w;
+  const exWords = s => exNorm(s).split(" ").filter(Boolean).map(exStem);
+  const ALIAS_WORDS = ALIASES.map(g=>g.map(p=>exWords(p).join(" ")));
+  function exEntry(name, muscles){
+    const words = exWords(name), hay = ` ${words.join(" ")} `, extra = [];
+    ALIAS_WORDS.forEach(g=>{ if(g.some(p=>hay.includes(` ${p} `))) g.forEach(p=>extra.push(...p.split(" "))); });
+    const ctx = muscles.flatMap(x=>exWords(`${x.m} ${x.sub} ${MUSCLE_WORDS[x.m]||""}`));
+    return {name, muscles, words, key:words.join(" "), squash:words.join(""), tokens:[...new Set([...words, ...extra])], ctx:[...new Set(ctx)]};
   }
-  $("#exercise-search").addEventListener("input", renderChips);
+  // One entry per name; an exercise listed under several muscles keeps all of them.
+  const EX_INDEX = (()=>{
+    const by = new Map();
+    CATALOG.forEach(g=>g.names.forEach(n=>{ const l=n.toLowerCase(); if(!by.has(l)) by.set(l, {name:n, muscles:[]}); by.get(l).muscles.push({m:g.muscle, sub:g.sub}); }));
+    return new Map([...by].map(([l,v])=>[l, exEntry(v.name, v.muscles)]));
+  })();
+  const entryFor = name => EX_INDEX.get(name.toLowerCase()) || exEntry(name, [{m:groupOf(name), sub:"My exercises"}]);
+  // Optimal string alignment distance, giving up once it passes k.
+  function osa(a, b, k){
+    if(Math.abs(a.length-b.length)>k) return k+1;
+    let prev2 = null, prev = [...Array(b.length+1).keys()];
+    for(let i=1;i<=a.length;i++){
+      const cur=[i]; let best=i;
+      for(let j=1;j<=b.length;j++){
+        let v = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+        if(prev2 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1]) v = Math.min(v, prev2[j-2]+1);
+        cur.push(v); if(v<best) best=v;
+      }
+      if(best>k) return k+1;
+      prev2=prev; prev=cur;
+    }
+    return prev[b.length];
+  }
+  // How well one search word fits: name beats muscle/subgroup, exact beats a typo.
+  function wordFit(w, x){
+    const k = w.length>=7 ? 2 : w.length>=4 ? 1 : 0;
+    const near = t => k>0 && (osa(w,t,k)<=k || (t.length>w.length && osa(w,t.slice(0,w.length),k)<=k));
+    if(x.words[0].startsWith(w)) return 4;
+    if(x.tokens.some(t=>t.startsWith(w))) return 3;
+    if(w.length>=4 && x.squash.includes(w)) return 2.5;
+    if(x.ctx.some(t=>t.startsWith(w))) return 1.5;
+    if(x.tokens.some(near)) return 1;
+    if(x.ctx.some(near)) return 0.5;
+    return 0;
+  }
+  function findExercises(q, logged){
+    const ws = exWords(q); if(!ws.length) return [];
+    const qkey = ws.join(" "), qsq = ws.join(""), mine = new Set(logged.map(n=>n.toLowerCase()));
+    const seen = new Set(), out = [];
+    const consider = x => {
+      const l = x.name.toLowerCase(); if(seen.has(l)) return; seen.add(l);
+      let s = 0;
+      if(x.squash===qsq) s = 1000;
+      else { for(const w of ws){ const v = wordFit(w, x); if(!v) return; s += v*10; } if(x.key.startsWith(qkey)) s += 50; s -= x.words.length; }
+      if(mine.has(l)) s += 15;
+      out.push({x, s});
+    };
+    logged.forEach(n=>consider(entryFor(n)));
+    EX_INDEX.forEach(consider);
+    return out.sort((a,b)=>b.s-a.s || a.x.name.localeCompare(b.x.name)).map(r=>r.x);
+  }
+  // The muscle/subgroup a result is shown under: the filtered group if it's listed there, else your own grouping.
+  function shownIn(x, f, mine){
+    const hit = f && x.muscles.find(y=>y.m===f); if(hit) return hit;
+    if(mine){ const m = groupOf(x.name); return x.muscles.find(y=>y.m===m) || {m, sub:""}; }
+    return x.muscles[0];
+  }
+  const EX_LIMIT = 40;
+  let exShowAll = false;
+  function renderPicker(){
+    const q = $("#exercise-search").value.trim(), f = gf(), logged = exercisesByRecent();
+    const mine = new Set(logged.map(n=>n.toLowerCase()));
+    const row = x => { const s = shownIn(x, f, mine.has(x.name.toLowerCase()));
+      return `<button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></button>`; };
+    const sec = t => `<p class="ex-sec">${esc(t)}</p>`;
+    let html = "";
+    if(!exNorm(q)){
+      const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0, 6);
+      if(recent.length) html += sec("Recently used") + recent.map(n=>row(entryFor(n))).join("");
+      if(f){
+        const own = logged.filter(n=>!EX_INDEX.has(n.toLowerCase()) && groupOf(n)===f).sort((a,b)=>a.localeCompare(b));
+        if(own.length) html += sec("My exercises") + own.map(n=>row(entryFor(n))).join("");
+        CATALOG.filter(g=>g.muscle===f && g.names.length).forEach(g=>{ html += sec(g.sub) + g.names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join(""); });
+      } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”. Or choose a muscle group above to browse.</p>`;
+    } else {
+      const hits = findExercises(q, logged);
+      const inGroup = f ? hits.filter(x=>shownIn(x, f, mine.has(x.name.toLowerCase())).m===f) : hits;
+      const others = f ? hits.filter(x=>!inGroup.includes(x)) : [];
+      let room = exShowAll ? Infinity : EX_LIMIT;
+      const take = l => { const t = l.slice(0, room); room -= t.length; return t; };
+      const a = take(inGroup), b = take(others);
+      html += a.map(row).join("");
+      if(b.length) html += sec("In other groups") + b.map(row).join("");
+      if(a.length+b.length < hits.length) html += `<button type="button" class="ex-more" data-more>Show all ${hits.length} matches</button>`;
+    }
+    html += `<button type="button" class="ex-opt ex-new" data-new><span class="ex-n">＋ ${q ? `Add “${esc(q)}” as a new exercise` : "New exercise"}</span></button>`;
+    $("#ex-results").innerHTML = html;
+  }
+  // Either the search box and results, or the chosen exercise with a Change button.
+  function showPicker(open){ $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open; }
+  function chooseExercise(name, m){
+    restNext = null;
+    $("#exercise").value = name; $("#new-ex-wrap").hidden = true; muscleTouched = false;
+    $("#muscle").value = MUSCLES.includes(m) ? m : groupOf(name);
+    $("#ex-chosen-name").textContent = name;
+    const s = shownIn(entryFor(name), $("#muscle").value, false);
+    $("#ex-chosen-meta").textContent = [$("#muscle").value, s.m===$("#muscle").value ? s.sub : ""].filter(Boolean).join(" · ");
+    showPicker(false); applyFormKind();
+    if(isCardioForm()) prefillCardio(name); else prefill(name);
+  }
+  function chooseNew(name){
+    restNext = null;
+    $("#exercise").value = name; $("#new-ex-wrap").hidden = false;
+    applyEquip({}, prefs.unit);
+    $("#muscle").value = gf() || guessMuscle(name); muscleTouched = !!gf();
+    $("#new-muscle-wrap").hidden = !!gf();
+    $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below";
+    showPicker(false); applyFormKind(); $("#exercise").focus();
+  }
+  $("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; renderPicker(); });
+  $("#exercise-search").addEventListener("keydown", e=>{
+    if(e.key!=="Enter" || !$("#exercise-search").value.trim()) return;
+    e.preventDefault(); ($("#ex-results [data-name]") || $("#ex-results [data-new]")).click();
+  });
+  $("#ex-results").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    if(b.hasAttribute("data-more")){ exShowAll = true; renderPicker(); }
+    else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
+    else chooseExercise(b.dataset.name, b.dataset.m);
+  });
+  $("#ex-change").addEventListener("click", ()=>{
+    $("#exercise").value = ""; $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = !!gf();
+    $("#muscle").value = gf() || "Other"; muscleTouched = false; showLast("");
+    showPicker(true); renderPicker(); applyFormKind();
+    $("#exercise-search").focus();
+  });
   $("#group-filter").addEventListener("change", ()=>{
     const v = gf(); prefs.group = v; savePrefs();
-    const isNew = $("#exercise-pick").value==="__new__";
+    const isNew = !$("#new-ex-wrap").hidden;
     const cur = $("#exercise").value.trim();
     if(isNew){ if(v){ $("#muscle").value = v; muscleTouched = true; } }
-    else if(!cur || (v && groupOf(cur)!==v)){
-      $("#exercise").value = ""; $("#exercise-pick").value = ""; $("#muscle").value = v || "Other";
+    else if(cur && v && groupOf(cur)!==v){
+      $("#exercise").value = ""; $("#muscle").value = v; showLast(""); showPicker(true);
     }
+    else if(!cur) $("#muscle").value = v || "Other";
     $("#new-muscle-wrap").hidden = !!v;
-    renderChips(); applyFormKind();
+    exShowAll = false; renderPicker(); applyFormKind();
     if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals());
-  });
-  $("#exercise-pick").addEventListener("change", e=>{
-    const v = e.target.value; restNext = null;
-    if(v==="__new__"){
-      $("#exercise").value = $("#exercise-search").value.trim(); $("#new-ex-wrap").hidden=false; muscleTouched=false;
-      applyEquip({}, prefs.unit);
-      $("#muscle").value = gf() || guessMuscle($("#exercise").value); muscleTouched = !!gf();
-      $("#new-muscle-wrap").hidden = !!gf(); applyFormKind(); $("#exercise").focus();
-    } else {
-      const m = e.target.selectedOptions[0]?.dataset.m;
-      $("#exercise").value=v; $("#new-ex-wrap").hidden=true; muscleTouched=false;
-      $("#muscle").value = MUSCLES.includes(m) ? m : groupOf(v);
-      applyFormKind();
-      if(isCardioForm()) prefillCardio(v); else prefill(v);
-    }
   });
   $("#exercise").addEventListener("input", e=>{
     if(!muscleTouched && !gf()){ const was = isCardioForm(); $("#muscle").value = guessMuscle(e.target.value); if(was!==isCardioForm()) applyFormKind(); }
@@ -2540,18 +2660,14 @@ Scaption raise (thumbs-up, scapular plane)`;
       ${open ? `${body}<div style="margin-top:12px"><label class="lbl" for="plan-switch">Switch workout for this day</label><select id="plan-switch">${opts}</select></div>`
         : `<p class="cal-sub" style="margin:4px 0 0">${w ? `${doneCt} of ${w.items.length} exercises done` : "Rest day"}. Tap the title to show the plan.</p>`}`;
   }
-  function selectOption(sel, value){
-    const o = [...sel.options].find(x=>x.value===value);
-    if(o){ sel.value = value; o.selected = true; return true; } return false;
-  }
   function startPlanned(i){
     const date = $("#date").value || today(), w = workoutById(workoutFor(date)); if(!w) return;
     const it = w.items[i], s = suggestFor(it, date), group = groupOf(it.exercise);
     $("#group-filter").value = MUSCLES.includes(group) ? group : "";
     $("#group-filter").dispatchEvent(new Event("change"));
-    const pick = $("#exercise-pick");
-    if(selectOption(pick, it.exercise)) pick.dispatchEvent(new Event("change"));
-    else { selectOption(pick, "__new__"); pick.dispatchEvent(new Event("change")); $("#exercise").value = it.exercise; if(TIMED.has(group)) $("#muscle").value = group; applyFormKind(); }
+    const l = it.exercise.toLowerCase(), known = exercisesByRecent().find(n=>n.toLowerCase()===l) || EX_INDEX.get(l)?.name;
+    if(known) chooseExercise(known, group);
+    else { chooseNew(it.exercise); if(TIMED.has(group)) $("#muscle").value = group; applyFormKind(); }
     if(s.timed){ $("#c-min").value = fmt(s.minutes); }
     else {
       if(mode!=="straight") document.querySelector('.mode [data-mode="straight"]').click();
@@ -3037,7 +3153,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
   function renderAll(){
-    renderChips(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings();
+    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings();
     if(!$("#tab-progress").hidden) renderProgress();
   }
 

@@ -27,4 +27,10 @@ async function openApp(page, { entries = [], settings = null, prefs = null } = {
 // Body weight recorded for TODAY.
 const bodyWeight = (w, unit, extra = {}) => ({ bw: w, bwUnit: unit, days: {}, bwLog: { [TODAY]: { w, unit } }, ...extra });
 
-module.exports = { TODAY, set, cardio, openApp, bodyWeight };
+// Chooses an exercise on the Log tab by searching for its exact name and tapping the result.
+async function pickExercise(page, name) {
+  await page.fill("#exercise-search", name);
+  await page.click(`#ex-results [data-name="${name}"]`);
+}
+
+module.exports = { TODAY, set, cardio, openApp, bodyWeight, pickExercise };
