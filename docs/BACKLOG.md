@@ -21,7 +21,6 @@ Added 2026-10-27.
 
 ## Gaps review: next items
 Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo) shipped 2026-10-31, then the plate calculator, repeat a past workout, reps in reserve and supersets. Do these in order:
-- Weekly sets per muscle group.
 - Consistency calendar or streak.
 - Split index.html into modules (it's ~3,300 lines; CLAUDE.md refers to js/state.js, which doesn't exist yet).
 - Publish workflow: move off deprecated Node 20 actions and check the Ubuntu 26 runner change.

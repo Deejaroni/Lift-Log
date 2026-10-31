@@ -51,3 +51,6 @@ When the library drops a duplicate spelling, `RETIRED` in index.html maps it to 
 
 ## Default "also works" muscles come from simple rules
 The library lists most exercises under one group, so `SECONDARY` adds the usual partners by main group and name (presses → triceps and shoulders, rows and pulldowns → biceps, squats and lunges → glutes, hinges → glutes and lower back, hammer and reverse curls → forearms). They're defaults only: your own choice in the exercise sheet replaces them. Search and browsing by muscle still follow the library and your own choices, not these rules, so a Triceps search isn't flooded with every bench press.
+
+## Sets per muscle counts secondary muscles as half
+The Progress panel counts each logged set once for its main muscle and 0.5 for each "also works" muscle (the common convention for indirect volume), with a drop set counted once and cardio left out. Weeks run Monday to Sunday like the rest of the app. The 10–20 band is a widely quoted hypertrophy range and is labeled as a rough guide, not a target the app enforces.

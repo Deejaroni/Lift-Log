@@ -194,6 +194,7 @@
       <div class="chart-box"><canvas id="ex-chart" aria-label="Exercise progress chart" role="img"></canvas></div>
       <p class="empty" id="prog-empty" hidden>Log this exercise on at least one day to see a chart.</p>
     </div>
+    <div class="panel" id="muscle-sets"></div>
     <div class="panel">
       <h2>Training totals</h2>
       <div class="seg" role="group" aria-label="Chart measure" id="tot-seg">
@@ -2596,8 +2597,37 @@ Scaption raise (thumbs-up, scapular plane)`;
   }
 
   const STR_METRICS = [["top","Top weight"],["e1rm","Est. 1-rep max"],["vol","Volume"],["reps","Total reps"]];
+  // ---------- sets per muscle: this week vs last week ----------
+  // Each set counts once for its main muscle and half for each muscle it also works. A drop set is one set; cardio doesn't count.
+  function muscleSets(from, to){
+    const out = new Map(), chains = new Set();
+    entries.forEach(e=>{
+      if(e.date<from || e.date>to || isCardio(e)) return;
+      if(e.chain){ if(chains.has(e.chain)) return; chains.add(e.chain); }
+      const add = (m, n) => out.set(m, (out.get(m)||0) + n);
+      add(groupOf(e.exercise), 1); alsoOf(e.exercise).forEach(m=>add(m, .5));
+    });
+    return out;
+  }
+  function renderMuscleSets(){
+    const mon = weekStart(today()), prev = new Date(mon); prev.setDate(prev.getDate()-7);
+    const sun = new Date(mon); sun.setDate(sun.getDate()-1);
+    const now = muscleSets(isoOf(mon), today()), before = muscleSets(isoOf(prev), isoOf(sun));
+    // The usual groups always show, so a skipped muscle stands out; Full body and Other only when used.
+    const rows = MUSCLES.filter(m=>!TIMED.has(m) && ((m!=="Full body" && m!=="Other") || now.get(m) || before.get(m)));
+    const top = Math.max(24, ...rows.map(m=>now.get(m)||0)), pct = n => Math.min(100, n/top*100);
+    const tone = n => n<10 ? "low" : n<=20 ? "ok" : "high";
+    $("#muscle-sets").innerHTML = `<h2>Sets per muscle</h2>
+      <p class="cal-sub" style="margin:0 0 10px">This week (since Monday) and last week. A set counts half for each other muscle the lift works.</p>
+      <div class="ms-head"><span></span><span></span><span>This wk</span><span>Last wk</span></div>` +
+      rows.map(m=>{ const n = now.get(m)||0, l = before.get(m)||0;
+        return `<div class="ms-row" data-m="${m}"><span class="ms-name">${m}</span>
+          <span class="ms-track" aria-hidden="true"><i class="ms-band" style="left:${pct(10)}%;width:${pct(20)-pct(10)}%"></i><i class="ms-bar ${tone(n)}" style="width:${pct(n)}%"></i></span>
+          <span class="ms-val num" aria-label="${fmt(n)} sets this week">${fmt(n)}</span><span class="ms-last" aria-label="${fmt(l)} last week">${fmt(l)}</span></div>`; }).join("") +
+      `<p class="cal-sub" style="margin-top:10px">Shaded: 10–20 sets a week, a common target for muscle growth. It's a rough guide, not a rule.</p>`;
+  }
   function renderProgress(){
-    renderStandards();
+    renderStandards(); renderMuscleSets();
     if(!window.Chart){ $("#prog-empty").hidden=false; $("#prog-empty").textContent="Charts couldn't load. Check your connection and reopen this page."; return; }
     chartDefaults();
     fillSelect($("#prog-ex"), false);

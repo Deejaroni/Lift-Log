@@ -8,6 +8,7 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 - Rename or merge your own exercises from the same sheet. It suggests names that look like the same exercise ("Pec dec" → "Pec deck"), and choosing a name you already have merges the two after you confirm. Renames carry over to your plan.
 - Cleaner exercise list: four duplicate spellings removed (sets you logged under them now use the kept name), and hammer curls listed once.
 - Bench presses, rows, pulldowns, squats, lunges, deadlifts and hammer curls now list the other muscles they work, like triceps and shoulders for the bench press.
+- Progress has a new Sets per muscle panel: this week's sets for each muscle group next to last week's. A set counts half for each other muscle the lift works, a drop set counts once, and untrained groups show 0 so gaps stand out. A shaded 10–20 band marks a common weekly target, labeled as a rough guide.
 
 ## 2026-10-31 (third update)
 - Plate calculator: with Barbell or Smith machine on, the plates for each side show under the weight, in bumper-plate colors. A barbell with no bar weight set assumes a standard 45 lb (20 kg) bar and says so. If a weight can't be loaded exactly, it shows the closest load under it.
