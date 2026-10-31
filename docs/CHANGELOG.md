@@ -2,7 +2,7 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
-## Next update
+## 2026-10-31 (fifth update)
 - Progress opens with a Consistency panel: a month calendar with training days filled in (red for lifting, blue for cardio or mobility), and a weekly streak, like "3-week streak · 2 of 3 days this week". Set your weekly goal (2–6 days); a week still in progress never breaks the streak. Tap a training day to open it in History.
 
 ## 2026-10-31 (fourth update)
