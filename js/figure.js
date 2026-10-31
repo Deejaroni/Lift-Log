@@ -76,7 +76,9 @@ function frontBody(pat, p, roles, t){
   const head = `<circle cx="100" cy="${r1(p.N[1])}" r="10.8" fill="${COL.line}"/><circle cx="100" cy="${r1(p.N[1])}" r="9.5" fill="${COL.body}"/>`;
   const arms = outlined([[p.L,p.EL,...W.upper],[p.EL,p.WL,...W.fore],[p.R,p.ER,...W.upper],[p.ER,p.WR,...W.fore]]);
   const upper = neck + torso + regions + head;
-  return legs + (lean ? `<g transform="rotate(${lean} 100 104)">${upper}</g>` : upper) + arms + bandsFor(pat, p, roles, t);
+  const up = lean ? `<g transform="rotate(${lean} 100 104)">${upper}</g>` : upper;
+  // legsFront: seated with the knees toward you, so the legs are drawn over the torso.
+  return (pat.legsFront ? up + legs : legs + up) + arms + bandsFor(pat, p, roles, t);
 }
 // Joints at time t: a looping movement (cardio) gives its own pose for any moment; others blend two key poses.
 const poseAt = (pat, t) => pat.pose ? pat.pose(t) : mix(pat.A, pat.B || pat.A, t);
@@ -87,13 +89,15 @@ export function figureMarkup(pat, t, roles={}, kind="barbell", opts={}){
   const g = pat.gear ? pat.gear(p, kind, t) : {};
   const shadowX = pat.view==="front" ? 100 : (p.A[0]+p.T[0])/2;
   const shadow = opts.noShadow || pat.noShadow ? "" : `<ellipse cx="${r1(shadowX)}" cy="${FLOOR}" rx="30" ry="3.5" fill="${COL.shadow}"/>`;
-  return shadow + (g.back||"") + (pat.view==="front" ? frontBody(pat, p, roles, t) : sideBody(pat, p, roles, t)) + (g.front||"");
+  const fig = (g.back||"") + (pat.view==="front" ? frontBody(pat, p, roles, t) : sideBody(pat, p, roles, t)) + (g.front||"");
+  // shift: the whole figure and its equipment move by [dx, dy] (a seated front view sits lower).
+  return shadow + (pat.shift ? `<g transform="translate(${pat.shift})">${fig}</g>` : fig);
 }
 export const FIGURE_VIEWBOX = "0 -4 200 176";
 // A viewBox cropped to the body over the given moments of the movement, for small pictures.
 export function poseBox(pat, ts=[1], pad=13){
-  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
-  for(const t of ts) for(const v of Object.values(poseAt(pat, t))) if(Array.isArray(v)){ x0=Math.min(x0,v[0]); y0=Math.min(y0,v[1]); x1=Math.max(x1,v[0]); y1=Math.max(y1,v[1]); }
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity; const [dx,dy] = pat.shift || [0,0];
+  for(const t of ts) for(const v of Object.values(poseAt(pat, t))) if(Array.isArray(v)){ x0=Math.min(x0,v[0]+dx); y0=Math.min(y0,v[1]+dy); x1=Math.max(x1,v[0]+dx); y1=Math.max(y1,v[1]+dy); }
   const w = Math.max(x1-x0+pad*2, 70), h = Math.max(y1-y0+pad*2, 70), cx = (x0+x1)/2, cy = (y0+y1)/2;
   return [cx-w/2, cy-h/2, w, h].map(r1).join(" ");
 }

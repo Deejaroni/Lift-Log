@@ -2,6 +2,11 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-10-31 (tenth update)
+- Russian twists (plain, weighted and kettlebell), kettlebell windmills, halos and high pulls, and renegade rows now have moving pictures.
+- The Turkish get-up shows each step: lying with the bell pressed up, onto your elbow, a half kneel, then standing, and back down the same way.
+- Full-body exercises such as kettlebell cleans, snatches, thrusters and the get-up now highlight the muscles they work instead of nothing.
+
 ## 2026-10-31 (ninth update)
 - About 50 more exercises have a moving picture: wrist curls and reverse wrist curls, side bends, cable chops and rotations (including the Pallof press), inverted and ring rows, pike and handstand push-ups, Nordic curls and glute-ham raises, mountain climbers, burpees and squat thrusts, wall sits, dead bugs, hollow holds, supermans, bird dogs, donkey kicks, reverse hyperextensions, Y-raises, and kettlebell cleans, snatches and thrusters.
 - Side bends, chops and rotations light up the sides of your waist.

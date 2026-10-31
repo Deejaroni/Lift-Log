@@ -25,10 +25,18 @@ function reach(s, h, bend){
   const dx=h[0]-s[0], dy=h[1]-s[1], d=Math.hypot(dx,dy), w = d>51 ? P([s[0]+dx/d*51, s[1]+dy/d*51]) : h;
   return [ik(s, w, 26, 26, bend), w];
 }
-function front(lean, hl, hr, bl=1, br=-1){
+function front(lean, hl, hr, bl=1, br=-1, legs={}){
   const L=rot([86,42],lean), R=rot([114,42],lean), [EL,WL]=reach(L,hl,bl), [ER,WR]=reach(R,hr,br);
-  return {N:rot([100,22],lean), L, R, EL, WL, ER, WR, lean:[lean,0]};
+  return {N:rot([100,22],lean), L, R, EL, WL, ER, WR, lean:[lean,0], ...legs};
 }
+// Several key poses in a row (a get-up): t runs through them in order, and back as the animation returns.
+const easeIO = u => u<.5 ? 2*u*u : 1-2*(1-u)*(1-u);
+function seq(keys){
+  return t => { const x=Math.min(.9999,Math.max(0,t))*(keys.length-1), i=Math.floor(x), u=easeIO(x-i), A=keys[i], B=keys[i+1], o={};
+    for(const k in A) o[k] = P([A[k][0]+(B[k][0]-A[k][0])*u, A[k][1]+(B[k][1]-A[k][1])*u]); return o; };
+}
+// Halo: both hands circle the head together.
+function haloPose(t){ const a=rad(360*t), h=[100+24*Math.cos(a), 16+9*Math.sin(a)]; return front(0, [h[0]-3,h[1]], [h[0]+3,h[1]], -1, 1); }
 const hands = p => [(p.WL[0]+p.WR[0])/2, (p.WL[1]+p.WR[1])/2];
 const cableTo = from => p => ({back: gear.path(`M${from[0]-2} 166V8`) + gear.dot(from), front: gear.line(from, hands(p)) + gear.handle(hands(p))});
 const ring = (x, y, rr) => `<circle cx="${x}" cy="${y}" r="${rr}" fill="none" stroke="var(--muted)" stroke-width="4"/>`;
@@ -67,6 +75,21 @@ export function morePatterns({B, STAND, PATTERNS}){
   const chopHi = front(10,[176,-4],[176,-4],-1,-1), chopLo = front(-14,[40,140],[40,140],1,1);
   const QUAD = o => bod({H:[80,126], torso:342, neck:345, upper:92, fore:90, thigh:90, shin:180, foot:182, upper2:90, fore2:90, thigh2:88, shin2:180, foot2:182, ...o});
   const invB = bod({H:[118,121], torso:213, neck:213, upper:0, fore:0, thigh:33, shin:33, foot:-45}); invB.W = [66,72]; invB.E = ik(invB.S,invB.W,28,26,1);
+  // Russian twist: seated with the knees out toward you, set lower on a mat; the hands swing hip to hip.
+  const SEATED = {HL:[92,104],KL:[74,86],AL:[90,108],HR:[108,104],KR:[126,86],AR:[110,108]};
+  const twistGear = (p,k) => { const h=hands(p); return {back: gear.rect(14,112,172,3,1.5), front: k==="kettlebell" ? gear.kettlebell([h[0],h[1]-6]) : k==="none" ? "" : gear.plate(h,11)}; };
+  // Windmill: bell locked out overhead, upper body tipped away from it, the free hand down the leg.
+  const WIDE = {HL:[93,104],KL:[86,134],AL:[78,165],HR:[107,104],KR:[114,134],AR:[122,165]};
+  const windmill = (lean, hand) => { const p = front(lean, hand, [0,0], 1, -1, WIDE); return {...p, ER:P([p.R[0],p.R[1]-24]), WR:P([p.R[0],p.R[1]-46])}; };
+  // Turkish get-up, side view: lying with the bell pressed up, onto the elbow, a half kneel, standing.
+  const armUp = S => ({E:P([S[0]+1,S[1]-27]), W:P([S[0]+2,S[1]-52])});
+  const GU = [
+    {N:[36,152],S:[56,154],...armUp([56,154]),E2:[82,158],W2:[106,160],H:[110,154],K:[128,124],A:[146,160],T:[160,166],K2:[144,156],A2:[176,158],T2:[180,146]},
+    {N:[52,108],S:[66,123],...armUp([66,123]),E2:[56,146],W2:[46,162],H:[110,154],K:[128,124],A:[146,160],T:[160,166],K2:[144,156],A2:[176,158],T2:[180,146]},
+    {N:[96,56],S:[96,76],...armUp([96,76]),E2:[94,104],W2:[94,128],H:[96,130],K:[130,128],A:[130,162],T:[145,166],K2:[84,162],A2:[52,162],T2:[40,160]},
+    {...STAND,N:[98,24],...armUp([98,44]),E2:[97,72],W2:[98,96],K2:[93,134],A2:[91,165],T2:[108,166]},
+  ];
+  const ROW = {...PLANK, E2:[132,134], W2:[132,162]};
   const deadBug = (arm2, leg) => bod({H:[112,154], torso:180, neck:182, upper:272, fore:272, ...leg, foot:-90, ...arm2, thigh2:268, shin2:2, foot2:-88});
   return {
     wristCurl:{title:"Wrist curl", noShadow:true, A:WC, B:WC, bands:fore(-1), gear:wcGear,
@@ -148,6 +171,28 @@ export function morePatterns({B, STAND, PATTERNS}){
       A:{N:[124,72],S:[112,88],E:[134,98],W:[124,82],H:[76,128],K:[122,124],A:[101,165],T:[118,166]},
       bands:[B.quads, B.glutes, B.frontDelt, B.triceps], gear:(p,k)=>({front: k==="barbell" ? gear.plate(p.W,13) : gear.held(k,p.W)}),
       steps:["Squat down with the weight at your shoulders.","Stand up hard and press the weight overhead in one move.","Bring it back to your shoulders as you squat again."]},
+
+    russianTwist:{title:"Russian twist", view:"front", shift:[0,54], legsFront:true, regions:ob, gear:twistGear,
+      A:front(-12,[70,94],[74,96],1,1,SEATED), B:front(12,[126,96],[130,94],-1,-1,SEATED),
+      steps:["Sit with your knees bent, lean back a little, feet up if you can.","Turn your trunk to bring your hands beside one hip.","Turn to the other side, keeping your chest up."]},
+    windmill:{title:"Windmill", view:"front", A:windmill(0,[80,94]), B:windmill(-38,[72,140]), regions:ob,
+      bands:[{seg:"upperR", f:[-.2,.45], side:-1, m:"Shoulders:side"}], gear:p=>({front: gear.kettlebell([p.WR[0],p.WR[1]-8])}),
+      steps:["Feet wide, bell locked out overhead, eyes on it.","Push your hips toward the bell side and slide your free hand down your leg.","Stand back up, arm straight the whole time."]},
+    // One slow circle every 3.2 s.
+    halo:{title:"Halo", view:"front", head:"front", loop:3200, pose:haloPose, A:haloPose(0),
+      bands:[{seg:"upperL", f:[-.2,.45], side:-1, m:"Shoulders:front"},{seg:"upperR", f:[-.2,.45], side:1, m:"Shoulders:front"}],
+      gear:p=>{ const h=hands(p); return {front: gear.kettlebell([h[0],h[1]-12])}; },
+      steps:["Hold the bell upside down by the horns at chest height.","Circle it around your head, close to your neck.","Go the other way each round, keeping your core tight."]},
+    highPull:{title:"High pull", A:HINGE, B:{...STAND, E:[74,32], W:[98,34]},
+      bands:[{...B.lats, f:[.02,.25]}, B.rearDelt, B.glutes], gear:p=>({front: gear.kettlebell([p.W[0],p.W[1]-2])}),
+      steps:["Hinge with the bell between your feet, back flat.","Snap your hips forward and pull the bell to your chest, elbow high.","Let it swing back down and hinge again."]},
+    // Up through four positions and back down the same way, over 7.2 s.
+    getUp:{title:"Turkish get-up", noShadow:true, period:7200, pose:seq(GU), A:GU[0],
+      bands:[B.frontDelt, B.triceps, B.abs], gear:p=>({back: mat, front: gear.kettlebell([p.W[0],p.W[1]-12])}),
+      steps:["Lie on your back with the bell pressed up, same-side knee bent.","Roll onto your elbow, then your hand, and sweep your leg under into a half kneel.","Stand up, eyes on the bell; reverse each step to get back down."]},
+    renegadeRow:{title:"Renegade row", head:"rear", A:ROW, B:{...ROW, E:[112,96], W:[118,122]},
+      bands:[B.lats, B.biceps, B.abs], gear:p=>({front: gear.bell(p.W) + gear.bell([p.W2[0],p.W2[1]-2])}),
+      steps:["Push-up position, hands on dumbbells, feet wide.","Row one dumbbell to your ribs without twisting your hips.","Set it down and row the other side."]},
 
     // Cardio machines loop continuously and highlight no muscles.
     bike:{title:"Bike", loop:true, noShadow:true, pose:bikePose, A:bikePose(0),

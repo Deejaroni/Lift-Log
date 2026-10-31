@@ -283,13 +283,19 @@ const RULES = [
   [/bird dog/, "birdDog"],
   [/donkey kick/, "donkeyKick"],
   [/y-raise/, "yRaise"],
+  [/russian twist/, "russianTwist"],
+  [/windmill/, "windmill"],
+  [/halo/, "halo"],
+  [/high pull/, "highPull"],
+  [/get-up/, "getUp"],
+  [/renegade/, "renegadeRow"],
   [/kettlebell snatch/, "kbSnatch"],
   [/thruster/, "thruster"],
   [/kettlebell clean/, "kbClean"],
   [/block pull|rack pull/, "hinge"],
   [/ab machine/, "crunch"],
   [/triceps extension machine|plate-loaded triceps extension/, "pushdown"],
-  [/slider|stability-ball|twist|windmill|halo|plate pinch|holds|hangs|adduction|pull-through|bear crawl|inchworm|wall walk|cossack|renegade|high pull\b|get-up|scapular pull|fire hydrant|ring \/ suspension|bodyweight triceps extension/, null],
+  [/slider|stability-ball|plate pinch|holds|hangs|adduction|pull-through|bear crawl|inchworm|wall walk|cossack|scapular pull|fire hydrant|ring \/ suspension|bodyweight triceps extension/, null],
   [/farmer|suitcase/, "carry"],
   [/dip/, "dips"],
   [/push-up|pushup/, "pushUp"],
@@ -335,7 +341,7 @@ const RULES = [
 export function kindOf(name){
   const n = name.toLowerCase();
   return /kettlebell/.test(n) ? "kettlebell" : /dumbbell|goblet/.test(n) ? "dumbbell" : /cable|rope|pulley/.test(n) ? "cable"
-    : /bodyweight|push-up|pull-up|chin-up|dip|plank|crunch|sit-up|raise/.test(n) && !/barbell|dumbbell|machine/.test(n) ? "none" : "barbell";
+    : /bodyweight|push-up|pull-up|chin-up|dip|plank|crunch|sit-up|raise|^russian twist/.test(n) && !/barbell|dumbbell|machine/.test(n) ? "none" : "barbell";
 }
 export function patternKey(name, muscle, sub){
   const s = `${(muscle||"").toLowerCase()}|${(sub||"").toLowerCase()}|${name.toLowerCase()}`;

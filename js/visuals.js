@@ -20,6 +20,8 @@ function visualFor(name){
   const tag = (m, h) => m==="Shoulders" && h ? `Shoulders:${h}` : m;
   const roles = {[tag(main, head)]: 1};
   also.forEach(m=>{ const t = tag(m, m==="Shoulders" ? (pat && pat.head) : null); if(!roles[t]) roles[t] = .38; });
+  // "Full body" isn't a muscle the figure can show, so light up every muscle the movement itself shows.
+  if(main==="Full body" && pat) [...(pat.bands||[]).map(b=>b.m), ...(pat.regions||[]).map(x=>x[1])].forEach(m=>{ roles[m] = 1; });
   const label = (m, h) => m==="Shoulders" && h ? headLabel(h) : m;
   return {key, pat, kind: kindOf(name), roles, main: label(main, head), also: also.map(m=>label(m, m==="Shoulders" && pat ? pat.head : null))};
 }
@@ -50,19 +52,20 @@ const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matche
 let raf = 0, last = 0;
 const ease = u => u<.5 ? 4*u*u*u : 1-Math.pow(-2*u+2,3)/2;
 // One rep every 3.2 s: hold at the start, move, hold at the end, return.
-// A looping movement (cardio) just goes round, one cycle every 1.6 s.
-function phase(ms, loop){ if(loop) return (ms/1600)%1; const u=(ms/3200)%1; if(u<.08) return 0; if(u<.46) return ease((u-.08)/.38); if(u<.58) return 1; if(u<.94) return 1-ease((u-.58)/.36); return 0; }
+// A looping movement just goes round: one cycle every 1.6 s (cardio), or every `loop` ms (a slower halo).
+// Others play out and back, one rep every 3.2 s or every `period` ms (a get-up takes longer).
+function phase(ms, p){ if(p.loop) return (ms/(p.loop===true ? 1600 : p.loop))%1; const u=(ms/(p.period||3200))%1; if(u<.08) return 0; if(u<.46) return ease((u-.08)/.38); if(u<.58) return 1; if(u<.94) return 1-ease((u-.58)/.36); return 0; }
 function draw(svg, v, t){ svg.innerHTML = figureMarkup(v.pat, t, v.roles, v.kind); }
 function tick(now){
   raf = 0;
   if(now-last >= 32){ last = now;   // about 30 frames a second is plenty for these
-    for(const [svg, v] of live){ if(!svg.isConnected){ live.delete(svg); continue; } if(svg.getClientRects().length) draw(svg, v, phase(now, v.pat.loop)); }
+    for(const [svg, v] of live){ if(!svg.isConnected){ live.delete(svg); continue; } if(svg.getClientRects().length) draw(svg, v, phase(now, v.pat)); }
   }
   if(live.size) raf = requestAnimationFrame(tick);
 }
 // tight: crop to the body (small pictures); otherwise the whole scene with its equipment.
 function animate(svg, v, tight=false){
-  svg.setAttribute("viewBox", tight ? poseBox(v.pat, v.pat.loop ? [0,.25,.5,.75] : [0,.5,1]) : FIGURE_VIEWBOX);
+  svg.setAttribute("viewBox", tight ? poseBox(v.pat, v.pat.loop ? [0,.25,.5,.75] : v.pat.pose ? [0,.33,.67,1] : [0,.5,1]) : FIGURE_VIEWBOX);
   if(reduceMotion()){ live.delete(svg); draw(svg, v, 1); svg.dataset.still = "1"; return; }   // a still of the end position
   delete svg.dataset.still; live.set(svg, v); draw(svg, v, 0);
   if(!raf) raf = requestAnimationFrame(tick);

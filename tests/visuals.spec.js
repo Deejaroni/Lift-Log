@@ -156,10 +156,16 @@ test("the newer movements match the right pictures", async ({ page }) => {
       ["Kettlebell clean", "Full body", "Kettlebell", "kbClean"], ["Kettlebell snatch", "Full body", "Kettlebell", "kbSnatch"],
       ["Kettlebell thruster", "Full body", "Kettlebell", "thruster"], ["Snatch-grip row", "Back", "Rows: barbell", "bentRow"],
       ["Snatch-grip RDL", "Hamstrings", "Hip hinge: barbell", "hinge"], ["Hanging knee raise with rotation", "Abdominals", "Obliques / lateral trunk", "legRaise"],
+      ["Russian twist", "Abdominals", "Obliques / lateral trunk", "russianTwist"], ["Kettlebell Russian twist", "Abdominals", "Kettlebell", "russianTwist"],
+      ["Kettlebell windmill", "Abdominals", "Kettlebell", "windmill"], ["Kettlebell halo", "Shoulders", "Kettlebell", "halo"],
+      ["Kettlebell high pull", "Back", "Kettlebell", "highPull"], ["Turkish get-up", "Full body", "Kettlebell", "getUp"], ["Renegade row", "Back", "Kettlebell", "renegadeRow"],
     ];
     return want.filter(([n, m, s, k]) => patternKey(n, m, s) !== k).map(([n, m, s, k]) => `${n}: ${patternKey(n, m, s)} (want ${k})`);
   });
   expect(wrong).toEqual([]);
+  // A plain Russian twist holds nothing; the weighted one holds a plate.
+  const kinds = await page.evaluate(async () => { const { kindOf } = await import("/js/movements.js"); return ["Russian twist", "Weighted Russian twist", "Kettlebell Russian twist"].map(kindOf); });
+  expect(kinds).toEqual(["none", "barbell", "kettlebell"]);
   expect(errors).toEqual([]);
 });
 
@@ -168,12 +174,28 @@ test("looping movements come back to the start, and side bends tilt the upper bo
   const r = await page.evaluate(async () => {
     const { PATTERNS } = await import("/js/movements.js"), { figureMarkup } = await import("/js/figure.js");
     const loops = Object.entries(PATTERNS).filter(([, p]) => p.loop).map(([k, p]) => ({ k, moves: figureMarkup(p, 0) !== figureMarkup(p, .5), back: figureMarkup(p, 0) === figureMarkup(p, 1) }));
-    return { loops, still: figureMarkup(PATTERNS.sideBend, 0).includes("rotate("), tilted: figureMarkup(PATTERNS.sideBend, 1).includes("rotate(") };
+    const gu = [0, .33, .67, 1].map(t => figureMarkup(PATTERNS.getUp, t));
+    return { loops, still: figureMarkup(PATTERNS.sideBend, 0).includes("rotate("), tilted: figureMarkup(PATTERNS.sideBend, 1).includes("rotate("),
+      getUpSteps: new Set(gu).size, seated: figureMarkup(PATTERNS.russianTwist, 0).includes("translate(") };
   });
-  expect(r.loops.map(x => x.k).sort()).toEqual(["bike", "treadmill"]);
+  expect(r.loops.map(x => x.k).sort()).toEqual(["bike", "halo", "treadmill"]);
+  expect(r.getUpSteps).toBe(4);   // lying, on the elbow, half kneel, standing are all different
+  expect(r.seated).toBe(true);
   for (const x of r.loops) { expect(x.moves).toBe(true); expect(x.back).toBe(true); }
   expect(r.still).toBe(false);
   expect(r.tilted).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("full-body exercises light up every muscle their movement shows", async ({ page }) => {
+  const errors = await openApp(page);
+  const roles = await page.evaluate(async () => { const { visualFor } = await import("/js/visuals.js"); return ["Turkish get-up", "Kettlebell clean"].map(n => visualFor(n).roles); });
+  expect(roles[0]).toMatchObject({ "Shoulders:front": 1, Triceps: 1, Abdominals: 1 });
+  expect(roles[1]).toMatchObject({ Glutes: 1, Hamstrings: 1, "Lower back": 1 });
+  await pickExercise(page, "Turkish get-up");
+  await page.click("#ex-chosen-text");
+  await expect(page.locator("#exs-muscles-text")).toContainText("Full body");
+  expect(await page.locator("#exs-anim").innerHTML()).toContain("var(--red)");
   expect(errors).toEqual([]);
 });
 
