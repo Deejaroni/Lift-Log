@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { set, openApp } = require("./helpers");
+const { set, openApp, openEdit } = require("./helpers");
 
 const stored = page => page.evaluate(() => ({
   e: JSON.parse(localStorage.getItem("liftlog.entries.v1")),
@@ -8,6 +8,7 @@ const stored = page => page.evaluate(() => ({
 const openInfo = async (page, name) => {
   await page.click('nav.tabs [data-tab="history"]');
   await page.locator(`#history [data-exinfo="${name}"]`).first().click();
+  await openEdit(page);
 };
 
 test("a misspelled exercise is offered and merged into the matching one", async ({ page }) => {

@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
-const { set, openApp, pickExercise } = require("./helpers");
+const { set, openApp, pickExercise, openEdit } = require("./helpers");
 
 // The built-in library, read straight from the page source.
 function library() {
@@ -52,6 +52,7 @@ test("compound lifts list the other muscles they work", async ({ page }) => {
   const alsoFor = async name => {
     await pickExercise(page, name);
     await page.click("#ex-chosen-text");
+    await openEdit(page);
     const on = await page.locator('#exs-also [aria-pressed="true"]').allTextContents();
     await page.click("#exs-cancel"); await page.click("#ex-change");
     return on;

@@ -9,6 +9,8 @@ import { dayTotalHTML, groupHTML } from "./entries.js";
 import { CATALOG, MUSCLES, exSet, gf, groupOf, groupedOptions, guessMuscle, muscleTouched, setMuscleTouched } from "./catalog.js";
 import { TIMED } from "./plan.js";
 import { restNext, setRestNext } from "./main.js";
+import { visualFor, stillMarkup, patternStill, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
+import { PATTERNS } from "./movements.js";
 
 let ALIAS_WORDS, EX_INDEX, EX_SQUASH;
 
@@ -156,14 +158,30 @@ function shownIn(x, f, mine){
 }
 const EX_LIMIT = 40;
 let exShowAll = false;
+let exMove = null;   // movement being browsed ("Row"), or null
+let MOVES = null;    // movement title -> library exercise names, built the first time it's needed
+function movesIndex(){
+  if(!MOVES){ MOVES = new Map(); EX_INDEX.forEach(x=>{ const v = visualFor(x.name); if(v.pat){ if(!MOVES.has(v.pat.title)) MOVES.set(v.pat.title, []); MOVES.get(v.pat.title).push(x.name); } }); }
+  return MOVES;
+}
+// Grid of movements to browse by picture, in the pattern list's order.
+function moveTiles(){
+  const seen = new Set();
+  return `<div class="mv-grid">${Object.entries(PATTERNS).filter(([,p])=>movesIndex().has(p.title) && !seen.has(p.title) && seen.add(p.title))
+    .map(([k,p])=>`<button type="button" class="mv-tile" data-move="${esc(p.title)}">${patternStill(k)}<span>${esc(p.title)}</span></button>`).join("")}</div>`;
+}
 function renderPicker(){
   const q = $("#exercise-search").value.trim(), f = gf(), logged = exercisesByRecent();
   const mine = new Set(logged.map(n=>n.toLowerCase()));
   const row = x => { const s = shownIn(x, f, mine.has(x.name.toLowerCase()));
-    return `<button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></button>`; };
+    return `<button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-th">${stillMarkup(x.name)}</span><span class="ex-txt"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></span></button>`; };
   const sec = t => `<p class="ex-sec">${esc(t)}</p>`;
   let html = "";
-  if(!exNorm(q)){
+  if(!exNorm(q) && exMove){
+    const lib = movesIndex().get(exMove) || [], own = logged.filter(n=>!EX_INDEX.has(n.toLowerCase()) && visualFor(n).pat?.title===exMove);
+    html += `<button type="button" class="ex-back" data-move-back>‹ All movements</button>` + sec(`${exMove} · ${lib.length+own.length} exercises`) +
+      [...own.map(entryFor), ...lib.map(n=>EX_INDEX.get(n.toLowerCase()))].map(row).join("");
+  } else if(!exNorm(q)){
     const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0, 6);
     if(recent.length) html += sec("Recently used") + recent.map(n=>row(entryFor(n))).join("");
     if(f){
@@ -176,7 +194,7 @@ function renderPicker(){
         const names = g.names.filter(n=>!exSet(n) || worksIn(n, f));
         if(names.length) html += sec(g.sub) + names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join("");
       });
-    } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”. Or choose a muscle group above to browse.</p>`;
+    } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”, or pick a movement below.</p>` + sec("Browse by movement") + moveTiles();
   } else {
     const {hits, fixed, partial} = findExercises(q, logged);
     if(fixed) html += `<button type="button" class="ex-fix" data-fix="${esc(fixed)}">Showing results for <b>${esc(fixed)}</b></button>`;
@@ -194,7 +212,11 @@ function renderPicker(){
   $("#ex-results").innerHTML = html;
 }
 // Either the search box and results, or the chosen exercise with a Change button.
-function showPicker(open){ $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open; }
+function showPicker(open){
+  $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open;
+  $("#ex-chosen-tip").hidden = open || $("#ex-thumb").hasAttribute("hidden");
+  if(open) stopAnimating($("#ex-thumb"));
+}
 function chooseExercise(name, m){
   setRestNext(null);
   $("#exercise").value = name; $("#new-ex-wrap").hidden = true; setMuscleTouched(false);
@@ -206,6 +228,14 @@ function chooseExercise(name, m){
 function chosenMeta(name){
   const m = $("#muscle").value, s = shownIn(entryFor(name), m, false);
   $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
+  chosenThumb(name);
+}
+// The chosen exercise's picture: the movement playing, the body map when there's no animation, nothing for cardio.
+function chosenThumb(name){
+  const v = name ? visualFor(name) : {timed:true}, th = $("#ex-thumb");
+  th.toggleAttribute("hidden", !!v.timed); $("#ex-chosen-tip").hidden = !!v.timed || $("#ex-chosen").hidden;
+  if(v.pat) animate(th, v, true);
+  else { stopAnimating(th); th.setAttribute("viewBox", "0 0 58 44"); th.innerHTML = v.timed ? "" : bodyMapMarkup(v.roles); }
 }
 function chooseNew(name){
   setRestNext(null);
@@ -213,7 +243,7 @@ function chooseNew(name){
   applyEquip({}, prefs.unit);
   $("#muscle").value = gf() || guessMuscle(name); setMuscleTouched(!!gf());
   $("#new-muscle-wrap").hidden = !!gf();
-  $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below";
+  $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below"; chosenThumb(null);
   showPicker(false); applyFormKind(); $("#exercise").focus();
 }
 function fillSelect(sel, withAll){
@@ -251,7 +281,7 @@ export function init(){
   EX_INDEX.forEach(x=>x.words.forEach(t=>EX_VOCAB.set(t, (EX_VOCAB.get(t)||0)+1)));
   EX_INDEX.forEach(x=>[...x.tokens, ...x.ctx].forEach(t=>{ if(!EX_VOCAB.has(t)) EX_VOCAB.set(t, 1); }));
   EX_SQUASH = [...EX_INDEX.values()].map(x=>x.squash).join("|");
-  $("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; renderPicker(); });
+  $("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; exMove = null; renderPicker(); });
   $("#exercise-search").addEventListener("keydown", e=>{
     if(e.key!=="Enter" || !$("#exercise-search").value.trim()) return;
     e.preventDefault(); ($("#ex-results [data-name]") || $("#ex-results [data-new]")).click();
@@ -259,6 +289,8 @@ export function init(){
   $("#ex-results").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
     if(b.hasAttribute("data-show-all")){ exShowAll = true; renderPicker(); }
+    else if(b.hasAttribute("data-move")){ exMove = b.dataset.move; renderPicker(); $("#ex-results").scrollTop = 0; }
+    else if(b.hasAttribute("data-move-back")){ exMove = null; renderPicker(); }
     else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
     else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
     else chooseExercise(b.dataset.name, b.dataset.m);
@@ -302,4 +334,4 @@ export function init(){
   });
 }
 
-export { ALIASES, MUSCLE_WORDS, exNorm, exStem, exWords, ALIAS_WORDS, exEntry, EX_INDEX, entryFor, osa, wordFit, EX_VOCAB, EX_SQUASH, exKnown, exFix, findExercises, rankExercises, SECONDARY, alsoOf, worksIn, shownIn, EX_LIMIT, exShowAll, renderPicker, showPicker, chooseExercise, chosenMeta, chooseNew, fillSelect, renderHistory, offerUndo, setExShowAll };
+export { chosenThumb, ALIASES, MUSCLE_WORDS, exNorm, exStem, exWords, ALIAS_WORDS, exEntry, EX_INDEX, entryFor, osa, wordFit, EX_VOCAB, EX_SQUASH, exKnown, exFix, findExercises, rankExercises, SECONDARY, alsoOf, worksIn, shownIn, EX_LIMIT, exShowAll, renderPicker, showPicker, chooseExercise, chosenMeta, chooseNew, fillSelect, renderHistory, offerUndo, setExShowAll };

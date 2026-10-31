@@ -85,8 +85,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .ex-fix b{color:var(--blue);font-weight:700}
 .ex-tip{margin:0;padding:10px 12px;font-size:.88rem;color:var(--muted)}
 .ex-more{width:100%;min-height:44px;border:0;border-top:1px solid var(--line);background:none;color:var(--blue);font-weight:600}
-.ex-chosen{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 8px 8px 12px;background:var(--field);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px}
-.ex-chosen-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.ex-chosen{display:flex;align-items:center;gap:10px;min-height:64px;padding:8px 8px 8px 10px;background:var(--field);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px}
+.ex-chosen-text{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.ex-chosen-words{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ex-chosen-words .ex-n{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:normal}
+.ex-chosen-words .ex-m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ex-chosen-text .ex-n{font-size:1.05rem}
 .ex-chosen .secondary{flex:none;min-height:42px;padding:8px 14px}
 .steppers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
@@ -408,7 +411,6 @@ button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);co
 
 /* Exercise details: main muscle group and what else it works */
 button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inherit;text-align:left;min-height:44px;justify-content:center}
-button.ex-chosen-text .ex-m::after{content:"Edit muscles";display:block;margin-top:2px;color:var(--blue);font-weight:600}
 .ex-name-btn{border:0;background:none;padding:6px 0;margin:-6px 0;color:inherit;font:inherit;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px;min-height:40px}
 .exdlg h3{margin:0 0 12px}
 .also-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -454,3 +456,27 @@ button.ex-chosen-text .ex-m::after{content:"Edit muscles";display:block;margin-t
 .cal-key i.lift{background:var(--red)}
 .cal-key i.cardio{background:var(--blue);margin-left:6px}
 #consistency .seg button{min-width:44px;min-height:44px}
+
+/* Exercise pictures: Log card thumbnail, list stills, browse tiles and the how-to sheet */
+.ex-thumb{flex:none;width:54px;height:54px;border-radius:8px;background:var(--surface);border:1px solid var(--line)}
+#ex-chosen-tip{margin:6px 2px 0}
+.ex-opt:not(.ex-new){flex-direction:row;align-items:center;gap:10px}
+.ex-th{flex:none;width:40px;height:36px;display:grid;place-items:center;border-radius:6px;background:var(--surface)}
+.ex-th:empty{background:none}
+.ex-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:8px}
+.mv-tile{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:44px;padding:6px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:.8rem;font-weight:600;color:var(--ink)}
+.mv-tile:active{background:var(--line)}
+.ex-back{width:100%;min-height:44px;border:0;background:var(--surface);color:var(--blue);font-weight:600;text-align:left;padding:0 12px;border-bottom:1px solid var(--line)}
+.exs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.exs-head h3{margin:0;min-width:0;overflow-wrap:anywhere}
+.exs-anim{display:block;width:100%;height:auto;aspect-ratio:200/176;background:var(--field);border-radius:12px}
+.exs-cap{display:flex;align-items:center;gap:10px;margin:10px 0 4px}
+.exs-cap p{margin:0;font-size:.9rem;line-height:1.5}
+.mus-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:6px;vertical-align:0}
+.mus-dot.also{opacity:.38}
+.exs-steps{margin:6px 0 10px;padding-left:1.3em;font-size:.95rem;line-height:1.45}
+.exs-steps li{margin:4px 0}
+.exs-editrow{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;margin-bottom:6px;color:var(--muted);font-weight:600;font-size:.9rem}
+.exs-editrow .edit{margin:0;min-height:40px;padding:8px 14px}
+#exs-edit-wrap{margin-top:6px}

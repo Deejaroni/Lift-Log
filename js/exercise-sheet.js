@@ -8,6 +8,7 @@ import { applyEquip, isCardio } from "./equipment.js";
 import { MUSCLES, groupOf, normMuscle } from "./catalog.js";
 import { EX_INDEX, alsoOf, chooseExercise, chosenMeta, exWords, osa } from "./search.js";
 import { P, TIMED, loggedFor, startPlanned } from "./plan.js";
+import { visualFor, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
 
 // ---------- exercise details: main muscle group and what else it works ----------
 let exsName = null, exsAlso = new Set();
@@ -15,14 +16,28 @@ function openExerciseInfo(name){
   if(!name) return;
   exsName = name;
   const main = groupOf(name), timed = TIMED.has(main);
+  renderHowTo(name);
+  setEditOpen(timed);   // cardio and mobility have nothing to show but the name
   $("#exs-name").value = name; renderSame();
   $("#exs-muscles").hidden = timed;   // cardio and mobility have no muscle groups to set
   if(!timed){
     $("#exs-main").innerHTML = MUSCLES.filter(m=>!TIMED.has(m)).map(m=>`<option ${m===main?"selected":""}>${m}</option>`).join("");
     exsAlso = new Set(alsoOf(name)); renderAlso();
   }
-  $("#exsheet").hidden = false; $("#exs-name").focus();
+  $("#exsheet").hidden = false; (timed ? $("#exs-name") : $("#exs-close")).focus();
 }
+// The how-to part: animation, body map with the muscles worked, and three steps.
+function renderHowTo(name){
+  const v = visualFor(name), anim = $("#exs-anim");
+  $("#exs-title").textContent = name;
+  $("#exs-info").hidden = !!v.timed;
+  anim.toggleAttribute("hidden", !v.pat);   // an SVG element has no hidden property, only the attribute
+  if(v.pat){ anim.setAttribute("aria-label", `${name}, animated, working ${v.main}`); animate(anim, v); } else stopAnimating(anim);
+  $("#exs-map").innerHTML = v.timed ? "" : bodyMapMarkup(v.roles);
+  $("#exs-muscles-text").innerHTML = v.timed ? "" : `<span class="mus-dot"></span>${esc(v.main)}` + (v.also.length ? `<br><span class="mus-dot also"></span>${esc(v.also.join(" · "))}` : "");
+  $("#exs-steps").innerHTML = v.pat ? v.pat.steps.map(s=>`<li>${esc(s)}</li>`).join("") : "";
+}
+function setEditOpen(open){ $("#exs-edit-wrap").hidden = !open; $("#exs-edit").setAttribute("aria-expanded", String(open)); }
 // Names that look like the same exercise (a typo or different spacing): yours first, then the library's.
 function renderSame(){
   const me = exsName.toLowerCase(), sq = exWords(exsName).join("");
@@ -36,7 +51,7 @@ function renderAlso(){
   $("#exs-also").innerHTML = MUSCLES.filter(m=>!TIMED.has(m) && m!=="Other" && m!==main)
     .map(m=>`<button type="button" class="also-chip" data-also="${m}" aria-pressed="${exsAlso.has(m)}">${m}</button>`).join("");
 }
-function closeExerciseInfo(){ $("#exsheet").hidden = true; exsName = null; }
+function closeExerciseInfo(){ $("#exsheet").hidden = true; stopAnimating($("#exs-anim")); exsName = null; }
 // Saves the name (renaming, or merging into a name you already have) and the muscle groups.
 // Every past set moves to the new name and main group.
 async function saveExerciseInfo(){
@@ -118,6 +133,8 @@ function setPlanEdit(v){ planEdit = v; }
 function setItemEdit(v){ itemEdit = v; }
 
 export function init(){
+  $("#exs-close").addEventListener("click", closeExerciseInfo);
+  $("#exs-edit").addEventListener("click", ()=>{ const open = $("#exs-edit-wrap").hidden; setEditOpen(open); if(open) $("#exs-name").focus(); });
   $("#exs-main").addEventListener("change", renderAlso);
   $("#exs-same").addEventListener("click", e=>{ const b = e.target.closest("[data-same]"); if(b) $("#exs-name").value = b.dataset.same; });
   $("#exs-also").addEventListener("click", e=>{
@@ -145,4 +162,4 @@ export function init(){
   });
 }
 
-export { exsName, exsAlso, openExerciseInfo, renderSame, renderAlso, closeExerciseInfo, saveExerciseInfo, repeatDay, renderRepeat, startRepeat, planEdit, itemEdit, setPlanEdit, setItemEdit };
+export { renderHowTo, setEditOpen, exsName, exsAlso, openExerciseInfo, renderSame, renderAlso, closeExerciseInfo, saveExerciseInfo, repeatDay, renderRepeat, startRepeat, planEdit, itemEdit, setPlanEdit, setItemEdit };

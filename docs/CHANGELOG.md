@@ -2,6 +2,13 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## Next update
+- Exercises now show how they're done. The chosen exercise on the Log tab has a small moving picture of the movement; tap it or the name to open a sheet with a larger animation, a front and back body map, and three short steps.
+- The animated figure and body map highlight the main muscle in solid red and supporting muscles in a lighter red. Shoulder exercises show only the part of the shoulder they work: front, side or rear delts.
+- Search results show a small picture of each movement, and the exercise picker has a "Browse by movement" grid (squat, hinge, row, press and more) for when you don't know an exercise's name.
+- About 85% of the exercise list has an animation so far; the rest (such as wrist curls, side bends and kettlebell cleans) show the body map. Cardio has no picture.
+- The pictures hold still if your phone is set to reduce motion. Editing an exercise's name and muscles is now under Edit in the same sheet.
+
 ## 2026-10-31 (seventh update)
 - Behind the scenes: the app's code files are now JavaScript modules, each listing what it shares. Nothing looks or works differently.
 

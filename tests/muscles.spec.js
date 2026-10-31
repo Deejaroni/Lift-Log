@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { set, openApp, pickExercise } = require("./helpers");
+const { set, openApp, pickExercise, openEdit } = require("./helpers");
 
 const stored = page => page.evaluate(() => ({
   entries: JSON.parse(localStorage.getItem("liftlog.entries.v1")),
@@ -21,6 +21,7 @@ test("old data loads, and an exercise's muscle groups can be changed from Histor
   await page.click('nav.tabs [data-tab="history"]');
   expect(await groupsInFilter(page, "#hist-filter")).toEqual({ Hamstrings: ["Romanian deadlift"] });
   await page.locator('#history [data-exinfo="Romanian deadlift"]').first().click();
+  await openEdit(page);
   const sheet = page.locator("#exsheet");
   await expect(sheet).toBeVisible();
   await expect(sheet.locator("#exs-main")).toHaveValue("Hamstrings");
@@ -61,6 +62,7 @@ test("the chosen exercise card opens the same details, and new sets use the new 
   const errors = await openApp(page);
   await pickExercise(page, "Leg press");
   await page.click("#ex-chosen-text");
+  await openEdit(page);
   await page.locator("#exs-main").selectOption("Glutes");
   await page.click("#exs-save");
   await expect(page.locator("#ex-chosen-meta")).toContainText("Glutes");
@@ -73,6 +75,7 @@ test("Cancel leaves everything as it was", async ({ page }) => {
   const errors = await openApp(page, oldData());
   await page.click('nav.tabs [data-tab="history"]');
   await page.locator('#history [data-exinfo="Romanian deadlift"]').first().click();
+  await openEdit(page);
   await page.locator("#exs-main").selectOption("Back");
   await page.click("#exs-cancel");
   const s = await stored(page);

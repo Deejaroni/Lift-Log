@@ -53,9 +53,10 @@
           <div id="ex-results" class="ex-results" role="group" aria-label="Exercises"></div>
         </div>
         <div id="ex-chosen" class="ex-chosen" hidden>
-          <button type="button" class="ex-chosen-text" id="ex-chosen-text"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></button>
+          <button type="button" class="ex-chosen-text" id="ex-chosen-text"><svg id="ex-thumb" class="ex-thumb" aria-hidden="true" focusable="false"></svg><span class="ex-chosen-words"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></span></button>
           <button type="button" id="ex-change" class="secondary">Change</button>
         </div>
+        <p class="cal-sub" id="ex-chosen-tip" hidden>Tap the picture or name for how to do it and the muscles worked.</p>
         <p class="cal-sub" id="ex-hint" hidden></p>
       </div>
       <div id="new-ex-wrap" style="margin-top:12px" hidden>
@@ -219,7 +220,14 @@
 
 <div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
 <div id="exsheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="exs-title">
-  <h3 id="exs-title">Edit exercise</h3>
+  <div class="exs-head"><h3 id="exs-title"></h3><button type="button" class="rep-x" id="exs-close" aria-label="Close">×</button></div>
+  <div id="exs-info">
+    <svg id="exs-anim" class="exs-anim" role="img" aria-label=""></svg>
+    <div class="exs-cap"><svg id="exs-map" viewBox="0 0 58 44" width="84" height="64" aria-hidden="true" focusable="false"></svg><p id="exs-muscles-text"></p></div>
+    <ol id="exs-steps" class="exs-steps"></ol>
+    <div class="exs-editrow"><span>Name and muscles</span><button type="button" class="edit" id="exs-edit" aria-expanded="false" aria-controls="exs-edit-wrap">Edit</button></div>
+  </div>
+  <div id="exs-edit-wrap">
   <label class="lbl" for="exs-name">Name</label><input id="exs-name" type="text" autocomplete="off" autocapitalize="sentences">
   <div id="exs-same-wrap" hidden><p class="lbl" style="margin:10px 0 6px">Same exercise as…?</p><div class="also-chips" id="exs-same"></div></div>
   <div id="exs-muscles">
@@ -228,6 +236,7 @@
   </div>
   <p class="cal-sub" style="margin:12px 0 14px">Changes apply to every set of this exercise, past and future. Use a name you already have to merge the two.</p>
   <div class="dlg-actions"><button type="button" class="secondary" id="exs-cancel">Cancel</button><button type="button" class="primary" id="exs-save">Save</button></div>
+  </div>
 </div></div>
 <div id="settings" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
   <div class="sheet-inner">

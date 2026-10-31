@@ -33,4 +33,10 @@ async function pickExercise(page, name) {
   await page.click(`#ex-results [data-name="${name}"]`);
 }
 
-module.exports = { TODAY, set, cardio, openApp, bodyWeight, pickExercise };
+// The exercise sheet opens on how to do it; name and muscles are under Edit (already open for cardio).
+async function openEdit(page) {
+  await page.locator("#exsheet").waitFor();
+  if (await page.locator("#exs-name").isHidden()) await page.click("#exs-edit");
+}
+
+module.exports = { TODAY, set, cardio, openApp, bodyWeight, pickExercise, openEdit };
