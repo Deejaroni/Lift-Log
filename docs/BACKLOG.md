@@ -20,10 +20,10 @@ Added 2026-10-27.
   - Every tap target 40 px or more, including the quick-add chips.
 
 ## Gaps review: next items
-Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo) shipped 2026-10-31. Do these in order:
-- Keep the screen on while resting or logging (Wake Lock).
+Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo) were built 2026-10-31. Do these in order:
 - Plate calculator: plates per side for the entered weight, using the bar setting.
 - Repeat a past workout: start today from the last time you did that day, weights and reps filled in.
+- RPE / reps in reserve per set: an optional tap for how hard the set felt; could feed Plan progression later.
 - Supersets: link two exercises so rest starts after the second.
 - Change an exercise's muscle group (History and Progress follow), and secondary muscles (e.g. hip thrust counts for Glutes and Hamstrings). Needs a migration and an old-data test.
 - Clean up the built-in exercise list (wrong groupings, near-duplicates) and merge your own duplicates.
@@ -31,4 +31,4 @@ Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo)
 - Consistency calendar or streak.
 - Split index.html into modules (it's ~3,300 lines; CLAUDE.md refers to js/state.js, which doesn't exist yet).
 - Publish workflow: move off deprecated Node 20 actions and check the Ubuntu 26 runner change.
-- Dropped 2026-10-31: RPE / reps in reserve per set.
+- Dropped 2026-10-31: keeping the screen on (Wake Lock).
