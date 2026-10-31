@@ -65,3 +65,6 @@ The code that used to sit inside index.html is split along its sections into fil
 - Every new file goes in index.html and in `FILES` in sw.js. tests/files.spec.js checks both, and that code files stay under about 600 lines (exercise-library.js, which is data, is exempt).
 
 CLAUDE.md asks for JavaScript modules. Converting a file to an ES module means listing what it shares and adding small setters for values other files change; that can be done one file at a time later.
+
+## The publish workflow is pinned to Ubuntu 24.04
+GitHub is moving `ubuntu-latest` to Ubuntu 26 (from 2026-10-19). The tests install Chromium with `npx playwright install --with-deps`, which needs Playwright to know the operating system's packages, so a silent switch could break publishing. Both jobs run on `ubuntu-24.04` (supported into 2029) until Playwright lists Ubuntu 26.04 as supported. The actions are on their Node 24 versions (checkout v7, setup-node v7, configure-pages v6, upload-pages-artifact v5, deploy-pages v5), and the tests run on Node 24 to match local development.

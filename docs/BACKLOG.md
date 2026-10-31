@@ -22,5 +22,4 @@ Added 2026-10-27.
 ## Gaps review: next items
 Added 2026-10-31. Items 1–3 of the review (update handling, full backup, undo) shipped 2026-10-31, then the plate calculator, repeat a past workout, reps in reserve and supersets. Do these in order:
 - Convert the js/ script files to ES modules, one file at a time (see DECISIONS: ordered script files).
-- Publish workflow: move off deprecated Node 20 actions and check the Ubuntu 26 runner change.
 - Dropped 2026-10-31: keeping the screen on (Wake Lock).
