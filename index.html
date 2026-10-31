@@ -34,7 +34,8 @@
   <section id="tab-log">
     <div class="panel nudge" id="backup-nudge" hidden></div>
     <div class="panel" id="plan-today" hidden></div>
-    <div class="panel">
+    <div class="panel" id="repeat-today" hidden></div>
+    <div class="panel" id="log-form">
       <div class="row pair">
         <div>
           <label class="lbl" for="group-filter">Muscle group</label>
@@ -2454,7 +2455,7 @@ Scaption raise (thumbs-up, scapular plane)`;
     if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
     const days = new Map();
     list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
-    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><p class="day-date">${niceDate(d)}</p>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
+    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><div class="day-head"><p class="day-date">${niceDate(d)}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
   }
   $("#hist-filter").addEventListener("change", renderHistory);
 
@@ -2817,8 +2818,59 @@ Scaption raise (thumbs-up, scapular plane)`;
     }
     updateVolPreview();
     restNext = s.timed ? null : (it.rest || null);
-    document.querySelector("#tab-log .panel:nth-of-type(2)").scrollIntoView({behavior:"smooth", block:"start"});
+    $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
   }
+
+  // ---------- repeat a past workout ----------
+  // Copies a past day into a checklist for today: each exercise's top set (weight, reps, equipment) and how many sets.
+  function repeatDay(date){
+    const items = [], by = new Map(), chains = new Set();
+    sorted().filter(e=>e.date===date).forEach(e=>{
+      const k = e.exercise.toLowerCase();
+      if(!by.has(k)){ const it = {exercise:e.exercise, muscle:e.muscle, timed:isCardio(e), sets:0}; by.set(k, it); items.push(it); }
+      const it = by.get(k);
+      if(it.timed){ it.minutes = (it.minutes||0) + (e.minutes||0); it.sets = 1; return; }
+      if(!e.chain || !chains.has(e.chain)) it.sets++;   // a drop set counts once
+      if(e.chain) chains.add(e.chain);
+      const top = it.weight==null || loadOf(e) > toUnit(totalRaw(it), it.unit) || (loadOf(e)===toUnit(totalRaw(it), it.unit) && e.reps>it.reps);
+      if(top) Object.assign(it, {weight:e.weight, unit:e.unit, reps:e.reps, equip:e.equip});
+    });
+    prefs.repeat = {from:date, on:today(), items}; savePrefs();
+    document.querySelector('nav.tabs [data-tab="log"]').click();
+    renderRepeat();
+  }
+  function renderRepeat(){
+    const r = prefs.repeat, box = $("#repeat-today"), date = $("#date").value || today();
+    if(!r || r.on!==today() || !Array.isArray(r.items)){ box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = `<div class="ex-head"><h2 style="margin:0">Repeat ${esc(niceDate(r.from))}</h2><button type="button" class="rep-x" data-repeat-close aria-label="Close the repeated workout">×</button></div>` +
+      r.items.map((it,i)=>{
+        const got = loggedFor(it.exercise, date).length, need = it.timed ? 1 : it.sets, done = it.timed ? Math.min(got,1) : got, complete = done>=need;
+        const target = it.timed ? `${fmt(it.minutes)} min` : `${it.sets} × ${it.reps}${it.weight>0 ? ` @ ${fmt(toUnit(it.weight, it.unit))} ${prefs.unit}` : ""}`;
+        return `<div class="plan-item${complete?" done":""}"><div class="pi-main"><span class="pi-name">${esc(it.exercise)}</span><span class="cardio-meta">${esc(target)}</span></div>
+          <span class="tag">${it.timed ? (complete?"Done":"—") : `${done}/${need}`}</span><button type="button" class="edit" data-repeat-start="${i}">${complete?"More":"Start"}</button></div>`;
+      }).join("");
+  }
+  function startRepeat(i){
+    const it = prefs.repeat.items[i], date = $("#date").value || today(); if(!it) return;
+    $("#group-filter").value = ""; $("#group-filter").dispatchEvent(new Event("change"));
+    const l = it.exercise.toLowerCase(), name = exercisesByRecent().find(n=>n.toLowerCase()===l) || EX_INDEX.get(l)?.name || it.exercise;
+    chooseExercise(name, normMuscle(it.muscle, name));
+    if(it.timed) $("#c-min").value = fmt(it.minutes);
+    else {
+      if(mode!=="straight") document.querySelector('.mode [data-mode="straight"]').click();
+      applyEquip(it.equip || {}, it.unit);
+      $("#weight").value = fmt(toUnit(it.weight||0, it.unit)); $("#reps").value = it.reps;
+      $("#sets").value = Math.max(1, it.sets - loggedFor(it.exercise, date).length);
+    }
+    updateVolPreview();
+    $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  $("#repeat-today").addEventListener("click", e=>{
+    const b = e.target.closest("[data-repeat-start]"); if(b) return startRepeat(+b.dataset.repeatStart);
+    if(e.target.closest("[data-repeat-close]")){ delete prefs.repeat; savePrefs(); renderRepeat(); }
+  });
+  $("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-repeat]"); if(b) repeatDay(b.dataset.repeat); });
   $("#plan-today").addEventListener("click", e=>{ const b=e.target.closest("[data-plan-start]"); if(b) startPlanned(+b.dataset.planStart); });
   $("#plan-today").addEventListener("change", e=>{
     if(e.target.id!=="plan-switch") return;
@@ -3293,7 +3345,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
   function renderAll(){
-    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates();
+    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates(); renderRepeat();
     if(!$("#tab-progress").hidden) renderProgress();
   }
 
