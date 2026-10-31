@@ -2,7 +2,7 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
-## Next update
+## 2026-10-31 (eighth update)
 - Exercises now show how they're done. The chosen exercise on the Log tab has a small moving picture of the movement; tap it or the name to open a sheet with a larger animation, a front and back body map, and three short steps.
 - The animated figure and body map highlight the main muscle in solid red and supporting muscles in a lighter red. Shoulder exercises show only the part of the shoulder they work: front, side or rear delts.
 - Search results show a small picture of each movement, and the exercise picker has a "Browse by movement" grid (squat, hinge, row, press and more) for when you don't know an exercise's name.
