@@ -185,6 +185,7 @@
 
   <!-- PROGRESS -->
   <section id="tab-progress" hidden>
+    <div class="panel" id="consistency"></div>
     <div class="panel" id="std-panel"></div>
     <div class="panel">
       <label class="lbl" for="prog-ex">Exercise</label>
@@ -2564,7 +2565,7 @@ Scaption raise (thumbs-up, scapular plane)`;
     if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
     const days = new Map();
     list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
-    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel"><div class="day-head"><p class="day-date">${niceDate(d)}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
+    $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel" id="day-${d}"><div class="day-head"><p class="day-date">${niceDate(d)}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
   }
   $("#hist-filter").addEventListener("change", renderHistory);
 
@@ -2597,6 +2598,49 @@ Scaption raise (thumbs-up, scapular plane)`;
   }
 
   const STR_METRICS = [["top","Top weight"],["e1rm","Est. 1-rep max"],["vol","Volume"],["reps","Total reps"]];
+  // ---------- consistency: month calendar and a weekly streak ----------
+  // The streak counts weeks in a row (Mon–Sun) with at least your goal of training days.
+  // This week only adds to it once the goal is met; until then it doesn't break it.
+  let calMonth = null;   // "YYYY-MM" being shown; null = this month
+  const weekGoal = () => prefs.weekGoal>=2 && prefs.weekGoal<=6 ? prefs.weekGoal : 3;
+  function renderConsistency(){
+    const kinds = new Map();   // date -> "lift" or "cardio" (lifting wins when a day has both)
+    entries.forEach(e=>{ if(kinds.get(e.date)!=="lift") kinds.set(e.date, isCardio(e) ? "cardio" : "lift"); });
+    const perWeek = new Map();
+    kinds.forEach((_, d)=>{ const w = isoOf(weekStart(d)); perWeek.set(w, (perWeek.get(w)||0) + 1); });
+    const goal = weekGoal(), mon = weekStart(today()), now = perWeek.get(isoOf(mon)) || 0;
+    let streak = now>=goal ? 1 : 0;
+    for(const w = new Date(mon);;){ w.setDate(w.getDate()-7); if((perWeek.get(isoOf(w))||0)>=goal) streak++; else break; }
+    const ym = calMonth || today().slice(0,7), [y, m] = ym.split("-").map(Number);
+    const first = new Date(y, m-1, 1), lead = (first.getDay()+6)%7, n = new Date(y, m, 0).getDate();
+    let trained = 0, cells = "";
+    for(let i=0;i<lead;i++) cells += `<span class="cal-day blank"></span>`;
+    for(let d=1; d<=n; d++){
+      const iso = `${ym}-${String(d).padStart(2,"0")}`, k = kinds.get(iso), cls = [k, iso===today()?"today":"", iso>today()?"future":""].filter(Boolean).join(" ");
+      if(k){ trained++; cells += `<button type="button" class="cal-day ${cls}" data-day="${iso}" aria-label="${esc(niceDate(iso))}: ${k==="lift"?"lifting":"cardio or mobility"}">${d}</button>`; }
+      else cells += `<span class="cal-day ${cls}" data-day="${iso}">${d}</span>`;
+    }
+    $("#consistency").innerHTML = `<h2>Consistency</h2>
+      <div class="streak-row"><span class="streak num">${streak ? `${streak}-week streak` : "No streak yet"}</span><span class="week-now">${now} of ${goal} days this week</span></div>
+      <div class="cal-nav"><button type="button" data-cal="-1" aria-label="Previous month">‹</button><span class="cal-title">${first.toLocaleDateString(undefined,{month:"long", year:"numeric"})}</span>
+        <button type="button" data-cal="1" aria-label="Next month" ${ym>=today().slice(0,7)?"disabled":""}>›</button></div>
+      <div class="cal-grid">${["M","T","W","T","F","S","S"].map(w=>`<span class="cal-wd">${w}</span>`).join("")}${cells}</div>
+      <p class="cal-sum">${trained} training day${trained===1?"":"s"} this month <span class="cal-key"><i class="lift"></i>Lifting <i class="cardio"></i>Cardio or mobility</span></p>
+      <p class="lbl" style="margin:12px 0 0">Weekly goal (training days)</p>
+      <div class="seg" role="group" aria-label="Weekly goal">${[2,3,4,5,6].map(g=>`<button type="button" data-goal="${g}" aria-pressed="${g===goal}">${g}</button>`).join("")}</div>`;
+  }
+  $("#consistency").addEventListener("click", e=>{
+    const nav = e.target.closest("[data-cal]"), g = e.target.closest("[data-goal]"), day = e.target.closest("button[data-day]");
+    if(nav){
+      const [y, m] = (calMonth || today().slice(0,7)).split("-").map(Number), d = new Date(y, m-1 + (+nav.dataset.cal), 1);
+      calMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; renderConsistency();
+    } else if(g){ prefs.weekGoal = +g.dataset.goal; savePrefs(); renderConsistency(); }
+    else if(day){
+      $("#hist-filter").value = ""; document.querySelector('nav.tabs [data-tab="history"]').click(); renderHistory();
+      const p = document.getElementById("day-"+day.dataset.day); if(p) p.scrollIntoView({block:"start"});
+    }
+  });
+
   // ---------- sets per muscle: this week vs last week ----------
   // Each set counts once for its main muscle and half for each muscle it also works. A drop set is one set; cardio doesn't count.
   function muscleSets(from, to){
@@ -2627,7 +2671,7 @@ Scaption raise (thumbs-up, scapular plane)`;
       `<p class="cal-sub" style="margin-top:10px">Shaded: 10–20 sets a week, a common target for muscle growth. It's a rough guide, not a rule.</p>`;
   }
   function renderProgress(){
-    renderStandards(); renderMuscleSets();
+    renderConsistency(); renderStandards(); renderMuscleSets();
     if(!window.Chart){ $("#prog-empty").hidden=false; $("#prog-empty").textContent="Charts couldn't load. Check your connection and reopen this page."; return; }
     chartDefaults();
     fillSelect($("#prog-ex"), false);

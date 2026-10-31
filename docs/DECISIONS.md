@@ -54,3 +54,6 @@ The library lists most exercises under one group, so `SECONDARY` adds the usual 
 
 ## Sets per muscle counts secondary muscles as half
 The Progress panel counts each logged set once for its main muscle and 0.5 for each "also works" muscle (the common convention for indirect volume), with a drop set counted once and cardio left out. Weeks run Monday to Sunday like the rest of the app. The 10–20 band is a widely quoted hypertrophy range and is labeled as a rough guide, not a target the app enforces.
+
+## The streak is weekly, not daily
+Rest days are part of training, so a daily streak would punish doing the right thing. The streak counts weeks in a row (Monday to Sunday) with at least your weekly goal of training days, stored as optional `prefs.weekGoal` (2–6, default 3; older prefs without it get 3). The current week adds to the streak once it meets the goal and never breaks it while in progress. A training day is any day with a logged entry, cardio included.

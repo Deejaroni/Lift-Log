@@ -431,3 +431,26 @@ button.ex-chosen-text .ex-m::after{content:"Edit muscles";display:block;margin-t
 .ms-bar.high{background:var(--blue)}
 .ms-val{text-align:right;font-size:1.1rem}
 .ms-last{text-align:right;font-size:.9rem;color:var(--muted)}
+
+/* Consistency: weekly streak and month calendar (Progress) */
+.streak-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.streak{font-size:1.6rem;color:var(--red)}
+.week-now{font-size:.9rem;font-weight:600;color:var(--muted)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin:4px 0 6px}
+.cal-nav button{width:44px;height:44px;border:0;border-radius:10px;background:none;font-size:1.6rem;font-weight:600;color:var(--ink)}
+.cal-nav button:disabled{opacity:.3}
+.cal-nav button:not(:disabled):active{background:var(--field)}
+.cal-title{font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-wd{font-size:.75rem;font-weight:700;color:var(--muted);padding-bottom:2px}
+.cal-day{display:grid;place-items:center;min-height:40px;border:0;border-radius:10px;padding:0;font:inherit;font-size:.95rem;font-weight:600;color:var(--ink);background:none}
+.cal-day.future{color:var(--muted);opacity:.6}
+.cal-day.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.cal-day.lift{background:var(--red);color:var(--on-accent)}
+.cal-day.cardio{background:var(--blue);color:var(--on-accent)}
+.cal-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:10px 0 0;font-size:.85rem;font-weight:600;color:var(--muted)}
+.cal-key{display:inline-flex;align-items:center;gap:6px}
+.cal-key i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.cal-key i.lift{background:var(--red)}
+.cal-key i.cardio{background:var(--blue);margin-left:6px}
+#consistency .seg button{min-width:44px;min-height:44px}
