@@ -156,3 +156,14 @@ test("when nothing matches every word, the closest matches show", async ({ page 
   expect(await names(page)).toContain("Farmer's carry");
   expect(errors).toEqual([]);
 });
+
+test("Show all lists every match", async ({ page }) => {
+  const errors = await openApp(page);
+  await search(page, "press");
+  const more = page.locator("#ex-results [data-show-all]");
+  await expect(more).toBeVisible();
+  const total = Number((await more.textContent()).match(/\d+/)[0]);
+  await more.click();
+  await expect(page.locator(rows)).toHaveCount(total);
+  expect(errors).toEqual([]);
+});

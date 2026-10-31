@@ -72,9 +72,6 @@ test("edit and delete an entry", async ({ page }) => {
   await expect(page.locator(`${day} .set .num`)).toHaveText("100 lb × 12");
 
   await page.click(`${day} [data-del="e1"]`);
-  await expect(page.locator("#dlg")).toBeVisible();
-  await expect(page.locator("#dlg-msg")).toHaveText("Delete this set?");
-  await page.click("#dlg-ok");
   await expect(page.locator(`${day} .empty`)).toHaveText("Nothing logged for this day yet.");
   expect(errors).toEqual([]);
 });

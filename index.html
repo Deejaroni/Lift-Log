@@ -32,6 +32,7 @@
 
   <!-- LOG -->
   <section id="tab-log">
+    <div class="panel nudge" id="backup-nudge" hidden></div>
     <div class="panel" id="plan-today" hidden></div>
     <div class="panel">
       <div class="row pair">
@@ -207,7 +208,7 @@
     </div>
   </section>
 
-  <input type="file" id="import-file" accept=".csv,text/csv" hidden>
+  <input type="file" id="import-file" accept=".json,application/json,.csv,text/csv" hidden>
 </div>
 
 <div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
@@ -240,14 +241,16 @@
       <h3>Appearance</h3>
       <div class="seg" role="group" aria-label="Theme" id="set-theme" style="margin-top:0"><button data-theme-opt="auto">Match phone</button><button data-theme-opt="light">Light</button><button data-theme-opt="dark">Dark</button></div>
     </section>
-    <section class="set-group">
+    <section class="set-group" id="set-data">
       <h3>Your data</h3>
-      <p class="foot"><span id="store-label">Saved on this device</span><span id="export-wrap"> · <button id="export">Export CSV</button> · <button id="import">Import CSV</button></span></p>
-      <p class="cal-sub">Export a CSV now and then as a backup.</p>
+      <p class="cal-sub" id="backup-info"></p>
+      <div class="data-actions"><button class="primary" id="backup" type="button">Back up everything</button><button class="secondary" id="import" type="button">Restore</button></div>
+      <p class="foot" style="margin-top:10px"><button id="export" type="button">Export sets as CSV</button> to open in a spreadsheet.</p>
     </section>
     <p class="foot" id="app-version"></p>
   </div>
 </div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-msg"></span><button type="button" id="toast-act"></button><button type="button" id="toast-x" aria-label="Dismiss">×</button></div>
 <nav class="tabs" role="tablist">
   <button role="tab" aria-selected="true" data-tab="log">Log</button>
   <button role="tab" aria-selected="false" data-tab="plan">Plan</button>
@@ -282,6 +285,18 @@
   }
   const askConfirm = (message, ok="OK", danger=false) => dialog({message, ok, danger});
   const notify = message => dialog({message, ok:"OK", cancel:null});
+
+  // ---------- toast: a short note with one action, just above the tab bar ----------
+  function toast(message, action, onAction, ms){
+    const b = $("#toast-act");
+    $("#toast-msg").textContent = message;
+    b.hidden = !action; b.textContent = action || "";
+    b.onclick = ()=>{ hideToast(); if(onAction) onAction(); };
+    $("#toast").hidden = false; clearTimeout(toast.t);
+    if(ms) toast.t = setTimeout(hideToast, ms);
+  }
+  function hideToast(){ clearTimeout(toast.t); $("#toast").hidden = true; }
+  $("#toast-x").onclick = hideToast;
   const LS_KEY = "liftlog.entries.v1", PREF_KEY = "liftlog.prefs.v1";
   const KG_PER_LB = 0.45359237;
 
@@ -363,19 +378,71 @@
     if(f!==""||row.length){ row.push(f); rows.push(row); }
     return rows.filter(r=>r.some(x=>x.trim()!==""));
   }
-  $("#export").onclick = async ()=>{
-    const csv = toCSV(), name = `lift-log-${today()}.csv`;
-    const file = new File([csv], name, {type:"text/csv"});
+  // Opens the share sheet (Save to Files, Mail…) where there is one, else downloads. False if cancelled.
+  async function shareOrSave(file, title){
     try{
-      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Lift Log backup"}); return; }
-    }catch(e){ if(e && e.name==="AbortError") return; }
-    const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name;
+      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title}); return true; }
+    }catch(e){ if(e && e.name==="AbortError") return false; }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=file.name;
     document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
-  };
+    return true;
+  }
+  $("#export").onclick = ()=> shareOrSave(new File([toCSV()], `lift-log-${today()}.csv`, {type:"text/csv"}), "Lift Log sets");
+
+  // ---------- full backup: sets, plan, body weight and settings in one file ----------
+  const daysSince = iso => Math.round((Date.parse(today()+"T00:00:00Z") - Date.parse(iso+"T00:00:00Z"))/864e5);
+  async function backUp(){
+    const data = {app:"Lift Log", backup:1, exported:new Date().toISOString(), entries, settings, prefs};
+    const file = new File([JSON.stringify(data)], `lift-log-backup-${today()}.json`, {type:"application/json"});
+    if(!(await shareOrSave(file, "Lift Log backup"))) return;
+    prefs.lastBackup = today(); delete prefs.backupSnooze; savePrefs(); renderBackup();
+  }
+  // Reminder after 2 weeks without a backup (or a week of logging and none yet). "Later" waits a week.
+  function backupDue(){
+    if(!entries.length || (prefs.backupSnooze && prefs.backupSnooze>today())) return null;
+    if(prefs.lastBackup){ const d = daysSince(prefs.lastBackup); return d>=14 ? `Your last backup was ${d} days ago.` : null; }
+    return daysSince(sorted()[0].date)>=7 ? "You haven't backed up yet." : null;
+  }
+  function renderBackup(){
+    const d = prefs.lastBackup ? daysSince(prefs.lastBackup) : null;
+    $("#backup-info").textContent = (d==null ? "Not backed up yet." : `Last backup: ${d<=0?"today":d===1?"yesterday":`${d} days ago`}.`) +
+      " A backup holds your sets, plan, body weight and settings. Keep it in Files or email it to yourself.";
+    const due = backupDue(), n = $("#backup-nudge");
+    n.hidden = !due;
+    if(due) n.innerHTML = `<p><b>Back up your log.</b> ${esc(due)} A backup keeps your sets, plan and settings safe if you change or lose your phone.</p>
+      <div class="data-actions"><button type="button" class="primary" data-backup>Back up now</button><button type="button" class="secondary" data-later>Later</button></div>`;
+  }
+  $("#backup").onclick = backUp;
+  $("#backup-nudge").addEventListener("click", e=>{
+    if(e.target.closest("[data-backup]")) backUp();
+    else if(e.target.closest("[data-later]")){
+      const d = new Date(today()+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+7);
+      prefs.backupSnooze = d.toISOString().slice(0,10); savePrefs(); renderBackup();
+    }
+  });
+  // Sets are merged by id (never duplicated); the plan, body weight and settings are replaced only if you say so.
+  async function restoreBackup(text){
+    let b; try{ b = JSON.parse(text); }catch(e){ notify("Couldn't read that file."); return; }
+    if(!b || b.app!=="Lift Log" || !Array.isArray(b.entries)){ notify("That doesn't look like a Lift Log backup."); return; }
+    const have = new Set(entries.map(e=>e.id));
+    const added = b.entries.filter(e=>e && e.id && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && e.exercise && !have.has(e.id) && have.add(e.id));
+    const all = b.settings && typeof b.settings==="object" && await dialog({message:"Also restore your plan, body weight history and settings from this backup? They replace what's on this phone now. Your logged sets are kept either way.", ok:"Restore all", cancel:"Sets only"});
+    if(!added.length && !all){ notify("Everything in that backup is already on this phone."); return; }
+    entries.push(...added); saveLocal();
+    if(all){
+      try{ localStorage.setItem(SET_KEY, JSON.stringify(Object.assign({bw:null, bwUnit:"lb", days:{}, bwLog:{}}, b.settings))); }catch(e){}
+      const last = [prefs.lastBackup, b.prefs && b.prefs.lastBackup].filter(Boolean).sort().pop();
+      prefs = Object.assign({unit:"lb"}, b.prefs && typeof b.prefs==="object" ? b.prefs : prefs, last ? {lastBackup:last} : {}); savePrefs();
+    }
+    await notify(`Restored ${added.length} entr${added.length===1?"y":"ies"}${all?" plus your plan and settings":""}.`);
+    location.reload();
+  }
   $("#import").onclick = ()=> $("#import-file").click();
   $("#import-file").onchange = async ev=>{
     const file = ev.target.files[0]; ev.target.value=""; if(!file) return;
-    let rows; try{ rows = parseCSV(await file.text()); }catch(e){ notify("Couldn't read that file."); return; }
+    let text; try{ text = await file.text(); }catch(e){ notify("Couldn't read that file."); return; }
+    if(/\.json$/i.test(file.name) || /^\s*\{/.test(text)) return restoreBackup(text);
+    const rows = parseCSV(text);
     if(rows.length<2){ notify("That file has no workout rows."); return; }
     const head = rows[0].map(h=>h.trim().toLowerCase()), col = k=>head.indexOf(k);
     if(col("date")<0 || col("exercise")<0 || col("reps")<0 || col("weight")<0){ notify("That doesn't look like a Lift Log export."); return; }
@@ -2281,7 +2348,7 @@ Scaption raise (thumbs-up, scapular plane)`;
       const a = take(inGroup), b = take(others);
       html += a.map(row).join("");
       if(b.length) html += sec("In other groups") + b.map(row).join("");
-      if(a.length+b.length < hits.length) html += `<button type="button" class="ex-more" data-more>Show all ${hits.length} matches</button>`;
+      if(a.length+b.length < hits.length) html += `<button type="button" class="ex-more" data-show-all>Show all ${hits.length} matches</button>`;
     }
     html += `<button type="button" class="ex-opt ex-new" data-new><span class="ex-n">＋ ${q ? `Add “${esc(q)}” as a new exercise` : "New exercise"}</span></button>`;
     $("#ex-results").innerHTML = html;
@@ -2314,7 +2381,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   });
   $("#ex-results").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
-    if(b.hasAttribute("data-more")){ exShowAll = true; renderPicker(); }
+    if(b.hasAttribute("data-show-all")){ exShowAll = true; renderPicker(); }
     else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
     else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
     else chooseExercise(b.dataset.name, b.dataset.m);
@@ -2366,15 +2433,18 @@ Scaption raise (thumbs-up, scapular plane)`;
     if(m){ const row = m.closest(".set"), open = row.classList.toggle("open"); m.setAttribute("aria-expanded", String(open)); if(open) row.querySelector("[data-edit]").focus(); return; }
     const c = e.target.closest("[data-del-chain]");
     if(c){
-      if(!(await askConfirm("Delete this whole drop set?", "Delete", true))) return;
-      const ids = entries.filter(x=>x.chain===c.dataset.delChain).map(x=>x.id);
-      try{ await store.removeMany(ids); }catch(err){ flash("Couldn't delete that drop set.", true); }
+      const gone = entries.filter(x=>x.chain===c.dataset.delChain);
+      try{ await store.removeMany(gone.map(x=>x.id)); offerUndo(gone, "Drop set deleted."); }catch(err){ flash("Couldn't delete that drop set.", true); }
       return;
     }
     const b = e.target.closest("[data-del]"); if(!b) return;
-    if(!(await askConfirm("Delete this set?", "Delete", true))) return;
-    try{ await store.remove(b.dataset.del); }catch(err){ flash("Couldn't delete that set.", true); }
+    const gone = entries.filter(x=>x.id===b.dataset.del);
+    try{ await store.remove(b.dataset.del); offerUndo(gone, gone.some(isCardio) ? "Entry deleted." : "Set deleted."); }catch(err){ flash("Couldn't delete that set.", true); }
   });
+  // Deleting is instant; the note's Undo puts the entries back for a few seconds.
+  function offerUndo(gone, message){
+    if(gone.length) toast(message, "Undo", ()=>store.add(gone.filter(g=>!entries.some(e=>e.id===g.id))), 8000);
+  }
 
   // ---------- charts ----------
   let exChart=null, wkChart=null, metric="top", range="week", tot="vol";
@@ -3193,15 +3263,27 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
   function renderAll(){
-    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings();
+    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup();
     if(!$("#tab-progress").hidden) renderProgress();
   }
 
   window.addEventListener("storage", ev=>{ if(ev.key===LS_KEY){ loadLocal(); renderAll(); } });
 
-  // Offline support
+  // Offline support. A new version waits in the background (see sw.js); offer to switch so the page and its files always match.
   if("serviceWorker" in navigator && location.protocol!=="file:"){
-    window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").catch(()=>{}));
+    window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").then(watchForUpdates).catch(()=>{}));
+  }
+  function watchForUpdates(reg){
+    const offer = ()=>{
+      const w = reg.waiting; if(!w || !navigator.serviceWorker.controller) return;
+      toast("A new version of Lift Log is ready.", "Reload", ()=>{
+        navigator.serviceWorker.addEventListener("controllerchange", ()=>location.reload(), {once:true});
+        w.postMessage("skipWaiting");
+      });
+    };
+    offer();
+    reg.addEventListener("updatefound", ()=>{ const w = reg.installing; if(w) w.addEventListener("statechange", ()=>{ if(w.state==="installed") offer(); }); });
+    document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ reg.update().catch(()=>{}); offer(); } });
   }
 
   applyUnit();

@@ -6,21 +6,27 @@ const FILES = [
   "fonts/archivo-latin-wdth-normal.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"
 ];
+// A new version downloads in the background and then waits, so an open app never mixes old and new files.
+// It takes over when the app is fully closed, or when you tap Reload on the "new version" note.
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's own cache, so a new version never stores stale copies.
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" })))));
 });
+self.addEventListener("message", e => { if (e.data === "skipWaiting") self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  // Network first for the page (so updates arrive), cache first for everything else.
-  if (e.request.mode === "navigate") {
-    e.respondWith(fetch(e.request).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put("index.html", copy)); return r; })
-      .catch(() => caches.match("index.html")));
-    return;
-  }
-  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));
+  // Everything, the page included, comes from this version's own cache; the network is only a fallback.
+  const page = e.request.mode === "navigate";
+  e.respondWith(caches.open(VERSION).then(async c => {
+    const hit = page ? (await c.match(e.request, { ignoreSearch: true })) || (await c.match("index.html")) : await c.match(e.request);
+    if (hit) return hit;
+    const r = await fetch(e.request);
+    if (page && r.ok) c.put("index.html", r.clone());
+    return r;
+  }));
 });
 
 // Tapping a rest-timer notification brings the app back to the front.

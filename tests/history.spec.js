@@ -33,6 +33,6 @@ test("History hides Edit and Delete behind a menu button", async ({ page }) => {
   const box = await row.locator("[data-del]").boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(40);
   await row.locator("[data-del]").click();
-  await expect(page.locator("#dlg-msg")).toHaveText("Delete this set?");
+  await expect(page.locator("#toast")).toContainText("Set deleted");
   expect(errors).toEqual([]);
 });

@@ -369,3 +369,17 @@ button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);co
 .foot{color:var(--muted);font-size:.85rem;text-align:center;margin-top:8px}
 .foot button{border:0;background:none;color:var(--blue);font-weight:600;padding:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Toast: a short note with one action, above the tab bar */
+.toast{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;z-index:6;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;background:var(--ink);color:var(--bg);border-radius:14px;box-shadow:0 6px 20px var(--shadow)}
+#toast-msg{flex:1;min-width:0;font-weight:600;font-size:.95rem}
+.toast button{flex:none;min-height:44px;border:0;border-radius:10px;background:none;color:var(--bg);font-weight:800;padding:0 12px}
+#toast-act{background:var(--red);color:var(--on-accent);padding:0 16px}
+#toast-x{min-width:44px;padding:0;font-size:1.3rem;font-weight:600;opacity:.7}
+.toast button:active{background:rgba(127,127,127,.25)}
+
+/* Backups */
+.data-actions{display:flex;gap:8px;margin-top:12px}
+.data-actions .primary,.data-actions .secondary{flex:1;min-height:44px;padding:10px 12px;font-size:1rem}
+.nudge{border-left:4px solid var(--yellow)}
+.nudge p{margin:0;font-size:.95rem}

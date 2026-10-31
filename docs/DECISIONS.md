@@ -26,3 +26,13 @@ The app used to run as a Claude-hosted artifact. The supported copy is now this 
 
 ## Exercise search is forgiving and never hides other groups
 The Log tab's exercise picker is a search box over a list of tappable results, not a native dropdown. A phone's dropdown wheel is slow to scroll through ~600 names and can't show a muscle or equipment line. Search matching ignores case, punctuation and plurals, accepts one typo in words of 4+ letters (two in 7+), and expands a short list of aliases (`ALIASES` in index.html, e.g. RDL ↔ Romanian deadlift). Names rank above muscle and subgroup words. The muscle group filter only sorts results: matches elsewhere still appear under "In other groups", because people often don't know how an exercise is filed. When a search word isn't the start of any word in the library, it is replaced by the closest library word (fewest edits; a guess that changes the first letter needs one edit fewer; whole words beat prefixes; then the word used in more names), and the list says "Showing results for …". This works like a search engine's autocorrect and keeps half-typed typos like "bnc" from emptying the list. Ties in ranking keep the library's order, which lists the most standard version first. Nothing about stored data changed.
+
+
+## Updates wait until you choose to reload
+Each version of the app serves its page and its files from its own cache, so an open app never mixes an old page with new styles (or the reverse). A new version downloads in the background (bypassing the browser's own cache, so it never stores stale copies) and waits. The app shows a "new version ready" note with Reload; otherwise it switches over when the app is fully closed. Reloading on its own could throw away a half-entered set, so it's always your tap.
+
+## Backups are one JSON file
+"Back up everything" saves sets, settings (plan, body weight log, profile) and preferences together as JSON, because the CSV only holds sets. Restore merges sets by id so nothing is duplicated, and asks before replacing the plan and settings. The CSV export stays for spreadsheets. The last backup date and a "Later" snooze date are stored as optional fields in `liftlog.prefs.v1` (`lastBackup`, `backupSnooze`); older saved data without them simply counts as never backed up, so no migration is needed.
+
+## Delete uses Undo instead of a confirmation
+Deleting is instant and shows an Undo note for 8 seconds. A confirmation adds a tap to every delete and is easy to tap through on autopilot; Undo is faster mid-workout and still recovers mistakes. Deleting a workout or a whole program still asks first, since those take more to rebuild.
