@@ -82,11 +82,11 @@ test("Enter in the search box picks the top result", async ({ page }) => {
 
 test("no match offers to add the search as a new exercise", async ({ page }) => {
   const errors = await openApp(page);
-  await search(page, "zercher carry");
+  await search(page, "qwxzv");
   await expect(page.locator(rows)).toHaveCount(0);
   await page.click("#ex-results [data-new]");
   await expect(page.locator("#new-ex-wrap")).toBeVisible();
-  await expect(page.locator("#exercise")).toHaveValue("zercher carry");
+  await expect(page.locator("#exercise")).toHaveValue("qwxzv");
   expect(errors).toEqual([]);
 });
 
@@ -110,5 +110,49 @@ test("starting a planned exercise fills the picker", async ({ page }) => {
   await expect(page.locator("#ex-chosen-name")).toHaveText("Romanian deadlift");
   await expect(page.locator("#ex-chosen-meta")).toContainText("Hamstrings");
   await expect(page.locator("#ex-find")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("misspelled words are corrected, with a note saying so", async ({ page }) => {
+  const errors = await openApp(page);
+  await search(page, "bnch press");
+  await expect(page.locator("#ex-results .ex-fix")).toContainText("bench press");
+  expect((await names(page)).slice(0, 5)).toContain("Barbell bench press — flat");
+  await search(page, "squt");
+  expect((await names(page))[0]).toMatch(/squat/i);
+  await search(page, "dumbel row");
+  expect((await names(page)).some(n => /dumbbell row/i.test(n))).toBe(true);
+  await search(page, "dedlift");
+  expect((await names(page))[0]).toMatch(/deadlift/i);
+  // A correctly spelled search shows no note.
+  await search(page, "bench press");
+  await expect(page.locator("#ex-results .ex-fix")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("a half-typed misspelled word still finds results", async ({ page }) => {
+  const errors = await openApp(page);
+  await search(page, "bnc");
+  expect((await names(page)).some(n => /bench/i.test(n))).toBe(true);
+  await search(page, "bnch pr");
+  expect((await names(page)).slice(0, 5).some(n => /bench press/i.test(n))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("tapping the correction fixes the search box", async ({ page }) => {
+  const errors = await openApp(page);
+  await search(page, "hammr curl");
+  await page.click("#ex-results .ex-fix");
+  await expect(page.locator("#exercise-search")).toHaveValue("hammer curl");
+  await expect(page.locator("#ex-results .ex-fix")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("when nothing matches every word, the closest matches show", async ({ page }) => {
+  const errors = await openApp(page);
+  await search(page, "zercher carry");
+  await expect(page.locator("#ex-results .ex-fix")).toHaveCount(0);
+  await expect(page.locator("#ex-results .ex-sec").first()).toHaveText("No exact match. Closest matches:");
+  expect(await names(page)).toContain("Farmer's carry");
   expect(errors).toEqual([]);
 });

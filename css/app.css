@@ -80,6 +80,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .ex-new .ex-n{color:var(--blue)}
 .ex-sec{position:sticky;top:0;margin:0;padding:8px 12px 4px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:var(--muted)}
 .ex-results>.ex-sec:first-child{border-top:0}
+.ex-fix{display:block;width:100%;min-height:44px;padding:10px 12px;border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--muted);text-align:left;font-size:.92rem}
+.ex-fix+.ex-opt,.ex-fix+.ex-sec{border-top:0}
+.ex-fix b{color:var(--blue);font-weight:700}
 .ex-tip{margin:0;padding:10px 12px;font-size:.88rem;color:var(--muted)}
 .ex-more{width:100%;min-height:44px;border:0;border-top:1px solid var(--line);background:none;color:var(--blue);font-weight:600}
 .ex-chosen{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 8px 8px 12px;background:var(--field);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px}

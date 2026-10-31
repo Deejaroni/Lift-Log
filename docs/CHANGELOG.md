@@ -4,7 +4,9 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 
 ## 2026-10-31
 - Finding an exercise is easier. Matches show as a list you tap, with each one's muscle group and equipment, instead of a long dropdown.
-- Search ignores hyphens, plurals and small typos ("pushup", "cable flys", "bech press") and knows common short names like RDL, OHP and pec fly.
+- Search ignores hyphens and plurals ("pushup", "cable flys") and knows common short names like RDL, OHP and pec fly.
+- Typos are fixed for you, even halfway through a word: "bnch press" shows bench presses with a "Showing results for bench press" note. Tap the note to fix the search box.
+- When nothing matches every word, the closest matches show instead of an empty list.
 - You can search by equipment or position, like "seated cable" or "machine chest".
 - With a muscle group picked, matches from other groups still show under "In other groups", so an exercise filed somewhere unexpected is still one tap away.
 - The chosen exercise shows as a card with a Change button. Press Enter in the search box to take the top match.

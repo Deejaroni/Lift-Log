@@ -2163,9 +2163,9 @@ Scaption raise (thumbs-up, scapular plane)`;
   const EX_INDEX = (()=>{
     const by = new Map();
     CATALOG.forEach(g=>g.names.forEach(n=>{ const l=n.toLowerCase(); if(!by.has(l)) by.set(l, {name:n, muscles:[]}); by.get(l).muscles.push({m:g.muscle, sub:g.sub}); }));
-    return new Map([...by].map(([l,v])=>[l, exEntry(v.name, v.muscles)]));
+    return new Map([...by].map(([l,v],i)=>[l, {...exEntry(v.name, v.muscles), order:i}]));
   })();
-  const entryFor = name => EX_INDEX.get(name.toLowerCase()) || exEntry(name, [{m:groupOf(name), sub:"My exercises"}]);
+  const entryFor = name => EX_INDEX.get(name.toLowerCase()) || {...exEntry(name, [{m:groupOf(name), sub:"My exercises"}]), order:-1};
   // Optimal string alignment distance, giving up once it passes k.
   function osa(a, b, k){
     if(Math.abs(a.length-b.length)>k) return k+1;
@@ -2187,14 +2187,51 @@ Scaption raise (thumbs-up, scapular plane)`;
     const k = w.length>=7 ? 2 : w.length>=4 ? 1 : 0;
     const near = t => k>0 && (osa(w,t,k)<=k || (t.length>w.length && osa(w,t.slice(0,w.length),k)<=k));
     if(x.words[0].startsWith(w)) return 4;
-    if(x.tokens.some(t=>t.startsWith(w))) return 3;
+    if(x.words.some(t=>t.startsWith(w))) return 3;
+    if(x.tokens.some(t=>t.startsWith(w))) return 2.2;   // only through an alias
     if(w.length>=4 && x.squash.includes(w)) return 2.5;
     if(x.ctx.some(t=>t.startsWith(w))) return 1.5;
     if(x.tokens.some(near)) return 1;
     if(x.ctx.some(near)) return 0.5;
     return 0;
   }
+  // Every word in the library, with how many names use it, for spelling fixes. Alias and muscle words count once.
+  const EX_VOCAB = new Map();
+  EX_INDEX.forEach(x=>x.words.forEach(t=>EX_VOCAB.set(t, (EX_VOCAB.get(t)||0)+1)));
+  EX_INDEX.forEach(x=>[...x.tokens, ...x.ctx].forEach(t=>{ if(!EX_VOCAB.has(t)) EX_VOCAB.set(t, 1); }));
+  const EX_SQUASH = [...EX_INDEX.values()].map(x=>x.squash).join("|");
+  const exKnown = (w, own) => [...EX_VOCAB.keys()].some(t=>t.startsWith(w)) || (w.length>=4 && EX_SQUASH.includes(w)) || own.some(x=>x.tokens.some(t=>t.startsWith(w)));
+  // The library word closest to a misspelled (maybe half-typed) word. Fewest edits wins; typos rarely
+  // change the first letter, whole words beat prefixes, and then the more common word wins.
+  function exFix(w){
+    const k = w.length<=2 ? 0 : w.length<=4 ? 1 : w.length<=7 ? 2 : 3; if(!k) return null;
+    let best = null, bc = Infinity, bf = 0;
+    for(const [t,f] of EX_VOCAB){
+      if(t.length<3) continue;
+      const full = osa(w,t,k), pre = t.length>w.length ? Math.min(osa(w,t.slice(0,w.length),k), osa(w,t.slice(0,w.length+1),k)) : k+1;
+      const d = Math.min(full, pre); if(d + (t[0]!==w[0] ? 1 : 0) > k) continue;
+      const c = d + (t[0]!==w[0] ? .5 : 0) + (pre<full ? .25 : 0);
+      if(c<bc || (c===bc && f>bf)){ best = t; bc = c; bf = f; }
+    }
+    return best;
+  }
+  // Returns {hits, fixed: the corrected search or null, partial: true when no name has every word}.
   function findExercises(q, logged){
+    const raw = exNorm(q).split(" ").filter(Boolean); if(!raw.length) return {hits:[]};
+    const own = logged.map(entryFor);
+    let changed = false;
+    const words = raw.map(w=>{ if(exKnown(exStem(w), own)) return w; const t = exFix(exStem(w)); if(t){ changed = true; return t; } return w; });
+    const fixed = changed ? words.join(" ") : null;
+    const hits = rankExercises(fixed || q, logged);
+    if(hits.length || words.length<2) return {hits, fixed};
+    // Nothing has every word: show the names that match the most of them.
+    const ws = exWords(fixed || q), seen = new Set();
+    const scored = [...own, ...EX_INDEX.values()].filter(x=>!seen.has(x.name.toLowerCase()) && seen.add(x.name.toLowerCase()))
+      .map(x=>({x, n: ws.filter(w=>wordFit(w,x)>=1).length, s: ws.reduce((a,w)=>a+wordFit(w,x),0)})).filter(r=>r.n);
+    const top = Math.max(0, ...scored.map(r=>r.n));
+    return {hits: scored.filter(r=>r.n===top).sort((a,b)=>b.s-a.s || a.x.words.length-b.x.words.length).map(r=>r.x), fixed, partial:true};
+  }
+  function rankExercises(q, logged){
     const ws = exWords(q); if(!ws.length) return [];
     const qkey = ws.join(" "), qsq = ws.join(""), mine = new Set(logged.map(n=>n.toLowerCase()));
     const seen = new Set(), out = [];
@@ -2202,13 +2239,13 @@ Scaption raise (thumbs-up, scapular plane)`;
       const l = x.name.toLowerCase(); if(seen.has(l)) return; seen.add(l);
       let s = 0;
       if(x.squash===qsq) s = 1000;
-      else { for(const w of ws){ const v = wordFit(w, x); if(!v) return; s += v*10; } if(x.key.startsWith(qkey)) s += 50; s -= x.words.length; }
+      else { for(const w of ws){ const v = wordFit(w, x); if(!v) return; s += v*10; } if(x.key.startsWith(qkey)) s += 50; }
       if(mine.has(l)) s += 15;
       out.push({x, s});
     };
     logged.forEach(n=>consider(entryFor(n)));
     EX_INDEX.forEach(consider);
-    return out.sort((a,b)=>b.s-a.s || a.x.name.localeCompare(b.x.name)).map(r=>r.x);
+    return out.sort((a,b)=>b.s-a.s || a.x.order-b.x.order).map(r=>r.x);   // ties keep the library's order (most standard first)
   }
   // The muscle/subgroup a result is shown under: the filtered group if it's listed there, else your own grouping.
   function shownIn(x, f, mine){
@@ -2234,7 +2271,9 @@ Scaption raise (thumbs-up, scapular plane)`;
         CATALOG.filter(g=>g.muscle===f && g.names.length).forEach(g=>{ html += sec(g.sub) + g.names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join(""); });
       } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”. Or choose a muscle group above to browse.</p>`;
     } else {
-      const hits = findExercises(q, logged);
+      const {hits, fixed, partial} = findExercises(q, logged);
+      if(fixed) html += `<button type="button" class="ex-fix" data-fix="${esc(fixed)}">Showing results for <b>${esc(fixed)}</b></button>`;
+      if(partial && hits.length) html += sec("No exact match. Closest matches:");
       const inGroup = f ? hits.filter(x=>shownIn(x, f, mine.has(x.name.toLowerCase())).m===f) : hits;
       const others = f ? hits.filter(x=>!inGroup.includes(x)) : [];
       let room = exShowAll ? Infinity : EX_LIMIT;
@@ -2276,6 +2315,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#ex-results").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
     if(b.hasAttribute("data-more")){ exShowAll = true; renderPicker(); }
+    else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
     else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
     else chooseExercise(b.dataset.name, b.dataset.m);
   });
