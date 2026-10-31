@@ -1,5 +1,16 @@
 // Lift Log: Exercise search and the picker on the Log tab.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, toast } from "./ui.js";
+import { entries, prefs, savePrefs, settings, store } from "./state.js";
+import { esc, exercisesByRecent, flash, niceDate, prefill, showLast, sorted, supersetFor, today } from "./log.js";
+import { applyEquip, applyFormKind, cardioTypeOf, isCardio, isCardioForm, prefillCardio, readCardioVals, renderCardioDetails } from "./equipment.js";
+import { dayTotalHTML, groupHTML } from "./entries.js";
+import { CATALOG, MUSCLES, exSet, gf, groupOf, groupedOptions, guessMuscle, muscleTouched, setMuscleTouched } from "./catalog.js";
+import { TIMED } from "./plan.js";
+import { restNext, setRestNext } from "./main.js";
+
+let ALIAS_WORDS, EX_INDEX, EX_SQUASH;
 
 // ---------- exercise search (Log tab) ----------
 // Phrases that mean the same exercise. A name containing one is also found by the others.
@@ -26,19 +37,12 @@ const MUSCLE_WORDS = {Chest:"pec", Back:"lat", Shoulders:"delt", Abdominals:"abs
 const exNorm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ'’]/g,"").replace(/[^a-z0-9]+/g," ").trim();
 const exStem = w => w.length<=3 || /(ss|us|is)$/.test(w) ? w : /ies$/.test(w) ? w.slice(0,-3)+"y" : /(sses|xes|ches|shes)$/.test(w) ? w.slice(0,-2) : w.endsWith("s") ? w.slice(0,-1) : w;
 const exWords = s => exNorm(s).split(" ").filter(Boolean).map(exStem);
-const ALIAS_WORDS = ALIASES.map(g=>g.map(p=>exWords(p).join(" ")));
 function exEntry(name, muscles){
   const words = exWords(name), hay = ` ${words.join(" ")} `, extra = [];
   ALIAS_WORDS.forEach(g=>{ if(g.some(p=>hay.includes(` ${p} `))) g.forEach(p=>extra.push(...p.split(" "))); });
   const ctx = muscles.flatMap(x=>exWords(`${x.m} ${x.sub} ${MUSCLE_WORDS[x.m]||""}`));
   return {name, muscles, words, key:words.join(" "), squash:words.join(""), tokens:[...new Set([...words, ...extra])], ctx:[...new Set(ctx)]};
 }
-// One entry per name; an exercise listed under several muscles keeps all of them.
-const EX_INDEX = (()=>{
-  const by = new Map();
-  CATALOG.forEach(g=>g.names.forEach(n=>{ const l=n.toLowerCase(); if(!by.has(l)) by.set(l, {name:n, muscles:[]}); by.get(l).muscles.push({m:g.muscle, sub:g.sub}); }));
-  return new Map([...by].map(([l,v],i)=>[l, {...exEntry(v.name, v.muscles), order:i}]));
-})();
 const entryFor = name => EX_INDEX.get(name.toLowerCase()) || {...exEntry(name, [{m:groupOf(name), sub:"My exercises"}]), order:-1};
 // Optimal string alignment distance, giving up once it passes k.
 function osa(a, b, k){
@@ -71,9 +75,6 @@ function wordFit(w, x){
 }
 // Every word in the library, with how many names use it, for spelling fixes. Alias and muscle words count once.
 const EX_VOCAB = new Map();
-EX_INDEX.forEach(x=>x.words.forEach(t=>EX_VOCAB.set(t, (EX_VOCAB.get(t)||0)+1)));
-EX_INDEX.forEach(x=>[...x.tokens, ...x.ctx].forEach(t=>{ if(!EX_VOCAB.has(t)) EX_VOCAB.set(t, 1); }));
-const EX_SQUASH = [...EX_INDEX.values()].map(x=>x.squash).join("|");
 const exKnown = (w, own) => [...EX_VOCAB.keys()].some(t=>t.startsWith(w)) || (w.length>=4 && EX_SQUASH.includes(w)) || own.some(x=>x.tokens.some(t=>t.startsWith(w)));
 // The library word closest to a misspelled (maybe half-typed) word. Fewest edits wins; typos rarely
 // change the first letter, whole words beat prefixes, and then the more common word wins.
@@ -195,8 +196,8 @@ function renderPicker(){
 // Either the search box and results, or the chosen exercise with a Change button.
 function showPicker(open){ $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open; }
 function chooseExercise(name, m){
-  restNext = null;
-  $("#exercise").value = name; $("#new-ex-wrap").hidden = true; muscleTouched = false;
+  setRestNext(null);
+  $("#exercise").value = name; $("#new-ex-wrap").hidden = true; setMuscleTouched(false);
   $("#muscle").value = !exSet(name) && MUSCLES.includes(m) ? m : groupOf(name);
   $("#ex-chosen-name").textContent = name; chosenMeta(name);
   showPicker(false); applyFormKind(); supersetFor(name);
@@ -207,48 +208,14 @@ function chosenMeta(name){
   $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
 }
 function chooseNew(name){
-  restNext = null;
+  setRestNext(null);
   $("#exercise").value = name; $("#new-ex-wrap").hidden = false;
   applyEquip({}, prefs.unit);
-  $("#muscle").value = gf() || guessMuscle(name); muscleTouched = !!gf();
+  $("#muscle").value = gf() || guessMuscle(name); setMuscleTouched(!!gf());
   $("#new-muscle-wrap").hidden = !!gf();
   $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below";
   showPicker(false); applyFormKind(); $("#exercise").focus();
 }
-$("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; renderPicker(); });
-$("#exercise-search").addEventListener("keydown", e=>{
-  if(e.key!=="Enter" || !$("#exercise-search").value.trim()) return;
-  e.preventDefault(); ($("#ex-results [data-name]") || $("#ex-results [data-new]")).click();
-});
-$("#ex-results").addEventListener("click", e=>{
-  const b = e.target.closest("button"); if(!b) return;
-  if(b.hasAttribute("data-show-all")){ exShowAll = true; renderPicker(); }
-  else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
-  else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
-  else chooseExercise(b.dataset.name, b.dataset.m);
-});
-$("#ex-change").addEventListener("click", ()=>{
-  $("#exercise").value = ""; $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = !!gf();
-  $("#muscle").value = gf() || "Other"; muscleTouched = false; showLast("");
-  showPicker(true); renderPicker(); applyFormKind();
-  $("#exercise-search").focus();
-});
-$("#group-filter").addEventListener("change", ()=>{
-  const v = gf(); prefs.group = v; savePrefs();
-  const isNew = !$("#new-ex-wrap").hidden;
-  const cur = $("#exercise").value.trim();
-  if(isNew){ if(v){ $("#muscle").value = v; muscleTouched = true; } }
-  else if(cur && v && groupOf(cur)!==v){
-    $("#exercise").value = ""; $("#muscle").value = v; showLast(""); showPicker(true);
-  }
-  else if(!cur) $("#muscle").value = v || "Other";
-  $("#new-muscle-wrap").hidden = !!v;
-  exShowAll = false; renderPicker(); applyFormKind();
-  if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals());
-});
-$("#exercise").addEventListener("input", e=>{
-  if(!muscleTouched && !gf()){ const was = isCardioForm(); $("#muscle").value = guessMuscle(e.target.value); if(was!==isCardioForm()) applyFormKind(); }
-});
 function fillSelect(sel, withAll){
   const names = exercisesByRecent();
   const cur = sel.value;
@@ -256,7 +223,6 @@ function fillSelect(sel, withAll){
   sel.innerHTML = (withAll?`<option value="">All exercises</option>`:"") + groupedOptions(names, keep);
   sel.value = keep;
 }
-
 
 function renderHistory(){
   fillSelect($("#hist-filter"), true);
@@ -267,22 +233,73 @@ function renderHistory(){
   list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
   $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel" id="day-${d}"><div class="day-head"><p class="day-date">${niceDate(d)}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
 }
-$("#hist-filter").addEventListener("change", renderHistory);
-
-document.addEventListener("click", async e=>{
-  const m = e.target.closest("[data-more]");
-  if(m){ const row = m.closest(".set"), open = row.classList.toggle("open"); m.setAttribute("aria-expanded", String(open)); if(open) row.querySelector("[data-edit]").focus(); return; }
-  const c = e.target.closest("[data-del-chain]");
-  if(c){
-    const gone = entries.filter(x=>x.chain===c.dataset.delChain);
-    try{ await store.removeMany(gone.map(x=>x.id)); offerUndo(gone, "Drop set deleted."); }catch(err){ flash("Couldn't delete that drop set.", true); }
-    return;
-  }
-  const b = e.target.closest("[data-del]"); if(!b) return;
-  const gone = entries.filter(x=>x.id===b.dataset.del);
-  try{ await store.remove(b.dataset.del); offerUndo(gone, gone.some(isCardio) ? "Entry deleted." : "Set deleted."); }catch(err){ flash("Couldn't delete that set.", true); }
-});
 // Deleting is instant; the note's Undo puts the entries back for a few seconds.
 function offerUndo(gone, message){
   if(gone.length) toast(message, "Undo", ()=>store.add(gone.filter(g=>!entries.some(e=>e.id===g.id))), 8000);
 }
+// Setters for values other files change.
+function setExShowAll(v){ exShowAll = v; }
+
+export function init(){
+  ALIAS_WORDS = ALIASES.map(g=>g.map(p=>exWords(p).join(" ")));
+  // One entry per name; an exercise listed under several muscles keeps all of them.
+  EX_INDEX = (()=>{
+    const by = new Map();
+    CATALOG.forEach(g=>g.names.forEach(n=>{ const l=n.toLowerCase(); if(!by.has(l)) by.set(l, {name:n, muscles:[]}); by.get(l).muscles.push({m:g.muscle, sub:g.sub}); }));
+    return new Map([...by].map(([l,v],i)=>[l, {...exEntry(v.name, v.muscles), order:i}]));
+  })();
+  EX_INDEX.forEach(x=>x.words.forEach(t=>EX_VOCAB.set(t, (EX_VOCAB.get(t)||0)+1)));
+  EX_INDEX.forEach(x=>[...x.tokens, ...x.ctx].forEach(t=>{ if(!EX_VOCAB.has(t)) EX_VOCAB.set(t, 1); }));
+  EX_SQUASH = [...EX_INDEX.values()].map(x=>x.squash).join("|");
+  $("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; renderPicker(); });
+  $("#exercise-search").addEventListener("keydown", e=>{
+    if(e.key!=="Enter" || !$("#exercise-search").value.trim()) return;
+    e.preventDefault(); ($("#ex-results [data-name]") || $("#ex-results [data-new]")).click();
+  });
+  $("#ex-results").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    if(b.hasAttribute("data-show-all")){ exShowAll = true; renderPicker(); }
+    else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
+    else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
+    else chooseExercise(b.dataset.name, b.dataset.m);
+  });
+  $("#ex-change").addEventListener("click", ()=>{
+    $("#exercise").value = ""; $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = !!gf();
+    $("#muscle").value = gf() || "Other"; setMuscleTouched(false); showLast("");
+    showPicker(true); renderPicker(); applyFormKind();
+    $("#exercise-search").focus();
+  });
+  $("#group-filter").addEventListener("change", ()=>{
+    const v = gf(); prefs.group = v; savePrefs();
+    const isNew = !$("#new-ex-wrap").hidden;
+    const cur = $("#exercise").value.trim();
+    if(isNew){ if(v){ $("#muscle").value = v; setMuscleTouched(true); } }
+    else if(cur && v && groupOf(cur)!==v){
+      $("#exercise").value = ""; $("#muscle").value = v; showLast(""); showPicker(true);
+    }
+    else if(!cur) $("#muscle").value = v || "Other";
+    $("#new-muscle-wrap").hidden = !!v;
+    exShowAll = false; renderPicker(); applyFormKind();
+    if(isCardioForm()) renderCardioDetails(cardioTypeOf($("#exercise").value), readCardioVals());
+  });
+  $("#exercise").addEventListener("input", e=>{
+    if(!muscleTouched && !gf()){ const was = isCardioForm(); $("#muscle").value = guessMuscle(e.target.value); if(was!==isCardioForm()) applyFormKind(); }
+  });
+  $("#hist-filter").addEventListener("change", renderHistory);
+
+  document.addEventListener("click", async e=>{
+    const m = e.target.closest("[data-more]");
+    if(m){ const row = m.closest(".set"), open = row.classList.toggle("open"); m.setAttribute("aria-expanded", String(open)); if(open) row.querySelector("[data-edit]").focus(); return; }
+    const c = e.target.closest("[data-del-chain]");
+    if(c){
+      const gone = entries.filter(x=>x.chain===c.dataset.delChain);
+      try{ await store.removeMany(gone.map(x=>x.id)); offerUndo(gone, "Drop set deleted."); }catch(err){ flash("Couldn't delete that drop set.", true); }
+      return;
+    }
+    const b = e.target.closest("[data-del]"); if(!b) return;
+    const gone = entries.filter(x=>x.id===b.dataset.del);
+    try{ await store.remove(b.dataset.del); offerUndo(gone, gone.some(isCardio) ? "Entry deleted." : "Set deleted."); }catch(err){ flash("Couldn't delete that set.", true); }
+  });
+}
+
+export { ALIASES, MUSCLE_WORDS, exNorm, exStem, exWords, ALIAS_WORDS, exEntry, EX_INDEX, entryFor, osa, wordFit, EX_VOCAB, EX_SQUASH, exKnown, exFix, findExercises, rankExercises, SECONDARY, alsoOf, worksIn, shownIn, EX_LIMIT, exShowAll, renderPicker, showPicker, chooseExercise, chosenMeta, chooseNew, fillSelect, renderHistory, offerUndo, setExShowAll };

@@ -1,5 +1,12 @@
 // Lift Log: Strength standards, DOTS and tiers.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, KG_PER_LB } from "./ui.js";
+import { bwKgOn, entries, prefs, saveSettings, settings } from "./state.js";
+import { e1rm, esc, fmt, fmtBig, loadOf, niceDate, toUnit, today, totalRaw } from "./log.js";
+import { isCardio } from "./equipment.js";
+import { bestE1rm, rankable } from "./entries.js";
+import { isoOf } from "./progress.js";
 
 // ---------- strength standards ----------
 // The app's own approximate tiers (not an official standard). Load lifts: estimated 1RM ÷ body weight needed
@@ -120,14 +127,18 @@ function renderStandards(){
     <div style="margin-top:6px">${rows}</div>
     <p class="foot" style="text-align:left">Tiers are the app's approximate estimates from body-weight ratios and rep counts commonly used in strength training, not an official standard. Est. 1RM uses sets of 10 reps or fewer. DOTS is the published formula powerlifting uses to compare lifters across body weights.</p>`;
 }
-$("#std-panel").addEventListener("click", e=>{
-  const s = e.target.closest("[data-std]"); if(s){ settings.profile = Object.assign({}, profile(), {std:s.dataset.std}); saveSettings(); return; }
-  const w = e.target.closest("[data-stdwin]"); if(w){ stdWindow = w.dataset.stdwin; renderStandards(); }
-});
-$("#std-panel").addEventListener("change", e=>{
-  if(e.target.id!=="std-birth") return;
-  const y = parseInt(e.target.value,10), max = new Date().getFullYear()-10;
-  const p = Object.assign({}, profile());
-  if(y>=1900 && y<=max) p.birthYear = y; else delete p.birthYear;
-  settings.profile = p; saveSettings();
-});
+export function init(){
+  $("#std-panel").addEventListener("click", e=>{
+    const s = e.target.closest("[data-std]"); if(s){ settings.profile = Object.assign({}, profile(), {std:s.dataset.std}); saveSettings(); return; }
+    const w = e.target.closest("[data-stdwin]"); if(w){ stdWindow = w.dataset.stdwin; renderStandards(); }
+  });
+  $("#std-panel").addEventListener("change", e=>{
+    if(e.target.id!=="std-birth") return;
+    const y = parseInt(e.target.value,10), max = new Date().getFullYear()-10;
+    const p = Object.assign({}, profile());
+    if(y>=1900 && y<=max) p.birthYear = y; else delete p.birthYear;
+    settings.profile = p; saveSettings();
+  });
+}
+
+export { TIERS, TIER_COLOR, STD, DOTS_C, dotsScore, profile, ageNow, ageFactor, stdWindow, stdSince, bestFor, tierOf, stdRow, ladderHTML, liftCard, renderStandards };

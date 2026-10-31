@@ -1,5 +1,18 @@
 // Lift Log: Rest timer, settings sheet, offline support and start-up. Loaded last.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, LS_KEY, toast } from "./ui.js";
+import { bwEntryOn, loadLocal, prefs, recordBW, savePrefs, saveSettings, settings } from "./state.js";
+import { renderBackup } from "./backup.js";
+import { applyUnit, fmt, niceDate, renderPlates, renderQuick, toUnit, today, updateVolPreview } from "./log.js";
+import { applyFormKind, equipField, equipText, mmss, renderBrandList, updateBWForm } from "./equipment.js";
+import { renderDay } from "./entries.js";
+import { renderHistory, renderPicker } from "./search.js";
+import { renderProgress } from "./progress.js";
+import { renderHead, renderPlanToday } from "./plan.js";
+import { renderRepeat } from "./exercise-sheet.js";
+import { renderPlan } from "./plan-editor.js";
+import { profile } from "./standards.js";
 
 // ---------- rest timer ----------
 const REST_OPTS = [0,30,45,60,75,90,120,150,180,240,300];
@@ -16,7 +29,6 @@ function renderRestSet(){
     : Notification.permission==="denied" ? "Alerts are blocked. Allow notifications for this app in your phone's settings to turn them on."
     : "The timer chimes while the app is open.";
 }
-$("#rest-sec").addEventListener("change", e=>{ settings.rest = {sec:+e.target.value}; saveSettings(); });
 function unlockAudio(){ try{ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
 function chime(){
   try{ if(!actx) return; const t0 = actx.currentTime;
@@ -61,13 +73,6 @@ function scheduleNotify(){
   if(!canNotify() || Notification.permission!=="granted") return;
   restNotifyT = setTimeout(()=>{ if(document.hidden) navigator.serviceWorker.ready.then(r=>r.showNotification("Rest is over", {body:"Time for your next set.", tag:"liftlog-rest", renotify:true, icon:"icons/icon-192.png"})).catch(()=>{}); }, Math.max(0, restEnd-Date.now()));
 }
-$("#rest-start").addEventListener("click", ()=>{
-  unlockAudio();
-  if(!restEnd) return startRest(restDefault() || 90);
-  restEnd += 30000; restTotal += 30; tickRest(); scheduleNotify();
-});
-$("#rest-alerts").addEventListener("click", async ()=>{ try{ await Notification.requestPermission(); }catch(e){} renderRestSet(); });
-document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) tickRest(); });
 
 // ---------- settings sheet ----------
 function applyTheme(){
@@ -94,21 +99,6 @@ function openSettings(sectionId){
   $("#settings-done").focus();
 }
 function closeSettings(){ $("#settings").hidden = true; document.body.style.overflow = ""; $("#open-settings").focus(); }
-$("#open-settings").addEventListener("click", ()=>openSettings());
-$("#settings-done").addEventListener("click", closeSettings);
-document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#settings").hidden) closeSettings(); });
-document.addEventListener("click", e=>{ const b = e.target.closest("[data-open-settings]"); if(b) openSettings(b.dataset.openSettings); });
-$("#settings").addEventListener("click", e=>{
-  const s = e.target.closest("[data-sstd]"); if(s){ settings.profile = Object.assign({}, profile(), {std:s.dataset.sstd}); saveSettings(); return; }
-  const t = e.target.closest("[data-theme-opt]");
-  if(t){ prefs.theme = t.dataset.themeOpt; savePrefs(); applyTheme(); if(!$("#tab-progress").hidden) renderProgress(); }
-});
-$("#settings").addEventListener("change", e=>{
-  if(e.target.id==="set-bw"){ const n = parseFloat(e.target.value); if(n>0){ recordBW(today(), n); saveSettings(); } return; }
-  if(e.target.id==="set-birth"){ const y = parseInt(e.target.value,10), p = Object.assign({}, profile());
-    if(y>=1900 && y<=new Date().getFullYear()-10) p.birthYear = y; else delete p.birthYear; settings.profile = p; saveSettings(); }
-});
-applyTheme();
 
 // ---------- equipment summary ----------
 function updateEquipSummary(){
@@ -116,21 +106,10 @@ function updateEquipSummary(){
   $("#equip-sum-text").textContent = eq ? (equipText({equip:eq, unit:prefs.unit}) || "On") : "None";
 }
 function setEquipOpen(open){ $("#equip-body").hidden = !open; $("#equip-sum").setAttribute("aria-expanded", String(open)); }
-$("#equip-sum").addEventListener("click", ()=>setEquipOpen($("#equip-body").hidden));
-
-// ---------- today's plan: collapsible ----------
-$("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
 function renderAll(){
   renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates(); renderRepeat();
   if(!$("#tab-progress").hidden) renderProgress();
-}
-
-window.addEventListener("storage", ev=>{ if(ev.key===LS_KEY){ loadLocal(); renderAll(); } });
-
-// Offline support. A new version waits in the background (see sw.js); offer to switch so the page and its files always match.
-if("serviceWorker" in navigator && location.protocol!=="file:"){
-  window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").then(watchForUpdates).catch(()=>{}));
 }
 function watchForUpdates(reg){
   const offer = ()=>{
@@ -144,9 +123,50 @@ function watchForUpdates(reg){
   reg.addEventListener("updatefound", ()=>{ const w = reg.installing; if(w) w.addEventListener("statechange", ()=>{ if(w.state==="installed") offer(); }); });
   document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ reg.update().catch(()=>{}); offer(); } });
 }
+// Setters for values other files change.
+function setRestNext(v){ restNext = v; }
 
-applyUnit();
-renderAll();
-applyFormKind();
-updateBWForm();
-["input","change","click"].forEach(t=>$("#tab-log").addEventListener(t, ()=>setTimeout(updateVolPreview,0)));
+export function init(){
+  $("#rest-sec").addEventListener("change", e=>{ settings.rest = {sec:+e.target.value}; saveSettings(); });
+  $("#rest-start").addEventListener("click", ()=>{
+    unlockAudio();
+    if(!restEnd) return startRest(restDefault() || 90);
+    restEnd += 30000; restTotal += 30; tickRest(); scheduleNotify();
+  });
+  $("#rest-alerts").addEventListener("click", async ()=>{ try{ await Notification.requestPermission(); }catch(e){} renderRestSet(); });
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) tickRest(); });
+  $("#open-settings").addEventListener("click", ()=>openSettings());
+  $("#settings-done").addEventListener("click", closeSettings);
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#settings").hidden) closeSettings(); });
+  document.addEventListener("click", e=>{ const b = e.target.closest("[data-open-settings]"); if(b) openSettings(b.dataset.openSettings); });
+  $("#settings").addEventListener("click", e=>{
+    const s = e.target.closest("[data-sstd]"); if(s){ settings.profile = Object.assign({}, profile(), {std:s.dataset.sstd}); saveSettings(); return; }
+    const t = e.target.closest("[data-theme-opt]");
+    if(t){ prefs.theme = t.dataset.themeOpt; savePrefs(); applyTheme(); if(!$("#tab-progress").hidden) renderProgress(); }
+  });
+  $("#settings").addEventListener("change", e=>{
+    if(e.target.id==="set-bw"){ const n = parseFloat(e.target.value); if(n>0){ recordBW(today(), n); saveSettings(); } return; }
+    if(e.target.id==="set-birth"){ const y = parseInt(e.target.value,10), p = Object.assign({}, profile());
+      if(y>=1900 && y<=new Date().getFullYear()-10) p.birthYear = y; else delete p.birthYear; settings.profile = p; saveSettings(); }
+  });
+  applyTheme();
+  $("#equip-sum").addEventListener("click", ()=>setEquipOpen($("#equip-body").hidden));
+
+  // ---------- today's plan: collapsible ----------
+  $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
+
+  window.addEventListener("storage", ev=>{ if(ev.key===LS_KEY){ loadLocal(); renderAll(); } });
+
+  // Offline support. A new version waits in the background (see sw.js); offer to switch so the page and its files always match.
+  if("serviceWorker" in navigator && location.protocol!=="file:"){
+    window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").then(watchForUpdates).catch(()=>{}));
+  }
+
+  applyUnit();
+  renderAll();
+  applyFormKind();
+  updateBWForm();
+  ["input","change","click"].forEach(t=>$("#tab-log").addEventListener(t, ()=>setTimeout(updateVolPreview,0)));
+}
+
+export { REST_OPTS, restEnd, restTotal, restIv, restNext, restOverT, restNotifyT, actx, restDefault, canNotify, renderRestSet, unlockAudio, chime, startRest, showRest, tickRest, finishRest, scheduleNotify, applyTheme, renderSettings, openSettings, closeSettings, updateEquipSummary, setEquipOpen, renderAll, watchForUpdates, setRestNext };

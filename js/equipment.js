@@ -1,5 +1,16 @@
 // Lift Log: Equipment toggles and the cardio form.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $ } from "./ui.js";
+import { bwEntryOn, bwKgOn, entries, prefs, recordBW, savePrefs, saveSettings, store } from "./state.js";
+import { LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
+import { cap, editCardioHTML, editing } from "./entries.js";
+import { BW_NAMES, CARDIO_TYPE, muscleTouched, setMuscleTouched } from "./catalog.js";
+import { exShowAll, renderPicker, setExShowAll, showPicker } from "./search.js";
+import { TIMED } from "./plan.js";
+import { setEquipOpen, startRest } from "./main.js";
+
+let EQUIP;
 
 // ---------- equipment toggles ----------
 // For an exercise you haven't logged yet, switch on the likely equipment from its name.
@@ -24,17 +35,6 @@ function suggestEquip(name){
   }
   return eq;
 }
-const EQUIP = [
-  {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-  {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS}]},
-  {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","MAG grip","Rope pulldown","Long single rope","V bar","Close-grip V handle","Straight bar","EZ bar","Elbow strap","Wrist cuff","Ankle cuff"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-  {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-  {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-  {key:"db",      label:"Dumbbells",        fields:[{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per hand",check:true}]},
-  {key:"kb",      label:"Kettlebell",       fields:[{k:"count",label:"Bells",options:["One kettlebell","Two kettlebells"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per bell",check:true}]},
-  {key:"bw",      label:"Bodyweight",       fields:[], info:"The weight box now means added weight (vest, belt or held weight). Leave it at 0 for plain bodyweight. Your body weight for the day is used for calories."},
-  {key:"band",    label:"Band / assist",    fields:[{k:"level",label:"Band color or level",ph:"Red, heavy"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
-];
 let equipState = {};
 function renderEquipToggles(){
   $("#equip-toggles").innerHTML = EQUIP.map(q=>`<label class="tog"><input type="checkbox" role="switch" data-eq="${q.key}" ${equipState[q.key]?.on?"checked":""}><span class="sw" aria-hidden="true"></span>${q.label}</label>`).join("");
@@ -56,18 +56,6 @@ function renderEquipFields(){
     return `<div class="eq-fields"><h4>${q.label}</h4><div class="eq-grid">${f}</div></div>`;
   }).join("");
 }
-$("#equip-toggles").addEventListener("change", e=>{
-  const k = e.target.dataset.eq; if(!k) return;
-  equipState[k] = equipState[k] || {vals:{}};
-  equipState[k].on = e.target.checked;
-  if((k==="smith"||k==="barbell") && !equipState[k].vals.load) equipState[k].vals.load = loadModeOf(k, null);
-  renderEquipFields(); updateBWForm();
-  if(e.target.checked){ const f=document.querySelector(`#equip-fields [data-eqk="${k}"]`); if(f) f.focus(); }
-});
-$("#equip-fields").addEventListener("input", e=>{
-  const k=e.target.dataset.eqk, f=e.target.dataset.eqf; if(!k) return;
-  equipState[k].vals[f] = e.target.type==="checkbox" ? e.target.checked : e.target.value;
-});
 function equipField(){
   const out = {};
   EQUIP.forEach(q=>{
@@ -115,7 +103,6 @@ function renderBrandList(){
   entries.forEach(e=>Object.values(e.equip||{}).forEach(o=>{ if(o.brand) b.add(o.brand); }));
   $("#brand-list").innerHTML = [...b].sort().map(x=>`<option value="${esc(x)}">`).join("");
 }
-renderEquipToggles();
 
 // ---------- cardio ----------
 const isCardio = e => e.kind==="cardio" || e.kind==="mobility"; // any timed (non-lifting) entry
@@ -187,7 +174,6 @@ function applyFormKind(){
   updateVolPreview();
 }
 function setEffort(v){ effort = v||"moderate"; document.querySelectorAll("#effort-seg button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.effort===effort))); }
-document.querySelectorAll("#effort-seg button").forEach(b=>b.onclick=()=>setEffort(b.dataset.effort));
 function renderCardioDetails(type, v){
   v = v || {};
   $("#cardio-details").dataset.type = type;
@@ -216,12 +202,6 @@ function prefillCardio(name){
   if(x.splitSec>0) x.split = mmss(x.splitSec);
   renderCardioDetails(type, Object.assign(x, {hr:last.hr||"", mk:"", use:false}));
 }
-$("#cardio-wrap").addEventListener("click", e=>{
-  const b = e.target.closest("[data-cstep]"); if(!b) return;
-  const isMin = b.dataset.cstep==="min", input = isMin ? $("#c-min") : $("#c-dist");
-  const step = isMin ? 5 : distStep($("#c-dist-unit").textContent);
-  input.value = fmt(Math.max(0, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
-});
 function cardioKcal(e){
   const T = e.kind==="mobility" ? "mobility" : cardioTypeOf(e.exercise), mins = e.minutes, x = e.extra||{};
   if(!(mins>0)) return null;
@@ -285,15 +265,15 @@ function resetForm(){
   $("#exercise").value = "";
   showPicker(true);
   $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = false;
-  $("#muscle").value = "Other"; muscleTouched = false;
+  $("#muscle").value = "Other"; setMuscleTouched(false);
   applyEquip({}, prefs.unit); setEquipOpen(false);
   $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
-  mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = ""; dropPicked = false; showLast("");
+  setMode("straight"); setDropRows([]); $("#drop-rows").innerHTML = ""; setDropPicked(false); showLast("");
   document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
-  failSets = new Set(); failN = 0; rirPick = null; renderRir(); $("#ss-on").checked = false; renderSuperset();
+  setFailSets(new Set()); setFailN(0); setRirPick(null); renderRir(); $("#ss-on").checked = false; renderSuperset();
   $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
   $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
-  exShowAll = false; renderPicker(); applyFormKind();
+  setExShowAll(false); renderPicker(); applyFormKind();
 }
 
 async function saveCardio(exercise){
@@ -346,3 +326,38 @@ async function saveDrop(exercise){
   }catch(e){ flash("Couldn't save that drop set. Try again.", true); }
   btn.disabled=false;
 }
+export function init(){
+  EQUIP = [
+    {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS}]},
+    {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","MAG grip","Rope pulldown","Long single rope","V bar","Close-grip V handle","Straight bar","EZ bar","Elbow strap","Wrist cuff","Ankle cuff"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"db",      label:"Dumbbells",        fields:[{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per hand",check:true}]},
+    {key:"kb",      label:"Kettlebell",       fields:[{k:"count",label:"Bells",options:["One kettlebell","Two kettlebells"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per bell",check:true}]},
+    {key:"bw",      label:"Bodyweight",       fields:[], info:"The weight box now means added weight (vest, belt or held weight). Leave it at 0 for plain bodyweight. Your body weight for the day is used for calories."},
+    {key:"band",    label:"Band / assist",    fields:[{k:"level",label:"Band color or level",ph:"Red, heavy"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+  ];
+  $("#equip-toggles").addEventListener("change", e=>{
+    const k = e.target.dataset.eq; if(!k) return;
+    equipState[k] = equipState[k] || {vals:{}};
+    equipState[k].on = e.target.checked;
+    if((k==="smith"||k==="barbell") && !equipState[k].vals.load) equipState[k].vals.load = loadModeOf(k, null);
+    renderEquipFields(); updateBWForm();
+    if(e.target.checked){ const f=document.querySelector(`#equip-fields [data-eqk="${k}"]`); if(f) f.focus(); }
+  });
+  $("#equip-fields").addEventListener("input", e=>{
+    const k=e.target.dataset.eqk, f=e.target.dataset.eqf; if(!k) return;
+    equipState[k].vals[f] = e.target.type==="checkbox" ? e.target.checked : e.target.value;
+  });
+  renderEquipToggles();
+  document.querySelectorAll("#effort-seg button").forEach(b=>b.onclick=()=>setEffort(b.dataset.effort));
+  $("#cardio-wrap").addEventListener("click", e=>{
+    const b = e.target.closest("[data-cstep]"); if(!b) return;
+    const isMin = b.dataset.cstep==="min", input = isMin ? $("#c-min") : $("#c-dist");
+    const step = isMin ? 5 : distStep($("#c-dist-unit").textContent);
+    input.value = fmt(Math.max(0, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
+  });
+}
+
+export { suggestEquip, EQUIP, equipState, renderEquipToggles, renderEquipFields, equipField, applyEquip, equipText, renderBrandList, isCardio, isMob, CARDIO_MET, CARDIO_FIELDS, spdU, guessCardioType, cardioTypeOf, distUnitFor, toMeters, distStep, fmtMin, mmss, parseSplit, effort, isCardioForm, isMobForm, isBWForm, updateBWForm, rememberBodyWeight, bwFields, applyFormKind, setEffort, renderCardioDetails, readCardioVals, prefillCardio, cardioKcal, countedKcal, paceText, distText, cardioRow, resetForm, saveCardio, saveDrop };

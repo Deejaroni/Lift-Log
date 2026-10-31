@@ -1,5 +1,14 @@
 // Lift Log: Weekly programming: templates, schedules and progression.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module (see docs/DECISIONS.md).
+
+import { $ } from "./ui.js";
+import { entries, prefs, saveSettings, settings } from "./state.js";
+import { esc, exercisesByRecent, fmt, mode, niceDate, roundStep, toUnit, today, updateVolPreview } from "./log.js";
+import { applyFormKind, isCardio, mmss } from "./equipment.js";
+import { BW_NAMES, MUSCLES, groupOf } from "./catalog.js";
+import { EX_INDEX, chooseExercise, chooseNew } from "./search.js";
+import { isoOf, weekStart } from "./progress.js";
+import { restNext, setRestNext } from "./main.js";
 
 // ---------- weekly programming ----------
 const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -178,6 +187,7 @@ function startPlanned(i){
     $("#reps").value = s.reps; $("#sets").value = left;
   }
   updateVolPreview();
-  restNext = s.timed ? null : (it.rest || null);
+  setRestNext(s.timed ? null : (it.rest || null));
   $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
 }
+export { DOW, dowOf, LOWER, TIMED, TEMPLATES, hasProgram, pid, blankProgram, P, parseItem, loadTemplate, workoutById, progWeek, isDeload, workoutFor, loggedFor, suggestFor, repText, todayRing, ringSVG, renderHead, renderPlanToday, startPlanned };

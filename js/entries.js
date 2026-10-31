@@ -1,5 +1,15 @@
 // Lift Log: Showing logged entries, editing them, and calorie estimates.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, notify } from "./ui.js";
+import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, settings, store } from "./state.js";
+import { barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
+import { CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
+import { groupOf } from "./catalog.js";
+import { renderHistory } from "./search.js";
+import { isoOf } from "./progress.js";
+import { renderHead, renderPlanToday } from "./plan.js";
+import { renderAll } from "./main.js";
 
 // ---------- renderers ----------
 // ---------- editing logged entries ----------
@@ -107,18 +117,6 @@ async function saveEdit(box){
     renderAll();
   }catch(err){ notify("Couldn't save those changes. Try again."); }
 }
-document.addEventListener("click", e=>{
-  const ed = e.target.closest("[data-edit]");
-  if(ed){ editing = ed.dataset.edit; renderDay(); renderHistory(); return; }
-  if(e.target.closest("[data-edit-cancel]")){ editing = null; renderDay(); renderHistory(); return; }
-  const sv = e.target.closest("[data-edit-save]");
-  if(sv){ saveEdit(sv.closest(".edit-box")); return; }
-  const sf = e.target.closest("[data-step-fail]");
-  if(sf){ sf.setAttribute("aria-pressed", String(sf.getAttribute("aria-pressed")!=="true")); return; }
-  const rm = e.target.closest("[data-step-rm]");
-  if(rm){ const box = rm.closest(".edit-box"); rm.closest(".edit-step").remove();
-    box.querySelectorAll(".edit-step .idx").forEach((s,i)=>s.textContent=i+1); }
-});
 
 function setRow(e){
   if(editing===e.id) return editSetHTML(e);
@@ -197,13 +195,6 @@ function calHTML(list, editable){
     ${!hasBW(date) && editable ? `<div style="margin-top:8px">${bwPrompt}</div>` : ""}
     ${editable && hasBW(date) ?`<button class="note-toggle" id="cal-adjust" aria-expanded="${calOpen}">${calOpen?"Done":"Adjust"}</button>${adj}`:""}</div>`;
 }
-document.addEventListener("change", e=>{
-  const t = e.target, date = $("#date").value || today();
-  if(t.id==="bw-input"){ const n=parseFloat(t.value); if(n>0) recordBW(date, n); else if(settings.bwLog) delete settings.bwLog[date]; saveSettings(); }
-  else if(t.id==="cal-min"){ const n=parseInt(t.value,10); settings.days[date] = Object.assign({}, settings.days[date], {min: n>0 ? n : null}); saveSettings(); }
-  else if(t.id==="cal-int"){ settings.days[date] = Object.assign({}, settings.days[date], {int: t.value || null}); saveSettings(); }
-});
-document.addEventListener("click", e=>{ if(e.target.id==="cal-adjust"){ calOpen=!calOpen; renderDay(); } });
 
 function dayTotalHTML(list, editable){
   const str = list.filter(e=>!isCardio(e)), car = list.filter(e=>isCardio(e) && !isMob(e)), mob = list.filter(isMob);
@@ -267,4 +258,27 @@ function renderDay(){
   const list = sorted().filter(e=>e.date===d);
   $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
 }
-$("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); renderHead(); });
+export function init(){
+  document.addEventListener("click", e=>{
+    const ed = e.target.closest("[data-edit]");
+    if(ed){ editing = ed.dataset.edit; renderDay(); renderHistory(); return; }
+    if(e.target.closest("[data-edit-cancel]")){ editing = null; renderDay(); renderHistory(); return; }
+    const sv = e.target.closest("[data-edit-save]");
+    if(sv){ saveEdit(sv.closest(".edit-box")); return; }
+    const sf = e.target.closest("[data-step-fail]");
+    if(sf){ sf.setAttribute("aria-pressed", String(sf.getAttribute("aria-pressed")!=="true")); return; }
+    const rm = e.target.closest("[data-step-rm]");
+    if(rm){ const box = rm.closest(".edit-box"); rm.closest(".edit-step").remove();
+      box.querySelectorAll(".edit-step .idx").forEach((s,i)=>s.textContent=i+1); }
+  });
+  document.addEventListener("change", e=>{
+    const t = e.target, date = $("#date").value || today();
+    if(t.id==="bw-input"){ const n=parseFloat(t.value); if(n>0) recordBW(date, n); else if(settings.bwLog) delete settings.bwLog[date]; saveSettings(); }
+    else if(t.id==="cal-min"){ const n=parseInt(t.value,10); settings.days[date] = Object.assign({}, settings.days[date], {min: n>0 ? n : null}); saveSettings(); }
+    else if(t.id==="cal-int"){ settings.days[date] = Object.assign({}, settings.days[date], {int: t.value || null}); saveSettings(); }
+  });
+  document.addEventListener("click", e=>{ if(e.target.id==="cal-adjust"){ calOpen=!calOpen; renderDay(); } });
+  $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); renderHead(); });
+}
+
+export { editing, fld, editActions, editSetHTML, editChainHTML, editCardioHTML, canonName, saveEdit, setRow, chainRow, MET, cap, calOpen, dayCalc, dayTotalCalories, calHTML, dayTotalHTML, groupHTML, rankable, bestE1rm, setBars, isPR, renderDay };

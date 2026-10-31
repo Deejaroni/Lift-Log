@@ -6,7 +6,7 @@ const FILES = [
   "js/ui.js", "js/state.js", "js/backup.js", "js/log.js",
   "js/equipment.js", "js/entries.js", "js/exercise-library.js", "js/catalog.js",
   "js/search.js", "js/progress.js", "js/plan.js", "js/exercise-sheet.js",
-  "js/plan-editor.js", "js/standards.js", "js/main.js",
+  "js/plan-editor.js", "js/standards.js", "js/main.js", "js/app.js",
   "fonts/archivo-latin-wdth-normal.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"
 ];

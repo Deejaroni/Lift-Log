@@ -1,5 +1,10 @@
 // Lift Log: CSV export and import, and full backups with the reminder.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, dialog, notify } from "./ui.js";
+import { SET_KEY, entries, prefs, saveLocal, savePrefs, setPrefs, settings, store } from "./state.js";
+import { esc, sorted, today, uid } from "./log.js";
+import { equipText } from "./equipment.js";
 
 // ---------- CSV export / import ----------
 const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir","superset","superset_lead"];
@@ -30,7 +35,6 @@ async function shareOrSave(file, title){
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
   return true;
 }
-$("#export").onclick = ()=> shareOrSave(new File([toCSV()], `lift-log-${today()}.csv`, {type:"text/csv"}), "Lift Log sets");
 
 // ---------- full backup: sets, plan, body weight and settings in one file ----------
 const daysSince = iso => Math.round((Date.parse(today()+"T00:00:00Z") - Date.parse(iso+"T00:00:00Z"))/864e5);
@@ -55,14 +59,6 @@ function renderBackup(){
   if(due) n.innerHTML = `<p><b>Back up your log.</b> ${esc(due)} A backup keeps your sets, plan and settings safe if you change or lose your phone.</p>
     <div class="data-actions"><button type="button" class="primary" data-backup>Back up now</button><button type="button" class="secondary" data-later>Later</button></div>`;
 }
-$("#backup").onclick = backUp;
-$("#backup-nudge").addEventListener("click", e=>{
-  if(e.target.closest("[data-backup]")) backUp();
-  else if(e.target.closest("[data-later]")){
-    const d = new Date(today()+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+7);
-    prefs.backupSnooze = d.toISOString().slice(0,10); savePrefs(); renderBackup();
-  }
-});
 // Sets are merged by id (never duplicated); the plan, body weight and settings are replaced only if you say so.
 async function restoreBackup(text){
   let b; try{ b = JSON.parse(text); }catch(e){ notify("Couldn't read that file."); return; }
@@ -75,49 +71,62 @@ async function restoreBackup(text){
   if(all){
     try{ localStorage.setItem(SET_KEY, JSON.stringify(Object.assign({bw:null, bwUnit:"lb", days:{}, bwLog:{}}, b.settings))); }catch(e){}
     const last = [prefs.lastBackup, b.prefs && b.prefs.lastBackup].filter(Boolean).sort().pop();
-    prefs = Object.assign({unit:"lb"}, b.prefs && typeof b.prefs==="object" ? b.prefs : prefs, last ? {lastBackup:last} : {}); savePrefs();
+    setPrefs(Object.assign({unit:"lb"}, b.prefs && typeof b.prefs==="object" ? b.prefs : prefs, last ? {lastBackup:last} : {})); savePrefs();
   }
   await notify(`Restored ${added.length} entr${added.length===1?"y":"ies"}${all?" plus your plan and settings":""}.`);
   location.reload();
 }
-$("#import").onclick = ()=> $("#import-file").click();
-$("#import-file").onchange = async ev=>{
-  const file = ev.target.files[0]; ev.target.value=""; if(!file) return;
-  let text; try{ text = await file.text(); }catch(e){ notify("Couldn't read that file."); return; }
-  if(/\.json$/i.test(file.name) || /^\s*\{/.test(text)) return restoreBackup(text);
-  const rows = parseCSV(text);
-  if(rows.length<2){ notify("That file has no workout rows."); return; }
-  const head = rows[0].map(h=>h.trim().toLowerCase()), col = k=>head.indexOf(k);
-  if(col("date")<0 || col("exercise")<0 || col("reps")<0 || col("weight")<0){ notify("That doesn't look like a Lift Log export."); return; }
-  const have = new Set(entries.map(e=>e.id)), added=[]; let skipped=0;
-  rows.slice(1).forEach((r,i)=>{
-    const g = k=> col(k)>=0 ? (r[col(k)]||"").trim() : "";
-    const date=g("date"), exercise=g("exercise"), weight=parseFloat(g("weight")), reps=parseInt(g("reps"),10);
-    if(g("kind")==="cardio" || g("kind")==="mobility"){
-      const minutes=parseFloat(g("minutes"));
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(minutes>0)){ skipped++; return; }
-      const id = g("id") || uid(); if(have.has(id)) return; have.add(id);
-      const c = {id, kind:g("kind"), date, exercise, muscle: g("kind")==="mobility"?"Mobility":"Cardio", minutes, effort:g("effort")||"moderate", unit:g("unit")==="kg"?"kg":"lb", weight:0, reps:0, sets:1, note:g("note"), ts:Date.parse(date+"T12:00:00")+i};
-      const d=parseFloat(g("distance")); if(d>0){ c.distance=d; c.distUnit=g("dist_unit")||"mi"; }
-      const hr=parseFloat(g("avg_hr")); if(hr>0) c.hr=hr;
-      const mk=parseFloat(g("machine_kcal")); if(mk>0){ c.machineKcal=mk; c.useMachine=g("use_machine")==="yes"; }
-      try{ const x=g("cardio_json"); if(x) c.extra=JSON.parse(x); }catch(_){}
-      added.push(c); return;
+export function init(){
+  $("#export").onclick = ()=> shareOrSave(new File([toCSV()], `lift-log-${today()}.csv`, {type:"text/csv"}), "Lift Log sets");
+  $("#backup").onclick = backUp;
+  $("#backup-nudge").addEventListener("click", e=>{
+    if(e.target.closest("[data-backup]")) backUp();
+    else if(e.target.closest("[data-later]")){
+      const d = new Date(today()+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+7);
+      prefs.backupSnooze = d.toISOString().slice(0,10); savePrefs(); renderBackup();
     }
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(weight>=0) || !(reps>=1)){ skipped++; return; }
-    const id = g("id") || uid();
-    if(have.has(id)) return;
-    have.add(id);
-    const e = {id, date, exercise, weight, unit: g("unit")==="kg"?"kg":"lb", reps, sets:1, note:g("note"), ts: Date.parse(date+"T12:00:00")+i};
-    const chain=g("chain_id"); if(chain){ e.chain=chain; e.step=Math.max(0,(parseInt(g("step"),10)||1)-1); }
-    if(g("to_failure").toLowerCase()==="yes") e.failure=true;
-    try{ const eq=g("equipment_json"); if(eq) e.equip=JSON.parse(eq); }catch(_){}
-    const mg=g("muscle_group"); if(mg) e.muscle=mg;
-    const rir=parseInt(g("rir"),10); if(rir>=0 && rir<=4) e.rir=rir;
-    const ss=g("superset"); if(ss){ e.ss=ss; if(g("superset_lead")==="yes") e.ssLead=true; }
-    added.push(e);
   });
-  if(!added.length){ notify(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
-  await store.add(added);
-  notify(`Imported ${added.length} entr${added.length===1?"y":"ies"}.` + (skipped?` Skipped ${skipped} invalid row(s).`:""));
-};
+  $("#import").onclick = ()=> $("#import-file").click();
+  $("#import-file").onchange = async ev=>{
+    const file = ev.target.files[0]; ev.target.value=""; if(!file) return;
+    let text; try{ text = await file.text(); }catch(e){ notify("Couldn't read that file."); return; }
+    if(/\.json$/i.test(file.name) || /^\s*\{/.test(text)) return restoreBackup(text);
+    const rows = parseCSV(text);
+    if(rows.length<2){ notify("That file has no workout rows."); return; }
+    const head = rows[0].map(h=>h.trim().toLowerCase()), col = k=>head.indexOf(k);
+    if(col("date")<0 || col("exercise")<0 || col("reps")<0 || col("weight")<0){ notify("That doesn't look like a Lift Log export."); return; }
+    const have = new Set(entries.map(e=>e.id)), added=[]; let skipped=0;
+    rows.slice(1).forEach((r,i)=>{
+      const g = k=> col(k)>=0 ? (r[col(k)]||"").trim() : "";
+      const date=g("date"), exercise=g("exercise"), weight=parseFloat(g("weight")), reps=parseInt(g("reps"),10);
+      if(g("kind")==="cardio" || g("kind")==="mobility"){
+        const minutes=parseFloat(g("minutes"));
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(minutes>0)){ skipped++; return; }
+        const id = g("id") || uid(); if(have.has(id)) return; have.add(id);
+        const c = {id, kind:g("kind"), date, exercise, muscle: g("kind")==="mobility"?"Mobility":"Cardio", minutes, effort:g("effort")||"moderate", unit:g("unit")==="kg"?"kg":"lb", weight:0, reps:0, sets:1, note:g("note"), ts:Date.parse(date+"T12:00:00")+i};
+        const d=parseFloat(g("distance")); if(d>0){ c.distance=d; c.distUnit=g("dist_unit")||"mi"; }
+        const hr=parseFloat(g("avg_hr")); if(hr>0) c.hr=hr;
+        const mk=parseFloat(g("machine_kcal")); if(mk>0){ c.machineKcal=mk; c.useMachine=g("use_machine")==="yes"; }
+        try{ const x=g("cardio_json"); if(x) c.extra=JSON.parse(x); }catch(_){}
+        added.push(c); return;
+      }
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !exercise || !(weight>=0) || !(reps>=1)){ skipped++; return; }
+      const id = g("id") || uid();
+      if(have.has(id)) return;
+      have.add(id);
+      const e = {id, date, exercise, weight, unit: g("unit")==="kg"?"kg":"lb", reps, sets:1, note:g("note"), ts: Date.parse(date+"T12:00:00")+i};
+      const chain=g("chain_id"); if(chain){ e.chain=chain; e.step=Math.max(0,(parseInt(g("step"),10)||1)-1); }
+      if(g("to_failure").toLowerCase()==="yes") e.failure=true;
+      try{ const eq=g("equipment_json"); if(eq) e.equip=JSON.parse(eq); }catch(_){}
+      const mg=g("muscle_group"); if(mg) e.muscle=mg;
+      const rir=parseInt(g("rir"),10); if(rir>=0 && rir<=4) e.rir=rir;
+      const ss=g("superset"); if(ss){ e.ss=ss; if(g("superset_lead")==="yes") e.ssLead=true; }
+      added.push(e);
+    });
+    if(!added.length){ notify(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
+    await store.add(added);
+    notify(`Imported ${added.length} entr${added.length===1?"y":"ies"}.` + (skipped?` Skipped ${skipped} invalid row(s).`:""));
+  };
+}
+
+export { CSV_COLS, toCSV, parseCSV, shareOrSave, daysSince, backUp, backupDue, renderBackup, restoreBackup };

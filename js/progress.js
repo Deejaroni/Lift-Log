@@ -1,5 +1,15 @@
 // Lift Log: Progress tab: charts, consistency calendar and sets per muscle.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $ } from "./ui.js";
+import { entries, prefs, savePrefs, settings } from "./state.js";
+import { css, e1rm, esc, fmt, fmtBig, loadOf, niceDate, sorted, today, volOf } from "./log.js";
+import { cardioTypeOf, countedKcal, isCardio, isMob, mmss, toMeters } from "./equipment.js";
+import { dayTotalCalories } from "./entries.js";
+import { MUSCLES, groupOf } from "./catalog.js";
+import { alsoOf, fillSelect, renderHistory } from "./search.js";
+import { TIMED } from "./plan.js";
+import { renderStandards } from "./standards.js";
 
 // ---------- charts ----------
 let exChart=null, wkChart=null, metric="top", range="week", tot="vol";
@@ -43,17 +53,6 @@ function renderConsistency(){
     <p class="lbl" style="margin:12px 0 0">Weekly goal (training days)</p>
     <div class="seg" role="group" aria-label="Weekly goal">${[2,3,4,5,6].map(g=>`<button type="button" data-goal="${g}" aria-pressed="${g===goal}">${g}</button>`).join("")}</div>`;
 }
-$("#consistency").addEventListener("click", e=>{
-  const nav = e.target.closest("[data-cal]"), g = e.target.closest("[data-goal]"), day = e.target.closest("button[data-day]");
-  if(nav){
-    const [y, m] = (calMonth || today().slice(0,7)).split("-").map(Number), d = new Date(y, m-1 + (+nav.dataset.cal), 1);
-    calMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; renderConsistency();
-  } else if(g){ prefs.weekGoal = +g.dataset.goal; savePrefs(); renderConsistency(); }
-  else if(day){
-    $("#hist-filter").value = ""; document.querySelector('nav.tabs [data-tab="history"]').click(); renderHistory();
-    const p = document.getElementById("day-"+day.dataset.day); if(p) p.scrollIntoView({block:"start"});
-  }
-});
 
 // ---------- sets per muscle: this week vs last week ----------
 // Each set counts once for its main muscle and half for each muscle it also works. A drop set is one set; cardio doesn't count.
@@ -171,7 +170,6 @@ function renderProgress(){
   renderWeekly();
 }
 
-
 function weekStart(iso){ const d=new Date(iso+"T00:00:00"); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d; }
 function isoOf(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
 
@@ -217,21 +215,35 @@ function renderWeekly(){
       scales:{y:{beginAtZero:true, grid:{color:css("--line")}}, x:{grid:{display:false}}}}
   });
 }
+export function init(){
+  $("#consistency").addEventListener("click", e=>{
+    const nav = e.target.closest("[data-cal]"), g = e.target.closest("[data-goal]"), day = e.target.closest("button[data-day]");
+    if(nav){
+      const [y, m] = (calMonth || today().slice(0,7)).split("-").map(Number), d = new Date(y, m-1 + (+nav.dataset.cal), 1);
+      calMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; renderConsistency();
+    } else if(g){ prefs.weekGoal = +g.dataset.goal; savePrefs(); renderConsistency(); }
+    else if(day){
+      $("#hist-filter").value = ""; document.querySelector('nav.tabs [data-tab="history"]').click(); renderHistory();
+      const p = document.getElementById("day-"+day.dataset.day); if(p) p.scrollIntoView({block:"start"});
+    }
+  });
 
+  $("#prog-ex").addEventListener("change", renderProgress);
+  $("#metric-seg").addEventListener("click", e=>{
+    const b=e.target.closest("[data-metric]"); if(!b) return;
+    metric=b.dataset.metric; renderProgress();
+  });
+  document.querySelectorAll("#tot-seg button").forEach(b=>b.onclick=()=>{
+    tot=b.dataset.tot;
+    document.querySelectorAll("#tot-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    renderWeekly();
+  });
+  document.querySelectorAll("#range-seg button").forEach(b=>b.onclick=()=>{
+    range=b.dataset.range;
+    document.querySelectorAll("#range-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    renderWeekly();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", ()=>{ if(!$("#tab-progress").hidden) renderProgress(); });
+}
 
-$("#prog-ex").addEventListener("change", renderProgress);
-$("#metric-seg").addEventListener("click", e=>{
-  const b=e.target.closest("[data-metric]"); if(!b) return;
-  metric=b.dataset.metric; renderProgress();
-});
-document.querySelectorAll("#tot-seg button").forEach(b=>b.onclick=()=>{
-  tot=b.dataset.tot;
-  document.querySelectorAll("#tot-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
-  renderWeekly();
-});
-document.querySelectorAll("#range-seg button").forEach(b=>b.onclick=()=>{
-  range=b.dataset.range;
-  document.querySelectorAll("#range-seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
-  renderWeekly();
-});
-matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", ()=>{ if(!$("#tab-progress").hidden) renderProgress(); });
+export { exChart, wkChart, metric, range, tot, metricLabel, chartDefaults, STR_METRICS, calMonth, weekGoal, renderConsistency, muscleSets, renderMuscleSets, renderProgress, weekStart, isoOf, renderWeekly };

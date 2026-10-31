@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## Next update
+- Behind the scenes: the app's code files are now JavaScript modules, each listing what it shares. Nothing looks or works differently.
+
 ## 2026-10-31 (sixth update)
 - Behind the scenes: the app's code moved out of index.html into smaller files. Nothing looks or works differently.
 - Behind the scenes: the publishing setup is updated (current GitHub actions on Node 24, and a fixed Ubuntu version) so updates keep publishing reliably.

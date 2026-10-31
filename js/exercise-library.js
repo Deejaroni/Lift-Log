@@ -1,5 +1,5 @@
 // Lift Log: The built-in exercise library (data only).
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module (see docs/DECISIONS.md).
 
 // Built-in exercise library: "# Muscle", "## Subgroup", then one exercise per line.
 const CATALOG_TEXT = `# Mobility
@@ -734,3 +734,4 @@ Single-arm crossbody cable triceps extension
 # Shoulders
 ## Raise variations
 Scaption raise (thumbs-up, scapular plane)`;
+export { CATALOG_TEXT };

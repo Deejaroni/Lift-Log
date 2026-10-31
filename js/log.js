@@ -1,5 +1,13 @@
 // Lift Log: Helpers, units, tabs, and the Log form: sets, drop sets, supersets, volume, plates and exercise hints.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, KG_PER_LB } from "./ui.js";
+import { entries, prefs, savePrefs, store } from "./state.js";
+import { applyEquip, applyFormKind, bwFields, cardioTypeOf, equipField, equipState, isBWForm, isCardioForm, readCardioVals, rememberBodyWeight, renderCardioDetails, renderEquipFields, resetForm, saveCardio, saveDrop, suggestEquip } from "./equipment.js";
+import { renderProgress } from "./progress.js";
+import { renderHead } from "./plan.js";
+import { renderPlan } from "./plan-editor.js";
+import { finishRest, renderAll, restEnd, startRest, unlockAudio, updateEquipSummary } from "./main.js";
 
 // ---------- helpers ----------
 const today = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -26,54 +34,13 @@ function applyUnit(){
   document.querySelectorAll(".unit-toggle button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.unit===prefs.unit)));
   $("#w-unit").textContent = prefs.unit;
 }
-document.querySelectorAll(".unit-toggle button").forEach(b=>b.onclick=()=>{
-  if(prefs.unit===b.dataset.unit) return;
-  const w = parseFloat($("#weight").value)||0;
-  const old = prefs.unit; prefs.unit=b.dataset.unit; savePrefs(); applyUnit();
-  $("#weight").value = fmt(toUnit(w, old));
-  Object.values(equipState).forEach(st=>{ const n=parseFloat(st.vals && st.vals.bar); if(n>=0) st.vals.bar=fmt(toUnit(n,old)); });
-  renderEquipFields();
-  if(isCardioForm()){ const v=readCardioVals(); renderCardioDetails(cardioTypeOf($("#exercise").value), v); }
-  { const b=parseFloat($("#bw-today").value); if(b>0) $("#bw-today").value = fmt(toUnit(b, old)); }
-  readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); dropPicked = false; if(mode==="drop") renderDropRows();
-  renderQuick(); renderAll();
-});
-
-// ---------- tabs ----------
-document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
-  ["log","plan","history","progress"].forEach(t=> $("#tab-"+t).hidden = t!==b.dataset.tab);
-  window.scrollTo(0,0);
-  renderHead();
-  if(b.dataset.tab==="plan") renderPlan();
-  if(b.dataset.tab==="progress") renderProgress();
-});
-
-// ---------- log form ----------
-$("#date").value = today();
-document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
-  const f = b.dataset.step, dir = +b.dataset.dir, el = $("#"+f);
-  const step = f==="weight" ? (prefs.unit==="kg"?2.5:5) : 1;
-  const min = f==="weight"?0:1;
-  el.value = fmt(Math.max(min, (parseFloat(el.value)||0) + dir*step));
-});
 // Quick-add chips: common plate jumps for the current unit.
 const quickSteps = () => prefs.unit==="kg" ? [1.25,5,20] : [2.5,10,45];
 function renderQuick(){ $("#quick-add").innerHTML = quickSteps().map(s=>`<button type="button" data-quick="${s}" aria-label="Add ${s} ${prefs.unit}">+${s}</button>`).join(""); }
-$("#quick-add").addEventListener("click", e=>{
-  const b = e.target.closest("[data-quick]"); if(!b) return;
-  $("#weight").value = String(Math.round(((parseFloat($("#weight").value)||0) + (+b.dataset.quick))*100)/100);
-  updateVolPreview();
-});
 function showLast(name){
   const last = name && lastFor(name);
   $("#w-last").textContent = last ? `Last ${fmt(toUnit(last.weight, last.unit))} × ${last.reps}` : "";
 }
-$("#note-toggle").onclick = ()=>{
-  const w=$("#note-wrap"); w.hidden=!w.hidden;
-  $("#note-toggle").setAttribute("aria-expanded", String(!w.hidden));
-  if(!w.hidden) $("#note").focus();
-};
 function prefill(name){
   const last = lastFor(name);
   showLast(name);
@@ -116,27 +83,6 @@ function renderDropStep(){
   $("#drop-step").innerHTML = Array.from({length:n}, (_,i)=>{ const s = (i+1)*inc;
     return `<option value="${s}" ${s===dropStep?"selected":""}>${fmt(s)} ${prefs.unit}${w>0?` (${Math.round(100*s/w)}%)`:""}</option>`; }).join("");
 }
-$("#drop-step").addEventListener("change", e=>{ dropStep = +e.target.value; dropPicked = true; });
-$("#drop-rows").addEventListener("click", e=>{
-  const b = e.target.closest("[data-dstep]"); if(!b) return;
-  const isW = b.dataset.dstep==="w";
-  const input = b.parentElement.querySelector("input");
-  const step = isW ? stepSize() : 1, min = isW ? 0 : 1;
-  input.value = fmt(Math.max(min, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
-  input.dispatchEvent(new Event("change", {bubbles:true}));
-});
-
-$("#drop-rows").addEventListener("input", readDropRows);
-$("#drop-rows").addEventListener("change", readDropRows);
-$("#drop-rows").addEventListener("click", e=>{
-  const b = e.target.closest("[data-dfail]"); if(!b) return;
-  readDropRows(); const r = dropRows[+b.dataset.dfail]; r.fail = !r.fail; renderDropRows();
-  const nb = document.querySelector(`#drop-rows [data-dfail="${b.dataset.dfail}"]`); if(nb) nb.focus();
-});
-$("#drop-rows").addEventListener("click", e=>{
-  const b=e.target.closest("[data-rm]"); if(!b) return;
-  readDropRows(); dropRows.splice(+b.dataset.rm,1); renderDropRows();
-});
 function addDropRow(dir){
   readDropRows();
   const last = dropRows[dropRows.length-1] || {weight:$("#weight").value, reps:$("#reps").value};
@@ -146,50 +92,6 @@ function addDropRow(dir){
   renderDropRows();
   const inputs=document.querySelectorAll("#drop-rows [data-f=r]"); inputs[inputs.length-1]?.focus();
 }
-$("#add-same").onclick = ()=>addDropRow(0);
-$("#add-up").onclick = ()=>addDropRow(1);
-$("#add-down").onclick = ()=>addDropRow(-1);
-document.querySelectorAll(".mode button").forEach(b=>b.onclick=()=>{
-  mode=b.dataset.mode;
-  document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
-  $("#drop-wrap").hidden = mode!=="drop";
-  $("#straight-wrap").hidden = mode==="drop";
-  $("#save").textContent = mode==="drop" ? "Log drop set" : "Log set";
-  applyFormKind();
-  if(mode==="drop" && !dropRows.length){ dropRows=[{weight:$("#weight").value, reps:$("#reps").value}]; }
-  if(mode==="drop") renderDropRows();
-});
-$("#exercise").addEventListener("change", e=>{ if(lastFor(e.target.value)) prefill(e.target.value); });
-
-$("#save").onclick = async ()=>{
-  unlockAudio();
-  const exercise = $("#exercise").value.trim().replace(/\s+/g," ");
-  if(isCardioForm()) return saveCardio(exercise);
-  if(mode==="drop") return saveDrop(exercise);
-  const weight = parseFloat($("#weight").value);
-  const reps = parseInt($("#reps").value,10);
-  const sets = parseInt($("#sets").value,10);
-  const date = $("#date").value || today();
-  if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or add a new one." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-search") : $("#exercise")).focus(); return; }
-  if(!(weight>=0)){ flash("Enter a weight of 0 or more.", true); return; }
-  if(!(reps>=1)){ flash("Reps must be at least 1.", true); return; }
-  if(!(sets>=1 && sets<=50)){ flash("Sets must be between 1 and 50.", true); return; }
-  // match existing capitalization
-  const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
-  const name = existing || exercise;
-  const note = $("#note").value.trim();
-  const base = Date.now(), ssf = supersetFields(date);
-  const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ...ssf, ts:base+i, ...(failSets.has(i)?{failure:true}:{}), ...(rirPick!=null?{rir:rirPick}:{})}));
-  rememberBodyWeight();
-  const btn=$("#save"); btn.disabled=true;
-  try{
-    await store.add(list);
-    flash(`Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`);
-    if(supersetLogged(ssf, date, name) && date===today()) startRest();
-    resetForm();
-  }catch(e){ flash("Couldn't save that set. Try again.", true); }
-  btn.disabled=false;
-};
 
 // ---------- supersets: rest waits until the next exercise is logged ----------
 // Logging with the switch on marks the set as the start (ssLead) of a superset and skips rest. The next set
@@ -216,7 +118,6 @@ function supersetFor(name){
   const l = name.toLowerCase(), last = sorted().reverse().find(e=>e.date===($("#date").value||today()) && e.exercise.toLowerCase()===l);
   $("#ss-on").checked = !!(last && last.ssLead); renderSuperset();
 }
-$("#ss-on").addEventListener("change", renderSuperset);
 
 // ---------- volume rules ----------
 // Unilateral sets (reps per side, both sides worked) and two implements with "weight is per hand/bell" count double.
@@ -255,15 +156,6 @@ function renderFailChips(){
 let rirPick = null;
 const rirText = r => r==null ? "" : `${r>=4?"4+":r} left · RPE ${r>=4?"6 or less":10-r}`;
 function renderRir(){ document.querySelectorAll("#rir-chips [data-rir]").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.rir===rirPick))); }
-$("#rir-chips").addEventListener("click", e=>{
-  const b = e.target.closest("[data-rir]"); if(!b) return;
-  rirPick = +b.dataset.rir===rirPick ? null : +b.dataset.rir; renderRir();
-});
-$("#fail-chips").addEventListener("click", e=>{
-  const b = e.target.closest("[data-fset]"); if(!b) return;
-  const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
-  b.setAttribute("aria-pressed", String(failSets.has(i)));
-});
 // ---------- plate calculator: plates per side for a barbell or Smith machine ----------
 const PLATES = {lb:[45,35,25,10,5,2.5], kg:[25,20,15,10,5,2.5,1.25]};
 // Bumper-plate colors: kg 25 red, 20 blue, 15 yellow, 10 green; lb 45 blue, 35 yellow, 25 green.
@@ -306,7 +198,6 @@ const EX_INFO = [
 const LR = {grip:["Palms down","Thumbs up","Pinky slightly up","Palms facing in"],
   path:["Straight out to the sides","Scapular plane (~30° forward)","In front of the body","Slightly behind the body"],
   pos:["Standing upright","Leaning away (holding a support)","Seated","Chest-supported or bent over"]};
-["grip","path","pos"].forEach(k=>{ $("#lr-"+k).innerHTML = `<option value="">Not recorded</option>` + LR[k].map(o=>`<option>${o}</option>`).join(""); });
 function lrEmphasis(v){
   if(!v || !(v.grip||v.path||v.pos)) return "";
   const s = {front:0, side:0, rear:0};
@@ -366,3 +257,132 @@ function updateVolPreview(){
   el.textContent = `Counts toward volume: ${bar?`(${fmt(w)} plates + ${fmt(bar)} bar) `:`${fmt(w)} `}${u} × ${r} reps × ${n} set${n===1?"":"s"}${mtxt} = ${Math.round((w+bar)*r*n*m).toLocaleString()} ${u}` +
     (m>1 && why==="each side" ? ". Log reps for one side; the other side is counted for you." : m>1 ? ". Enter the weight of one." : "");
 }
+// Setters for values other files change.
+function setMode(v){ mode = v; }
+function setDropRows(v){ dropRows = v; }
+function setDropPicked(v){ dropPicked = v; }
+function setFailSets(v){ failSets = v; }
+function setFailN(v){ failN = v; }
+function setRirPick(v){ rirPick = v; }
+
+export function init(){
+  document.querySelectorAll(".unit-toggle button").forEach(b=>b.onclick=()=>{
+    if(prefs.unit===b.dataset.unit) return;
+    const w = parseFloat($("#weight").value)||0;
+    const old = prefs.unit; prefs.unit=b.dataset.unit; savePrefs(); applyUnit();
+    $("#weight").value = fmt(toUnit(w, old));
+    Object.values(equipState).forEach(st=>{ const n=parseFloat(st.vals && st.vals.bar); if(n>=0) st.vals.bar=fmt(toUnit(n,old)); });
+    renderEquipFields();
+    if(isCardioForm()){ const v=readCardioVals(); renderCardioDetails(cardioTypeOf($("#exercise").value), v); }
+    { const b=parseFloat($("#bw-today").value); if(b>0) $("#bw-today").value = fmt(toUnit(b, old)); }
+    readDropRows(); dropRows = dropRows.map(r=>({weight:fmt(toUnit(parseFloat(r.weight)||0, old)), reps:r.reps})); dropPicked = false; if(mode==="drop") renderDropRows();
+    renderQuick(); renderAll();
+  });
+
+  // ---------- tabs ----------
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
+    ["log","plan","history","progress"].forEach(t=> $("#tab-"+t).hidden = t!==b.dataset.tab);
+    window.scrollTo(0,0);
+    renderHead();
+    if(b.dataset.tab==="plan") renderPlan();
+    if(b.dataset.tab==="progress") renderProgress();
+  });
+
+  // ---------- log form ----------
+  $("#date").value = today();
+  document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
+    const f = b.dataset.step, dir = +b.dataset.dir, el = $("#"+f);
+    const step = f==="weight" ? (prefs.unit==="kg"?2.5:5) : 1;
+    const min = f==="weight"?0:1;
+    el.value = fmt(Math.max(min, (parseFloat(el.value)||0) + dir*step));
+  });
+  $("#quick-add").addEventListener("click", e=>{
+    const b = e.target.closest("[data-quick]"); if(!b) return;
+    $("#weight").value = String(Math.round(((parseFloat($("#weight").value)||0) + (+b.dataset.quick))*100)/100);
+    updateVolPreview();
+  });
+  $("#note-toggle").onclick = ()=>{
+    const w=$("#note-wrap"); w.hidden=!w.hidden;
+    $("#note-toggle").setAttribute("aria-expanded", String(!w.hidden));
+    if(!w.hidden) $("#note").focus();
+  };
+  $("#drop-step").addEventListener("change", e=>{ dropStep = +e.target.value; dropPicked = true; });
+  $("#drop-rows").addEventListener("click", e=>{
+    const b = e.target.closest("[data-dstep]"); if(!b) return;
+    const isW = b.dataset.dstep==="w";
+    const input = b.parentElement.querySelector("input");
+    const step = isW ? stepSize() : 1, min = isW ? 0 : 1;
+    input.value = fmt(Math.max(min, (parseFloat(input.value)||0) + (+b.dataset.dir)*step));
+    input.dispatchEvent(new Event("change", {bubbles:true}));
+  });
+
+  $("#drop-rows").addEventListener("input", readDropRows);
+  $("#drop-rows").addEventListener("change", readDropRows);
+  $("#drop-rows").addEventListener("click", e=>{
+    const b = e.target.closest("[data-dfail]"); if(!b) return;
+    readDropRows(); const r = dropRows[+b.dataset.dfail]; r.fail = !r.fail; renderDropRows();
+    const nb = document.querySelector(`#drop-rows [data-dfail="${b.dataset.dfail}"]`); if(nb) nb.focus();
+  });
+  $("#drop-rows").addEventListener("click", e=>{
+    const b=e.target.closest("[data-rm]"); if(!b) return;
+    readDropRows(); dropRows.splice(+b.dataset.rm,1); renderDropRows();
+  });
+  $("#add-same").onclick = ()=>addDropRow(0);
+  $("#add-up").onclick = ()=>addDropRow(1);
+  $("#add-down").onclick = ()=>addDropRow(-1);
+  document.querySelectorAll(".mode button").forEach(b=>b.onclick=()=>{
+    mode=b.dataset.mode;
+    document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    $("#drop-wrap").hidden = mode!=="drop";
+    $("#straight-wrap").hidden = mode==="drop";
+    $("#save").textContent = mode==="drop" ? "Log drop set" : "Log set";
+    applyFormKind();
+    if(mode==="drop" && !dropRows.length){ dropRows=[{weight:$("#weight").value, reps:$("#reps").value}]; }
+    if(mode==="drop") renderDropRows();
+  });
+  $("#exercise").addEventListener("change", e=>{ if(lastFor(e.target.value)) prefill(e.target.value); });
+
+  $("#save").onclick = async ()=>{
+    unlockAudio();
+    const exercise = $("#exercise").value.trim().replace(/\s+/g," ");
+    if(isCardioForm()) return saveCardio(exercise);
+    if(mode==="drop") return saveDrop(exercise);
+    const weight = parseFloat($("#weight").value);
+    const reps = parseInt($("#reps").value,10);
+    const sets = parseInt($("#sets").value,10);
+    const date = $("#date").value || today();
+    if(!exercise){ flash($("#new-ex-wrap").hidden ? "Choose an exercise, or add a new one." : "Enter a name for the new exercise.", true); ($("#new-ex-wrap").hidden ? $("#exercise-search") : $("#exercise")).focus(); return; }
+    if(!(weight>=0)){ flash("Enter a weight of 0 or more.", true); return; }
+    if(!(reps>=1)){ flash("Reps must be at least 1.", true); return; }
+    if(!(sets>=1 && sets<=50)){ flash("Sets must be between 1 and 50.", true); return; }
+    // match existing capitalization
+    const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
+    const name = existing || exercise;
+    const note = $("#note").value.trim();
+    const base = Date.now(), ssf = supersetFields(date);
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ...ssf, ts:base+i, ...(failSets.has(i)?{failure:true}:{}), ...(rirPick!=null?{rir:rirPick}:{})}));
+    rememberBodyWeight();
+    const btn=$("#save"); btn.disabled=true;
+    try{
+      await store.add(list);
+      flash(`Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`);
+      if(supersetLogged(ssf, date, name) && date===today()) startRest();
+      resetForm();
+    }catch(e){ flash("Couldn't save that set. Try again.", true); }
+    btn.disabled=false;
+  };
+  $("#ss-on").addEventListener("change", renderSuperset);
+  $("#rir-chips").addEventListener("click", e=>{
+    const b = e.target.closest("[data-rir]"); if(!b) return;
+    rirPick = +b.dataset.rir===rirPick ? null : +b.dataset.rir; renderRir();
+  });
+  $("#fail-chips").addEventListener("click", e=>{
+    const b = e.target.closest("[data-fset]"); if(!b) return;
+    const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
+    b.setAttribute("aria-pressed", String(failSets.has(i)));
+  });
+  ["grip","path","pos"].forEach(k=>{ $("#lr-"+k).innerHTML = `<option value="">Not recorded</option>` + LR[k].map(o=>`<option>${o}</option>`).join(""); });
+}
+
+export { today, uid, toUnit, fmt, fmtBig, e1rm, niceDate, esc, sorted, exercisesByRecent, lastFor, css, flash, applyUnit, quickSteps, renderQuick, showLast, prefill, mode, dropRows, stepSize, roundStep, readDropRows, renderDropRows, dropStep, dropPicked, renderDropStep, addDropRow, ssOpen, supersetFields, supersetLogged, renderSuperset, supersetFor, loadMult, multReason, LOAD_OPTS, loadModeOf, barAddRaw, totalRaw, loadOf, failSets, failN, renderFailChips, rirPick, rirText, renderRir, PLATES, PLATE_COLOR, platesFor, renderPlates, weightLabel, volOf, EX_INFO, LR, lrEmphasis, variantText, readVariant, variantField, updateLrEmph, extrasFor, refreshExerciseExtras, updateVolPreview, setMode, setDropRows, setDropPicked, setFailSets, setFailN, setRirPick };

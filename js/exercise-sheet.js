@@ -1,5 +1,13 @@
 // Lift Log: Exercise details sheet (muscles, rename, merge) and repeating a past workout.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, askConfirm } from "./ui.js";
+import { entries, prefs, renameExercise, saveLocal, savePrefs, saveSettings, settings } from "./state.js";
+import { esc, exercisesByRecent, fmt, loadOf, mode, niceDate, sorted, toUnit, today, totalRaw, updateVolPreview } from "./log.js";
+import { applyEquip, isCardio } from "./equipment.js";
+import { MUSCLES, groupOf, normMuscle } from "./catalog.js";
+import { EX_INDEX, alsoOf, chooseExercise, chosenMeta, exWords, osa } from "./search.js";
+import { P, TIMED, loggedFor, startPlanned } from "./plan.js";
 
 // ---------- exercise details: main muscle group and what else it works ----------
 let exsName = null, exsAlso = new Set();
@@ -55,19 +63,6 @@ async function saveExerciseInfo(){
   if(chosen){ $("#exercise").value = name; $("#ex-chosen-name").textContent = name; chosenMeta(name); }
   saveSettings();
 }
-$("#exs-main").addEventListener("change", renderAlso);
-$("#exs-same").addEventListener("click", e=>{ const b = e.target.closest("[data-same]"); if(b) $("#exs-name").value = b.dataset.same; });
-$("#exs-also").addEventListener("click", e=>{
-  const b = e.target.closest("[data-also]"); if(!b) return;
-  exsAlso.has(b.dataset.also) ? exsAlso.delete(b.dataset.also) : exsAlso.add(b.dataset.also);
-  b.setAttribute("aria-pressed", String(exsAlso.has(b.dataset.also)));
-});
-$("#exs-save").addEventListener("click", saveExerciseInfo);
-$("#exs-cancel").addEventListener("click", closeExerciseInfo);
-$("#exsheet").addEventListener("click", e=>{ if(e.target.id==="exsheet") closeExerciseInfo(); });
-document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#exsheet").hidden) closeExerciseInfo(); });
-$("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-exinfo]"); if(b) openExerciseInfo(b.dataset.exinfo); });
-$("#ex-chosen-text").addEventListener("click", ()=>{ if($("#new-ex-wrap").hidden) openExerciseInfo($("#exercise").value.trim()); });
 
 // ---------- repeat a past workout ----------
 // Copies a past day into a checklist for today: each exercise's top set (weight, reps, equipment) and how many sets.
@@ -114,19 +109,40 @@ function startRepeat(i){
   updateVolPreview();
   $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
 }
-$("#repeat-today").addEventListener("click", e=>{
-  const b = e.target.closest("[data-repeat-start]"); if(b) return startRepeat(+b.dataset.repeatStart);
-  if(e.target.closest("[data-repeat-close]")){ delete prefs.repeat; savePrefs(); renderRepeat(); }
-});
-$("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-repeat]"); if(b) repeatDay(b.dataset.repeat); });
-$("#plan-today").addEventListener("click", e=>{ const b=e.target.closest("[data-plan-start]"); if(b) startPlanned(+b.dataset.planStart); });
-$("#plan-today").addEventListener("change", e=>{
-  if(e.target.id!=="plan-switch") return;
-  const pr = P(), date = $("#date").value||today(), v = e.target.value;
-  pr.override = v==="" ? null : {date, wid: v==="__rest" ? null : v};
-  saveSettings();
-});
 
 // ----- Plan tab -----
 let planEdit = null;   // section being edited: "name" | "schedule" | "prog" | "change" | a workout id
 let itemEdit = null;   // "workoutId|index" of the exercise whose targets are open
+// Setters for values other files change.
+function setPlanEdit(v){ planEdit = v; }
+function setItemEdit(v){ itemEdit = v; }
+
+export function init(){
+  $("#exs-main").addEventListener("change", renderAlso);
+  $("#exs-same").addEventListener("click", e=>{ const b = e.target.closest("[data-same]"); if(b) $("#exs-name").value = b.dataset.same; });
+  $("#exs-also").addEventListener("click", e=>{
+    const b = e.target.closest("[data-also]"); if(!b) return;
+    exsAlso.has(b.dataset.also) ? exsAlso.delete(b.dataset.also) : exsAlso.add(b.dataset.also);
+    b.setAttribute("aria-pressed", String(exsAlso.has(b.dataset.also)));
+  });
+  $("#exs-save").addEventListener("click", saveExerciseInfo);
+  $("#exs-cancel").addEventListener("click", closeExerciseInfo);
+  $("#exsheet").addEventListener("click", e=>{ if(e.target.id==="exsheet") closeExerciseInfo(); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#exsheet").hidden) closeExerciseInfo(); });
+  $("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-exinfo]"); if(b) openExerciseInfo(b.dataset.exinfo); });
+  $("#ex-chosen-text").addEventListener("click", ()=>{ if($("#new-ex-wrap").hidden) openExerciseInfo($("#exercise").value.trim()); });
+  $("#repeat-today").addEventListener("click", e=>{
+    const b = e.target.closest("[data-repeat-start]"); if(b) return startRepeat(+b.dataset.repeatStart);
+    if(e.target.closest("[data-repeat-close]")){ delete prefs.repeat; savePrefs(); renderRepeat(); }
+  });
+  $("#history").addEventListener("click", e=>{ const b = e.target.closest("[data-repeat]"); if(b) repeatDay(b.dataset.repeat); });
+  $("#plan-today").addEventListener("click", e=>{ const b=e.target.closest("[data-plan-start]"); if(b) startPlanned(+b.dataset.planStart); });
+  $("#plan-today").addEventListener("change", e=>{
+    if(e.target.id!=="plan-switch") return;
+    const pr = P(), date = $("#date").value||today(), v = e.target.value;
+    pr.override = v==="" ? null : {date, wid: v==="__rest" ? null : v};
+    saveSettings();
+  });
+}
+
+export { exsName, exsAlso, openExerciseInfo, renderSame, renderAlso, closeExerciseInfo, saveExerciseInfo, repeatDay, renderRepeat, startRepeat, planEdit, itemEdit, setPlanEdit, setItemEdit };

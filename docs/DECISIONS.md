@@ -58,13 +58,15 @@ The Progress panel counts each logged set once for its main muscle and 0.5 for e
 ## The streak is weekly, not daily
 Rest days are part of training, so a daily streak would punish doing the right thing. The streak counts weeks in a row (Monday to Sunday) with at least your weekly goal of training days, stored as optional `prefs.weekGoal` (2–6, default 3; older prefs without it get 3). The current week adds to the streak once it meets the goal and never breaks it while in progress. A training day is any day with a logged entry, cardio included.
 
-## The app code is ordered script files, not ES modules (yet)
-The code that used to sit inside index.html is split along its sections into files under js/, loaded in order by plain `<script src>` tags (ui.js and state.js first, main.js last). They are classic scripts, so their top-level names share one scope exactly as they did inside the old wrapper function: no file imports anything, and a value one part changes (the Log mode, the rest timer, saved entries) is still one variable. This kept the split mechanical and the app's behavior identical. Rules that follow from it:
-- Order matters: while a file loads, it can only use names from files loaded before it. Start-up calls happen in main.js, which loads last; code inside functions can use names from any file.
-- Top-level names must not clash with the browser's own globals (`top`, `name`, `location`…).
-- Every new file goes in index.html and in `FILES` in sw.js. tests/files.spec.js checks both, and that code files stay under about 600 lines (exercise-library.js, which is data, is exempt).
+## The app code is ES modules with an ordered start-up
+The code that used to sit inside index.html is split along its sections into ES modules under js/. index.html loads one module, js/app.js, which imports the rest and calls each module's `init()` in the order the code originally ran (ui and state first, main last). The split was converted mechanically, with a JavaScript parser, so behavior stayed identical. How a module is laid out:
+- Imports first: each name it uses from another file, imported from the file that declares it.
+- Functions, and constants that are plain values (text, numbers, lists, tables, arrow functions), stay at the top level. They can safely be used from anywhere, in any order.
+- Everything that runs at start-up (reading saved data, building indexes, hooking up buttons, first render) is inside `init()`. Values it sets are module-level `let`s, so other modules see them through their imports once start-up has run.
+- A module can't assign another module's variable, so a value that other files change has a setter in its own file, like `setRestNext()` or `setPrefs()`.
+- `export { … }` at the end lists everything the module shares.
 
-CLAUDE.md asks for JavaScript modules. Converting a file to an ES module means listing what it shares and adding small setters for values other files change; that can be done one file at a time later.
+Rules that follow: a new file needs an import in js/app.js (with `init` if it has start-up code) and an entry in `FILES` in sw.js. tests/files.spec.js checks that every module is reached through imports and cached, that start-up order begins with ui and state and ends with main, and that code files stay under about 600 lines (exercise-library.js, which is data, is exempt).
 
 ## The publish workflow is pinned to Ubuntu 24.04
 GitHub is moving `ubuntu-latest` to Ubuntu 26 (from 2026-10-19). The tests install Chromium with `npx playwright install --with-deps`, which needs Playwright to know the operating system's packages, so a silent switch could break publishing. Both jobs run on `ubuntu-24.04` (supported into 2029) until Playwright lists Ubuntu 26.04 as supported. The actions are on their Node 24 versions (checkout v7, setup-node v7, configure-pages v6, upload-pages-artifact v5, deploy-pages v5), and the tests run on Node 24 to match local development.

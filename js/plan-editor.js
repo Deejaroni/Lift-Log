@@ -1,5 +1,14 @@
 // Lift Log: The Plan tab's editor.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
+
+import { $, askConfirm } from "./ui.js";
+import { prefs, saveSettings, settings } from "./state.js";
+import { esc, exercisesByRecent, fmt, toUnit, today } from "./log.js";
+import { mmss } from "./equipment.js";
+import { CATALOG, CAT_MUSCLE, MUSCLES, groupOf } from "./catalog.js";
+import { isoOf, weekStart } from "./progress.js";
+import { DOW, TEMPLATES, TIMED, blankProgram, hasProgram, isDeload, loadTemplate, loggedFor, pid, progWeek, suggestFor, workoutById, workoutFor } from "./plan.js";
+import { itemEdit, planEdit, setItemEdit, setPlanEdit } from "./exercise-sheet.js";
 
 const addGroup = {}, addCustom = {};
 function exOptionsFor(group){
@@ -146,68 +155,72 @@ function renderPlan(){
     <p class="foot">Templates are general starting points, not personalized advice. Adjust them to your experience, recovery and any injuries.</p>`;
 }
 function planChanged(){ saveSettings(); }
-$("#tab-plan").addEventListener("click", async e=>{
-  const t = e.target, pr = settings.program;
-  const tpl = t.closest("[data-tpl]");
-  if(tpl){
-    const k = tpl.dataset.tpl, nm = k==="__blank" ? "a blank program" : `"${TEMPLATES[k].name}"`;
-    if(hasProgram() && !(await askConfirm(`Replace "${pr.name}" with ${nm}? Your logged workouts aren't affected.`, "Replace"))) return;
-    const m = pr ? pr.mode : null;
-    if(k==="__blank"){ settings.program = blankProgram(); settings.program.template="__blank"; if(m) settings.program.mode = m; } else loadTemplate(k);
-    planEdit = k==="__blank" ? null : null; itemEdit = null; planChanged(); return;
-  }
-  if(!pr) return;
-  const pe = t.closest("[data-pedit]"); if(pe){ planEdit = pe.dataset.pedit || null; itemEdit = null; renderPlan(); return; }
-  if(t.id==="pg-name-save"){ pr.name = $("#pg-name").value.trim() || "My program"; planEdit = null; planChanged(); return; }
-  const pm = t.closest("[data-pmode]"); if(pm){ pr.mode = pm.dataset.pmode; if(pr.mode==="rotation" && !pr.rotation.length) pr.rotation = pr.workouts.map(w=>w.id); planChanged(); return; }
-  const ie = t.closest("[data-iedit]"); if(ie){ itemEdit = itemEdit===ie.dataset.iedit ? null : ie.dataset.iedit; renderPlan(); return; }
-  const mv = t.closest("[data-pmove]"); if(mv){ const [wid,i,d] = mv.dataset.pmove.split("|"); const w = workoutById(wid), a=+i, b=a+(+d); [w.items[a],w.items[b]]=[w.items[b],w.items[a]]; itemEdit = null; planChanged(); return; }
-  const rm = t.closest("[data-prm]"); if(rm){ const [wid,i] = rm.dataset.prm.split("|"); workoutById(wid).items.splice(+i,1); itemEdit = null; planChanged(); return; }
-  const rmv = t.closest("[data-rmove]"); if(rmv){ const [i,d] = rmv.dataset.rmove.split("|").map(Number); [pr.rotation[i],pr.rotation[i+d]]=[pr.rotation[i+d],pr.rotation[i]]; planChanged(); return; }
-  const rrm = t.closest("[data-rrm]"); if(rrm){ pr.rotation.splice(+rrm.dataset.rrm,1); planChanged(); return; }
-  const wd = t.closest("[data-wdel]");
-  if(wd){ const w = workoutById(wd.dataset.wdel);
-    if(!(await askConfirm(`Delete the workout "${w.name}"? It's removed from your schedule too. Logged sets aren't affected.`, "Delete", true))) return;
-    pr.workouts = pr.workouts.filter(x=>x.id!==w.id); pr.days = pr.days.map(d=>d===w.id?null:d); pr.rotation = pr.rotation.filter(x=>x!==w.id); planEdit = null; planChanged(); return; }
-  const ca = t.closest("[data-cadd]");
-  if(ca){ const wid = ca.dataset.cadd, name = ($("#custom-name").value||"").trim(); if(!name){ $("#custom-name").focus(); return; }
-    const g = addGroup[wid] || "Chest";
-    workoutById(wid).items.push(TIMED.has(g) ? {exercise:name, minutes:g==="Mobility"?3:20} : {exercise:name, sets:3, lo:8, hi:12});
-    addCustom[wid] = false; planChanged(); return; }
-  const cc = t.closest("[data-ccancel]"); if(cc){ addCustom[cc.dataset.ccancel] = false; renderPlan(); return; }
-  if(t.id==="pg-addw"){ const w = {id:pid("w"), name:`Workout ${pr.workouts.length+1}`, items:[]}; pr.workouts.push(w); if(pr.mode==="rotation") pr.rotation.push(w.id); planEdit = w.id; planChanged(); return; }
-  if(t.id==="pg-restart"){ pr.start = isoOf(weekStart(today())); planChanged(); return; }
-  if(t.id==="pg-clear"){
-    if(!(await askConfirm(`Remove "${pr.name}"? The Log tab goes back to free logging. Your logged workouts aren't affected.`, "Remove", true))) return;
-    settings.program = null; planEdit = null; itemEdit = null; saveSettings(); return;
-  }
-});
-$("#tab-plan").addEventListener("keydown", e=>{
-  if(e.key!=="Enter") return;
-  if(e.target.id==="pg-name"){ e.preventDefault(); $("#pg-name-save").click(); }
-  if(e.target.id==="custom-name"){ e.preventDefault(); document.querySelector("[data-cadd]").click(); }
-});
-$("#tab-plan").addEventListener("change", e=>{
-  const t = e.target, pr = settings.program; if(!pr) return;
-  if(t.dataset.day!=null){ pr.days[+t.dataset.day] = t.value || null; return planChanged(); }
-  if(t.id==="rot-add" && t.value){ pr.rotation.push(t.value); return planChanged(); }
-  if(t.id==="pg-on"){ pr.prog.on = t.checked; return planChanged(); }
-  if(t.id==="pg-up"||t.id==="pg-low"){ const up=parseFloat($("#pg-up").value), low=parseFloat($("#pg-low").value); if(up>=0 && low>=0) pr.prog = {on:pr.prog.on, upper:up, lower:low, unit:prefs.unit}; return planChanged(); }
-  if(t.id==="pg-deload"){ pr.deloadEvery = +t.value; return planChanged(); }
-  if(t.dataset.wname){ workoutById(t.dataset.wname).name = t.value.trim() || "Workout"; return planChanged(); }
-  if(t.dataset.addg){ addGroup[t.dataset.addg] = t.value; renderPlan(); return; }
-  if(t.dataset.adde){
-    const w = workoutById(t.dataset.adde), g = addGroup[w.id] || "Chest", name = t.value; if(!name) return;
-    if(name==="__custom"){ addCustom[w.id] = true; renderPlan(); setTimeout(()=>{ const c=$("#custom-name"); if(c) c.focus(); }, 0); return; }
-    w.items.push(TIMED.has(g) || TIMED.has(groupOf(name)) ? {exercise:name, minutes:g==="Mobility"?3:20} : {exercise:name, sets:3, lo:8, hi:12});
-    itemEdit = `${w.id}|${w.items.length-1}`;
-    return planChanged();
-  }
-  if(t.dataset.pi){
-    const [wid, i, k] = t.dataset.pi.split("|"), it = workoutById(wid).items[+i], n = parseFloat(t.value);
-    if(k==="rest"){ if(n>0) it.rest=Math.round(n); else delete it.rest; }
-    else if(k==="weight"){ if(n>0){ it.weight=n; it.unit=prefs.unit; } else { delete it.weight; delete it.unit; } }
-    else if(n>0){ it[k] = k==="minutes" ? n : Math.round(n); if(k==="lo" && it.hi<it.lo) it.hi=it.lo; if(k==="hi" && it.lo>it.hi) it.lo=it.hi; }
-    return planChanged();
-  }
-});
+export function init(){
+  $("#tab-plan").addEventListener("click", async e=>{
+    const t = e.target, pr = settings.program;
+    const tpl = t.closest("[data-tpl]");
+    if(tpl){
+      const k = tpl.dataset.tpl, nm = k==="__blank" ? "a blank program" : `"${TEMPLATES[k].name}"`;
+      if(hasProgram() && !(await askConfirm(`Replace "${pr.name}" with ${nm}? Your logged workouts aren't affected.`, "Replace"))) return;
+      const m = pr ? pr.mode : null;
+      if(k==="__blank"){ settings.program = blankProgram(); settings.program.template="__blank"; if(m) settings.program.mode = m; } else loadTemplate(k);
+      setPlanEdit(k==="__blank" ? null : null); setItemEdit(null); planChanged(); return;
+    }
+    if(!pr) return;
+    const pe = t.closest("[data-pedit]"); if(pe){ setPlanEdit(pe.dataset.pedit || null); setItemEdit(null); renderPlan(); return; }
+    if(t.id==="pg-name-save"){ pr.name = $("#pg-name").value.trim() || "My program"; setPlanEdit(null); planChanged(); return; }
+    const pm = t.closest("[data-pmode]"); if(pm){ pr.mode = pm.dataset.pmode; if(pr.mode==="rotation" && !pr.rotation.length) pr.rotation = pr.workouts.map(w=>w.id); planChanged(); return; }
+    const ie = t.closest("[data-iedit]"); if(ie){ setItemEdit(itemEdit===ie.dataset.iedit ? null : ie.dataset.iedit); renderPlan(); return; }
+    const mv = t.closest("[data-pmove]"); if(mv){ const [wid,i,d] = mv.dataset.pmove.split("|"); const w = workoutById(wid), a=+i, b=a+(+d); [w.items[a],w.items[b]]=[w.items[b],w.items[a]]; setItemEdit(null); planChanged(); return; }
+    const rm = t.closest("[data-prm]"); if(rm){ const [wid,i] = rm.dataset.prm.split("|"); workoutById(wid).items.splice(+i,1); setItemEdit(null); planChanged(); return; }
+    const rmv = t.closest("[data-rmove]"); if(rmv){ const [i,d] = rmv.dataset.rmove.split("|").map(Number); [pr.rotation[i],pr.rotation[i+d]]=[pr.rotation[i+d],pr.rotation[i]]; planChanged(); return; }
+    const rrm = t.closest("[data-rrm]"); if(rrm){ pr.rotation.splice(+rrm.dataset.rrm,1); planChanged(); return; }
+    const wd = t.closest("[data-wdel]");
+    if(wd){ const w = workoutById(wd.dataset.wdel);
+      if(!(await askConfirm(`Delete the workout "${w.name}"? It's removed from your schedule too. Logged sets aren't affected.`, "Delete", true))) return;
+      pr.workouts = pr.workouts.filter(x=>x.id!==w.id); pr.days = pr.days.map(d=>d===w.id?null:d); pr.rotation = pr.rotation.filter(x=>x!==w.id); setPlanEdit(null); planChanged(); return; }
+    const ca = t.closest("[data-cadd]");
+    if(ca){ const wid = ca.dataset.cadd, name = ($("#custom-name").value||"").trim(); if(!name){ $("#custom-name").focus(); return; }
+      const g = addGroup[wid] || "Chest";
+      workoutById(wid).items.push(TIMED.has(g) ? {exercise:name, minutes:g==="Mobility"?3:20} : {exercise:name, sets:3, lo:8, hi:12});
+      addCustom[wid] = false; planChanged(); return; }
+    const cc = t.closest("[data-ccancel]"); if(cc){ addCustom[cc.dataset.ccancel] = false; renderPlan(); return; }
+    if(t.id==="pg-addw"){ const w = {id:pid("w"), name:`Workout ${pr.workouts.length+1}`, items:[]}; pr.workouts.push(w); if(pr.mode==="rotation") pr.rotation.push(w.id); setPlanEdit(w.id); planChanged(); return; }
+    if(t.id==="pg-restart"){ pr.start = isoOf(weekStart(today())); planChanged(); return; }
+    if(t.id==="pg-clear"){
+      if(!(await askConfirm(`Remove "${pr.name}"? The Log tab goes back to free logging. Your logged workouts aren't affected.`, "Remove", true))) return;
+      settings.program = null; setPlanEdit(null); setItemEdit(null); saveSettings(); return;
+    }
+  });
+  $("#tab-plan").addEventListener("keydown", e=>{
+    if(e.key!=="Enter") return;
+    if(e.target.id==="pg-name"){ e.preventDefault(); $("#pg-name-save").click(); }
+    if(e.target.id==="custom-name"){ e.preventDefault(); document.querySelector("[data-cadd]").click(); }
+  });
+  $("#tab-plan").addEventListener("change", e=>{
+    const t = e.target, pr = settings.program; if(!pr) return;
+    if(t.dataset.day!=null){ pr.days[+t.dataset.day] = t.value || null; return planChanged(); }
+    if(t.id==="rot-add" && t.value){ pr.rotation.push(t.value); return planChanged(); }
+    if(t.id==="pg-on"){ pr.prog.on = t.checked; return planChanged(); }
+    if(t.id==="pg-up"||t.id==="pg-low"){ const up=parseFloat($("#pg-up").value), low=parseFloat($("#pg-low").value); if(up>=0 && low>=0) pr.prog = {on:pr.prog.on, upper:up, lower:low, unit:prefs.unit}; return planChanged(); }
+    if(t.id==="pg-deload"){ pr.deloadEvery = +t.value; return planChanged(); }
+    if(t.dataset.wname){ workoutById(t.dataset.wname).name = t.value.trim() || "Workout"; return planChanged(); }
+    if(t.dataset.addg){ addGroup[t.dataset.addg] = t.value; renderPlan(); return; }
+    if(t.dataset.adde){
+      const w = workoutById(t.dataset.adde), g = addGroup[w.id] || "Chest", name = t.value; if(!name) return;
+      if(name==="__custom"){ addCustom[w.id] = true; renderPlan(); setTimeout(()=>{ const c=$("#custom-name"); if(c) c.focus(); }, 0); return; }
+      w.items.push(TIMED.has(g) || TIMED.has(groupOf(name)) ? {exercise:name, minutes:g==="Mobility"?3:20} : {exercise:name, sets:3, lo:8, hi:12});
+      setItemEdit(`${w.id}|${w.items.length-1}`);
+      return planChanged();
+    }
+    if(t.dataset.pi){
+      const [wid, i, k] = t.dataset.pi.split("|"), it = workoutById(wid).items[+i], n = parseFloat(t.value);
+      if(k==="rest"){ if(n>0) it.rest=Math.round(n); else delete it.rest; }
+      else if(k==="weight"){ if(n>0){ it.weight=n; it.unit=prefs.unit; } else { delete it.weight; delete it.unit; } }
+      else if(n>0){ it[k] = k==="minutes" ? n : Math.round(n); if(k==="lo" && it.hi<it.lo) it.hi=it.lo; if(k==="hi" && it.lo>it.hi) it.lo=it.hi; }
+      return planChanged();
+    }
+  });
+}
+
+export { addGroup, addCustom, exOptionsFor, isTimedItem, itemSummary, itemFields, exRow, daysFor, scheduleSummary, scheduleEditor, weekSummary, templateList, workoutCard, renderPlan, planChanged };

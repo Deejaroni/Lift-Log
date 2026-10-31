@@ -1,5 +1,5 @@
 // Lift Log: Shortcuts, in-app dialogs and the toast note.
-// Classic script: index.html loads the js/ files in order and they share one scope (see docs/DECISIONS.md).
+// ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
 const $ = s => document.querySelector(s);
 
@@ -37,6 +37,10 @@ function toast(message, action, onAction, ms){
   if(ms) toast.t = setTimeout(hideToast, ms);
 }
 function hideToast(){ clearTimeout(toast.t); $("#toast").hidden = true; }
-$("#toast-x").onclick = hideToast;
 const LS_KEY = "liftlog.entries.v1", PREF_KEY = "liftlog.prefs.v1";
 const KG_PER_LB = 0.45359237;
+export function init(){
+  $("#toast-x").onclick = hideToast;
+}
+
+export { $, dialog, askConfirm, notify, toast, hideToast, LS_KEY, PREF_KEY, KG_PER_LB };
