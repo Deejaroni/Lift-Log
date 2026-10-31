@@ -45,3 +45,9 @@ A superset is marked on the sets themselves: `ss` (a shared id) on every set in 
 
 ## Your muscle groups beat the library's
 Each exercise's main group and "also works" groups can be set in `settings.exercises`, keyed by lowercase name: `{muscle, also:[...]}`. `groupOf()` checks it first, so History, Progress, Plan and search follow one answer. Saving also rewrites `muscle` on every past set of that exercise, so exports and older code that reads `e.muscle` agree. "Also works" defaults to the other groups the library lists the exercise under. Saved data from before this has no `exercises` object; loading creates an empty one (the migration sits next to the other settings defaults, since there is no js/state.js yet).
+
+## Retired exercise names are migrated, not aliased
+When the library drops a duplicate spelling, `RETIRED` in index.html maps it to the kept name and loading renames it everywhere (sets, plan, muscle settings, a repeated workout) through `renameExercise()`, the same function the rename/merge sheet uses. tests/catalog.spec.js fails if two library names differ only in spacing, punctuation, plurals or word order (direction words like high-to-low excepted).
+
+## Default "also works" muscles come from simple rules
+The library lists most exercises under one group, so `SECONDARY` adds the usual partners by main group and name (presses → triceps and shoulders, rows and pulldowns → biceps, squats and lunges → glutes, hinges → glutes and lower back, hammer and reverse curls → forearms). They're defaults only: your own choice in the exercise sheet replaces them. Search and browsing by muscle still follow the library and your own choices, not these rules, so a Triceps search isn't flooded with every bench press.

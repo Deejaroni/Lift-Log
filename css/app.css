@@ -414,3 +414,6 @@ button.ex-chosen-text .ex-m::after{content:"Edit muscles";display:block;margin-t
 .also-chips{display:flex;flex-wrap:wrap;gap:6px}
 .also-chip{min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--field);color:var(--muted);font-weight:600;font-size:.9rem}
 .also-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+/* The confirm dialog sits above the exercise sheet when asking to merge */
+#dlg{z-index:50}
+.exdlg{max-height:calc(100dvh - 32px);overflow-y:auto}

@@ -5,6 +5,9 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 ## Next update
 - Change an exercise's muscle groups: tap its name in History, or tap the chosen exercise on the Log tab ("Edit muscles"). Pick the main muscle group and what else it works. Every past set moves to the new group, and History, Progress, Plan and search all follow.
 - "Also works" starts from the exercise library, so Romanian deadlift already counts toward Lower back. When you browse or search by a muscle group, exercises that also work it are listed there, marked "Also works".
+- Rename or merge your own exercises from the same sheet. It suggests names that look like the same exercise ("Pec dec" → "Pec deck"), and choosing a name you already have merges the two after you confirm. Renames carry over to your plan.
+- Cleaner exercise list: four duplicate spellings removed (sets you logged under them now use the kept name), and hammer curls listed once.
+- Bench presses, rows, pulldowns, squats, lunges, deadlifts and hammer curls now list the other muscles they work, like triceps and shoulders for the bench press.
 
 ## 2026-10-31 (third update)
 - Plate calculator: with Barbell or Smith machine on, the plates for each side show under the weight, in bumper-plate colors. A barbell with no bar weight set assumes a standard 45 lb (20 kg) bar and says so. If a weight can't be loaded exactly, it shows the closest load under it.
