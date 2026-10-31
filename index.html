@@ -105,6 +105,7 @@
         </div>
       </div>
       <div class="fail-row" id="fail-row"><span class="lbl" style="margin:0">To failure</span><span class="fail-chips" id="fail-chips" role="group" aria-label="Sets taken to failure"></span><span class="cal-sub" style="margin:0">Tap any set that went to failure.</span></div>
+      <div class="fail-row" id="rir-row"><span class="lbl" style="margin:0">Reps left in the tank</span><span class="fail-chips" id="rir-chips" role="group" aria-label="Reps left in the tank (optional)"><button type="button" class="fchip rchip" data-rir="0" aria-pressed="false">0</button><button type="button" class="fchip rchip" data-rir="1" aria-pressed="false">1</button><button type="button" class="fchip rchip" data-rir="2" aria-pressed="false">2</button><button type="button" class="fchip rchip" data-rir="3" aria-pressed="false">3</button><button type="button" class="fchip rchip" data-rir="4" aria-pressed="false">4+</button></span><span class="cal-sub" style="margin:0">Optional. 2 left is about RPE 8.</span></div>
 
       <div id="cardio-wrap" hidden>
         <div class="steppers c2">
@@ -361,10 +362,10 @@
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
   // ---------- CSV export / import ----------
-  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json"];
+  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir"];
   function toCSV(){
     const rows=[CSV_COLS];
-    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):""]));
+    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):"",e.rir??""]));
     return rows.map(r=>r.map(v=>{const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(",")).join("\n");
   }
   function parseCSV(text){
@@ -472,6 +473,7 @@
       if(g("to_failure").toLowerCase()==="yes") e.failure=true;
       try{ const eq=g("equipment_json"); if(eq) e.equip=JSON.parse(eq); }catch(_){}
       const mg=g("muscle_group"); if(mg) e.muscle=mg;
+      const rir=parseInt(g("rir"),10); if(rir>=0 && rir<=4) e.rir=rir;
       added.push(e);
     });
     if(!added.length){ notify(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
@@ -657,7 +659,7 @@
     const name = existing || exercise;
     const note = $("#note").value.trim();
     const base = Date.now();
-    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, ...(failSets.has(i)?{failure:true}:{})}));
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, ...(failSets.has(i)?{failure:true}:{}), ...(rirPick!=null?{rir:rirPick}:{})}));
     rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
@@ -702,6 +704,14 @@
     failN = n; [...failSets].forEach(i=>{ if(i>=n) failSets.delete(i); });
     $("#fail-chips").innerHTML = Array.from({length:n},(_,i)=>`<button type="button" class="fchip" data-fset="${i}" aria-pressed="${failSets.has(i)}" aria-label="Set ${i+1} taken to failure">${i+1}</button>`).join("");
   }
+  // Reps left in the tank (RIR), optional and the same for every set logged together. Tap again to clear.
+  let rirPick = null;
+  const rirText = r => r==null ? "" : `${r>=4?"4+":r} left · RPE ${r>=4?"6 or less":10-r}`;
+  function renderRir(){ document.querySelectorAll("#rir-chips [data-rir]").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.rir===rirPick))); }
+  $("#rir-chips").addEventListener("click", e=>{
+    const b = e.target.closest("[data-rir]"); if(!b) return;
+    rirPick = +b.dataset.rir===rirPick ? null : +b.dataset.rir; renderRir();
+  });
   $("#fail-chips").addEventListener("click", e=>{
     const b = e.target.closest("[data-fset]"); if(!b) return;
     const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
@@ -986,7 +996,7 @@
     document.querySelector(".equip").hidden = c;
     $("#drop-wrap").hidden = c || mode!=="drop";
     $("#straight-wrap").hidden = c || mode==="drop";
-    $("#fail-row").hidden = c || mode==="drop";
+    $("#fail-row").hidden = $("#rir-row").hidden = c || mode==="drop";
     $("#save").textContent = c ? (isMobForm() ? "Log mobility" : "Log cardio") : (mode==="drop" ? "Log drop set" : "Log set");
     $("#c-dist-box").hidden = isMobForm(); $("#cardio-details").hidden = isMobForm();
     $("#cardio-wrap .steppers").classList.toggle("c2", !isMobForm());
@@ -1098,7 +1108,7 @@
     $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
     mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = ""; dropPicked = false; showLast("");
     document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
-    failSets = new Set(); failN = 0;
+    failSets = new Set(); failN = 0; rirPick = null; renderRir();
     $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
     $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
     exShowAll = false; renderPicker(); applyFormKind();
@@ -1279,7 +1289,7 @@
     const w = loadOf(e), plates = toUnit(e.weight, e.unit), barA = barAddRaw(e.equip);
     const isBW = e.equip && e.equip.bw;
     const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
-    const vt = variantText(e) + (barA>0 ? `${variantText(e)?" · ":""}${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : "");
+    const vt = [rirText(e.rir), variantText(e), barA>0 ? `${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : ""].filter(Boolean).join(" · ");
     return `<div class="set${e.failure?" failed":""}"><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="more" type="button" data-more aria-expanded="false" aria-label="Set actions">···</button><button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
   }
   function chainRow(c){

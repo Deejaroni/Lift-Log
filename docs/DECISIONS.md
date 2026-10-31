@@ -36,3 +36,6 @@ Each version of the app serves its page and its files from its own cache, so an 
 
 ## Delete uses Undo instead of a confirmation
 Deleting is instant and shows an Undo note for 8 seconds. A confirmation adds a tap to every delete and is easy to tap through on autopilot; Undo is faster mid-workout and still recovers mistakes. Deleting a workout or a whole program still asks first, since those take more to rebuild.
+
+## Effort is entered as reps left in the tank
+Each set can carry an optional `rir` (reps in reserve, 0–4, where 4 means 4 or more). Counting reps you could still do is easier mid-set than judging a 1–10 RPE, and the two map directly (RPE = 10 − reps left), so History shows both. One choice applies to all sets logged together; drop sets and cardio don't use it. Older entries simply have no `rir`, so no migration is needed. It isn't used by Plan progression yet.

@@ -6,6 +6,8 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 - Plate calculator: with Barbell or Smith machine on, the plates for each side show under the weight, in bumper-plate colors. A barbell with no bar weight set assumes a standard 45 lb (20 kg) bar and says so. If a weight can't be loaded exactly, it shows the closest load under it.
 
 - Repeat a past workout: tap Repeat on any past day in History. The Log tab lists that day's exercises with the top set's weight and reps and how many sets you did. Start fills them in, and each one counts down as you log. Close it with ×; it clears itself the next day.
+- Reps left in the tank: an optional row of chips (0–4+) under To failure. History shows it with the matching RPE, like "2 left · RPE 8". It's included in CSV exports and imports.
+- The To failure chips are a little bigger (40 px), easier to tap.
 - Fixed: Start on a planned exercise scrolls to the log form again.
 
 ## 2026-10-31 (second update)
