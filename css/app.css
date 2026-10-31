@@ -399,3 +399,9 @@ button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);co
 .day-head .edit{margin:0;min-height:40px;padding:8px 14px}
 .rep-x{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:none;color:var(--muted);font-size:1.4rem;font-weight:600;padding:0}
 .rep-x:active{background:var(--field)}
+
+/* Supersets */
+.ss-row{margin-top:12px}
+.ss-row .tog{min-height:44px}
+.ss-row .cal-sub{margin:6px 0 0}
+.ss-tag{margin:-2px 0 6px;font-size:.85rem;font-weight:700;color:var(--blue)}

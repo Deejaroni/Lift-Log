@@ -7,6 +7,7 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 
 - Repeat a past workout: tap Repeat on any past day in History. The Log tab lists that day's exercises with the top set's weight and reps and how many sets you did. Start fills them in, and each one counts down as you log. Close it with ×; it clears itself the next day.
 - Reps left in the tank: an optional row of chips (0–4+) under To failure. History shows it with the matching RPE, like "2 left · RPE 8". It's included in CSV exports and imports.
+- Supersets: turn on "Superset with next exercise" and rest waits until you log the next exercise, then starts as usual. Picking the first exercise again turns the switch back on for the next round. History and the day list show "Superset with …" under each exercise in the pair. Superset links are kept in CSV exports and imports.
 - The To failure chips are a little bigger (40 px), easier to tap.
 - Fixed: Start on a planned exercise scrolls to the log form again.
 

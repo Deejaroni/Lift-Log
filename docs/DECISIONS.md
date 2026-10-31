@@ -39,3 +39,6 @@ Deleting is instant and shows an Undo note for 8 seconds. A confirmation adds a 
 
 ## Effort is entered as reps left in the tank
 Each set can carry an optional `rir` (reps in reserve, 0–4, where 4 means 4 or more). Counting reps you could still do is easier mid-set than judging a 1–10 RPE, and the two map directly (RPE = 10 − reps left), so History shows both. One choice applies to all sets logged together; drop sets and cardio don't use it. Older entries simply have no `rir`, so no migration is needed. It isn't used by Plan progression yet.
+
+## Supersets only change when rest starts
+A superset is marked on the sets themselves: `ss` (a shared id) on every set in the group, and `ssLead: true` on sets logged with the switch on. Logging with the switch on skips the rest timer; the next set logged (any exercise) joins the group, and rest starts after it. The Log form still resets after every set, so you pick each exercise yourself; picking one that led a superset earlier today turns the switch back on. We chose this over switching the form to the partner exercise automatically, to keep the form-reset rule. Older entries have no `ss`, so no migration is needed.

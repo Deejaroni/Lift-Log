@@ -151,6 +151,7 @@
         <datalist id="brand-list"></datalist>
       </div>
 
+      <div class="ss-row" id="ss-row"><label class="tog"><input type="checkbox" role="switch" id="ss-on"><span class="sw" aria-hidden="true"></span>Superset with next exercise</label><p class="cal-sub" id="ss-hint" aria-live="polite" hidden></p></div>
       <button class="note-toggle" id="note-toggle" aria-expanded="false">Add a note</button>
       <div id="note-wrap" hidden style="margin-top:8px">
         <label class="lbl" for="note">Note</label>
@@ -362,10 +363,10 @@
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
   // ---------- CSV export / import ----------
-  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir"];
+  const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir","superset","superset_lead"];
   function toCSV(){
     const rows=[CSV_COLS];
-    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):"",e.rir??""]));
+    sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):"",e.rir??"",e.ss||"",e.ssLead?"yes":""]));
     return rows.map(r=>r.map(v=>{const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(",")).join("\n");
   }
   function parseCSV(text){
@@ -474,6 +475,7 @@
       try{ const eq=g("equipment_json"); if(eq) e.equip=JSON.parse(eq); }catch(_){}
       const mg=g("muscle_group"); if(mg) e.muscle=mg;
       const rir=parseInt(g("rir"),10); if(rir>=0 && rir<=4) e.rir=rir;
+      const ss=g("superset"); if(ss){ e.ss=ss; if(g("superset_lead")==="yes") e.ssLead=true; }
       added.push(e);
     });
     if(!added.length){ notify(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
@@ -658,18 +660,45 @@
     const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
     const name = existing || exercise;
     const note = $("#note").value.trim();
-    const base = Date.now();
-    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, ...(failSets.has(i)?{failure:true}:{}), ...(rirPick!=null?{rir:rirPick}:{})}));
+    const base = Date.now(), ssf = supersetFields(date);
+    const list = Array.from({length:sets},(_,i)=>({id:uid(), date, exercise:name, weight, unit:prefs.unit, reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ...ssf, ts:base+i, ...(failSets.has(i)?{failure:true}:{}), ...(rirPick!=null?{rir:rirPick}:{})}));
     rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
       flash(`Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`);
-      if(date===today()) startRest();
+      if(supersetLogged(ssf, date, name) && date===today()) startRest();
       resetForm();
     }catch(e){ flash("Couldn't save that set. Try again.", true); }
     btn.disabled=false;
   };
+
+  // ---------- supersets: rest waits until the next exercise is logged ----------
+  // Logging with the switch on marks the set as the start (ssLead) of a superset and skips rest. The next set
+  // logged, of any exercise, joins it (same ss id); rest starts after that one unless the switch is on again.
+  let ssOpen = null;   // {id, date, name} while a superset waits for its next exercise
+  function supersetFields(date){
+    const open = ssOpen && ssOpen.date===date ? ssOpen.id : null;
+    if($("#ss-on").checked) return {ss: open || uid(), ssLead:true};
+    return open ? {ss: open} : {};
+  }
+  // Returns true when rest should start now.
+  function supersetLogged(f, date, name){
+    if(f.ssLead){ ssOpen = {id:f.ss, date, name}; if(restEnd) finishRest(true); return false; }
+    ssOpen = null; return true;
+  }
+  function renderSuperset(){
+    const h = $("#ss-hint");
+    h.textContent = $("#ss-on").checked ? "Rest waits until you log the next exercise."
+      : ssOpen ? `Superset with ${ssOpen.name}: rest starts after the next set you log.` : "";
+    h.hidden = !h.textContent;
+  }
+  // Picking an exercise that started a superset earlier today turns the switch back on for the next round.
+  function supersetFor(name){
+    const l = name.toLowerCase(), last = sorted().reverse().find(e=>e.date===($("#date").value||today()) && e.exercise.toLowerCase()===l);
+    $("#ss-on").checked = !!(last && last.ssLead); renderSuperset();
+  }
+  $("#ss-on").addEventListener("change", renderSuperset);
 
   // ---------- volume rules ----------
   // Unilateral sets (reps per side, both sides worked) and two implements with "weight is per hand/bell" count double.
@@ -997,6 +1026,7 @@
     $("#drop-wrap").hidden = c || mode!=="drop";
     $("#straight-wrap").hidden = c || mode==="drop";
     $("#fail-row").hidden = $("#rir-row").hidden = c || mode==="drop";
+    $("#ss-row").hidden = c;
     $("#save").textContent = c ? (isMobForm() ? "Log mobility" : "Log cardio") : (mode==="drop" ? "Log drop set" : "Log set");
     $("#c-dist-box").hidden = isMobForm(); $("#cardio-details").hidden = isMobForm();
     $("#cardio-wrap .steppers").classList.toggle("c2", !isMobForm());
@@ -1108,7 +1138,7 @@
     $("#weight").value = 0; $("#reps").value = 10; $("#sets").value = 1;
     mode = "straight"; dropRows = []; $("#drop-rows").innerHTML = ""; dropPicked = false; showLast("");
     document.querySelectorAll(".mode button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.mode==="straight")));
-    failSets = new Set(); failN = 0; rirPick = null; renderRir();
+    failSets = new Set(); failN = 0; rirPick = null; renderRir(); $("#ss-on").checked = false; renderSuperset();
     $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
     $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
     exShowAll = false; renderPicker(); applyFormKind();
@@ -1152,14 +1182,14 @@
     if(bad>=0){ flash(`Check row ${bad+1}: weight 0 or more, reps at least 1.`, true); return; }
     const existing = exercisesByRecent().find(n=>n.toLowerCase()===exercise.toLowerCase());
     const name = existing || exercise, note = $("#note").value.trim(), date = $("#date").value || today();
-    const chain = uid(), base = Date.now();
-    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ts:base+i, chain, step:i, failure: r.fail}));
+    const chain = uid(), base = Date.now(), ssf = supersetFields(date);
+    const list = rows.map((r,i)=>({id:uid(), date, exercise:name, weight:r.weight, unit:prefs.unit, reps:r.reps, sets:1, note, muscle: $("#muscle").value, ...equipField(), ...bwFields(), ...variantField(), ...ssf, ts:base+i, chain, step:i, failure: r.fail}));
     rememberBodyWeight();
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
       flash(`Logged ${rows.length}-step drop set — ${name}`);
-      if(date===today()) startRest();
+      if(supersetLogged(ssf, date, name) && date===today()) startRest();
       resetForm();
     }catch(e){ flash("Couldn't save that drop set. Try again.", true); }
     btn.disabled=false;
@@ -1401,7 +1431,10 @@
         parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step)));
       });
       const head = `<div class="ex-head"><h3>${esc(g[0].exercise)}${hist && isPR(g) ? ' <span class="pr">PR</span>' : ""}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
-      return `<div class="ex-group">${head}${hist ? setBars(g) : ""}${parts.join("")}</div>`;
+      const ids = new Set(g.map(e=>e.ss).filter(Boolean)), l = g[0].exercise.toLowerCase();
+      const mates = [...new Set(list.filter(e=>ids.has(e.ss) && e.exercise.toLowerCase()!==l).map(e=>e.exercise))];
+      const ssTag = mates.length ? `<p class="ss-tag">Superset with ${esc(mates.join(", "))}</p>` : "";
+      return `<div class="ex-group">${head}${ssTag}${hist ? setBars(g) : ""}${parts.join("")}</div>`;
     }).join("");
   }
   // History: one bar per set, scaled to the heaviest load; the top set (best est. 1RM, 10 reps or fewer) is red.
@@ -2403,7 +2436,7 @@ Scaption raise (thumbs-up, scapular plane)`;
     $("#ex-chosen-name").textContent = name;
     const s = shownIn(entryFor(name), $("#muscle").value, false);
     $("#ex-chosen-meta").textContent = [$("#muscle").value, s.m===$("#muscle").value ? s.sub : ""].filter(Boolean).join(" · ");
-    showPicker(false); applyFormKind();
+    showPicker(false); applyFormKind(); supersetFor(name);
     if(isCardioForm()) prefillCardio(name); else prefill(name);
   }
   function chooseNew(name){
