@@ -383,3 +383,12 @@ button.idx[aria-pressed="true"]{background:var(--red);border-color:var(--red);co
 .data-actions .primary,.data-actions .secondary{flex:1;min-height:44px;padding:10px 12px;font-size:1rem}
 .nudge{border-left:4px solid var(--yellow)}
 .nudge p{margin:0;font-size:.95rem}
+
+/* Plate calculator: plates per side under the weight */
+.plates-line{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:8px 0 0;font-size:.88rem;font-weight:600;color:var(--muted)}
+.plate{display:inline-grid;place-items:center;min-width:32px;height:26px;padding:0 6px;border:2px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink);font-weight:800;font-stretch:85%}
+.plate.red{border-color:var(--red)}
+.plate.blue{border-color:var(--blue)}
+.plate.yellow{border-color:var(--yellow)}
+.plate.green{border-color:var(--green)}
+.pl-left{color:var(--muted);font-weight:600}

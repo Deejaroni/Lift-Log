@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-10-31 (third update)
+- Plate calculator: with Barbell or Smith machine on, the plates for each side show under the weight, in bumper-plate colors. A barbell with no bar weight set assumes a standard 45 lb (20 kg) bar and says so. If a weight can't be loaded exactly, it shows the closest load under it.
+
 ## 2026-10-31 (second update)
 - New versions no longer load half old, half new. An update downloads in the background and a note says when it's ready. Tap Reload, or it switches over the next time you fully close and reopen the app.
 - Back up everything: one file with your sets, plan, body weight history and settings (Settings → Your data). Restore it on any phone; sets are never duplicated, and you choose whether to replace the plan and settings.

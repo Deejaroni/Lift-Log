@@ -92,6 +92,7 @@
           <div class="st-head"><label class="lbl" for="weight"><span id="w-label">Weight</span> <span class="num-unit" id="w-unit">lb</span></label><span class="last" id="w-last"></span></div>
           <div class="spin"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><input id="weight" type="number" inputmode="decimal" min="0" step="any" value="0"><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
           <div class="quick" id="quick-add" role="group" aria-label="Add weight"></div>
+          <p class="plates-line" id="plates" aria-live="polite" hidden></p>
         </div>
         <div class="stepper">
           <label class="lbl" for="reps">Reps</label>
@@ -705,6 +706,35 @@
     const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
     b.setAttribute("aria-pressed", String(failSets.has(i)));
   });
+  // ---------- plate calculator: plates per side for a barbell or Smith machine ----------
+  const PLATES = {lb:[45,35,25,10,5,2.5], kg:[25,20,15,10,5,2.5,1.25]};
+  // Bumper-plate colors: kg 25 red, 20 blue, 15 yellow, 10 green; lb 45 blue, 35 yellow, 25 green.
+  const PLATE_COLOR = {lb:{45:"blue",35:"yellow",25:"green"}, kg:{25:"red",20:"blue",15:"yellow",10:"green"}};
+  function platesFor(perSide, unit){
+    const out = []; let left = Math.round(perSide*100)/100;
+    PLATES[unit].forEach(p=>{ while(left>=p){ out.push(p); left = Math.round((left-p)*100)/100; } });
+    return {plates:out, left};
+  }
+  function renderPlates(){
+    const el = $("#plates"), eq = equipField().equip || {}, unit = prefs.unit, w = parseFloat($("#weight").value)||0;
+    const k = eq.barbell ? "barbell" : eq.smith ? "smith" : null;
+    if(!k || mode!=="straight" || isCardioForm() || w<=0){ el.hidden = true; return; }
+    el.hidden = false;
+    const o = eq[k];
+    let perSide = w/2, barNote = "";
+    if(loadModeOf(k,o)!==LOAD_OPTS[0]){   // the weight includes the bar
+      let bar = o.bar;
+      if(!(bar>=0)){
+        if(k!=="barbell" || (o.type && o.type!=="Straight bar")){ el.innerHTML = "Add the bar weight under Equipment to see plates per side."; return; }
+        bar = unit==="kg" ? 20 : 45; barNote = ` (${bar} ${unit} bar)`;
+      }
+      perSide = (w-bar)/2;
+    }
+    if(perSide<=0){ el.innerHTML = "Just the bar"; return; }
+    const r = platesFor(perSide, unit);
+    el.innerHTML = `<span>Per side${barNote}:</span>` + r.plates.map(p=>`<span class="plate ${PLATE_COLOR[unit][p]||""}">${fmt(p)}</span>`).join("") +
+      (r.left>0 ? `<span class="pl-left">${fmt(r.left*2)} ${unit} under</span>` : "");
+  }
   function weightLabel(){ return isBWForm() ? "Added weight" : barAddRaw(equipField().equip)>0 ? "Plates" : "Weight"; }
   const volOf = e => loadOf(e) * e.reps * loadMult(e.equip);
   // ---------- exercise how-to hints & lateral raise details ----------
@@ -757,7 +787,7 @@
   }
 
   function updateVolPreview(){
-    refreshExerciseExtras();
+    refreshExerciseExtras(); renderPlates();
     if(typeof updateEquipSummary==="function") updateEquipSummary();
     const el = $("#vol-preview"); if(!el) return;
     if(!isCardioForm()){ $("#w-label").textContent = weightLabel(); const dh = document.querySelector("#drop-rows .drop-head span:nth-child(2)"); if(dh) dh.textContent = `${weightLabel().replace(" weight","")} (${prefs.unit})`; }
@@ -3263,7 +3293,7 @@ Scaption raise (thumbs-up, scapular plane)`;
   $("#plan-today").addEventListener("click", e=>{ if(e.target.closest("#plan-toggle")){ prefs.planCollapsed = !prefs.planCollapsed; savePrefs(); renderPlanToday(); } });
 
   function renderAll(){
-    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup();
+    renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates();
     if(!$("#tab-progress").hidden) renderProgress();
   }
 
