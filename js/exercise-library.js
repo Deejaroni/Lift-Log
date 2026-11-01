@@ -405,6 +405,8 @@ Single-leg extension
 Unilateral plate-loaded leg extension
 Cable leg extension
 Reverse Nordic
+## Hip adduction
+Seated hip adduction machine
 # Hamstrings
 ## Hip hinge: barbell
 Romanian deadlift
@@ -476,7 +478,7 @@ Smith machine split squat
 Smith machine reverse lunge
 Smith machine Bulgarian split squat
 ## Hip abduction
-Hip abduction machine
+Seated hip abduction machine
 Single-leg hip abduction machine
 Standing cable hip abduction
 Seated cable hip abduction

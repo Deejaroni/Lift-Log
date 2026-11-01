@@ -78,6 +78,14 @@ export function morePatterns({B, STAND, PATTERNS}){
   // Russian twist: seated with the knees out toward you, set lower on a mat; the hands swing hip to hip.
   const SEATED = {HL:[92,104],KL:[74,86],AL:[90,108],HR:[108,104],KR:[126,86],AR:[110,108]};
   const twistGear = (p,k) => { const h=hands(p); return {back: gear.rect(14,112,172,3,1.5), front: k==="kettlebell" ? gear.kettlebell([h[0],h[1]-6]) : k==="none" ? "" : gear.plate(h,11)}; };
+  // Seated hip machines, front view: thighs point at you, so the knees sit just below and outside the hips.
+  const HIPM = {N:[100,22],L:[86,42],R:[114,42],EL:[80,70],WL:[76,98],ER:[120,70],WR:[124,98]};
+  const hipLegs = (k, a) => ({...HIPM, HL:[92,104],KL:[100-k,122],AL:[100-a,156],HR:[108,104],KR:[100+k,122],AR:[100+a,156]});
+  const KNEES_IN = hipLegs(11,10), KNEES_OUT = hipLegs(32,22);
+  // Backrest, seat, side handles, and a knee pad on the outside (abduction) or inside (adduction) of each knee.
+  const hipMachine = (p, outside) => { const o = outside ? 9 : -9, pad = (x, y) => gear.rect(x-3.5, y-9, 7, 18, 3);
+    return {back: gear.rect(78,26,44,80,6) + gear.rect(74,104,52,8,3) + gear.rect(98,112,4,56,2) + gear.rect(70,166,60,3,1.5) + gear.handle([76,100]) + gear.handle([124,100]),
+      front: pad(p.KL[0]-o, p.KL[1]) + pad(p.KR[0]+o, p.KR[1])}; };
   // Windmill: bell locked out overhead, upper body tipped away from it, the free hand down the leg.
   const WIDE = {HL:[93,104],KL:[86,134],AL:[78,165],HR:[107,104],KR:[114,134],AR:[122,165]};
   const windmill = (lean, hand) => { const p = front(lean, hand, [0,0], 1, -1, WIDE); return {...p, ER:P([p.R[0],p.R[1]-24]), WR:P([p.R[0],p.R[1]-46])}; };
@@ -203,5 +211,11 @@ export function morePatterns({B, STAND, PATTERNS}){
     rower:{title:"Rower", noShadow:true, A:rowPose([98,142],28,[150,114]), B:rowPose([74,142],-22,[86,112]),
       gear:p=>({back: gear.path("M30 154H186M40 154V166M178 154V166",5) + gear.rect(r(p.H[0]-14),146,28,7,2) + gear.path("M150 146L160 120",5) + ring(176,122,15),
         front: gear.line(p.W,[176,122]) + gear.handle(p.W)})},
+    abductionSeated:{title:"Seated hip abduction", view:"front", legsFront:true, A:KNEES_IN, B:KNEES_OUT,
+      bands:[{seg:"thighL", f:[.1,1], side:1, m:"Glutes"},{seg:"thighR", f:[.1,1], side:-1, m:"Glutes"}], gear:p=>hipMachine(p, true),
+      steps:["Sit tall with your back on the pad, pads on the outside of your knees.","Push your knees apart as far as you can.","Let them come back together slowly."]},
+    adduction:{title:"Seated hip adduction", view:"front", legsFront:true, A:KNEES_OUT, B:KNEES_IN,
+      bands:[{seg:"thighL", f:[.1,1], side:-1, m:"Quadriceps"},{seg:"thighR", f:[.1,1], side:1, m:"Quadriceps"}], gear:p=>hipMachine(p, false),
+      steps:["Sit tall with your back on the pad, pads on the inside of your knees.","Squeeze your knees together.","Let them open back out slowly."]},
   };
 }

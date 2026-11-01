@@ -31,6 +31,16 @@ test("search knows common short names", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("the seated hip machines can be found by their gym nicknames", async ({ page }) => {
+  const errors = await openApp(page);
+  for (const [q, want] of [["good girl", "Seated hip adduction machine"], ["good girls", "Seated hip adduction machine"], ["bad girl", "Seated hip abduction machine"],
+    ["seated adduction", "Seated hip adduction machine"], ["seated abduction", "Seated hip abduction machine"], ["inner thigh", "Seated hip adduction machine"]]) {
+    await search(page, q);
+    expect((await names(page))[0], q).toBe(want);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("exact names come first and each name shows once", async ({ page }) => {
   const errors = await openApp(page);
   await search(page, "romanian deadlift");

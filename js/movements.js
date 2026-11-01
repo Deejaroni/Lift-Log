@@ -261,6 +261,8 @@ const RULES = [
   [/face pull/, "facePull"],
   [/hanging (knee|leg) raise/, "legRaise"],
   [/standing (cable )?leg curl/, "standingCurl"],
+  [/seated hip abduction machine/, "abductionSeated"],
+  [/seated hip adduction machine/, "adduction"],
   [/abduction/, "abduction"],
   [/reverse nordic/, null],
   [/nordic|glute-ham/, "nordic"],

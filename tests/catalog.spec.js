@@ -38,11 +38,11 @@ test("no exercise is listed twice under the same muscle group", async () => {
 
 test("sets logged under a retired duplicate name load under the kept name", async ({ page }) => {
   const errors = await openApp(page, {
-    entries: [set({ exercise: "High row machine", muscle: "Back", weight: 100, reps: 10 }), set({ exercise: "Reverse EZ-bar curl", muscle: "Biceps", weight: 50, reps: 12 })],
+    entries: [set({ exercise: "High row machine", muscle: "Back", weight: 100, reps: 10 }), set({ exercise: "Reverse EZ-bar curl", muscle: "Biceps", weight: 50, reps: 12 }), set({ exercise: "Hip abduction machine", muscle: "Glutes", weight: 90, reps: 15 })],
     settings: { bw: null, bwUnit: "lb", days: {}, bwLog: {}, exercises: { "high row machine": { muscle: "Back", also: ["Biceps"] } } },
   });
   const s = await page.evaluate(() => ({ e: JSON.parse(localStorage.getItem("liftlog.entries.v1")), st: JSON.parse(localStorage.getItem("liftlog.settings.v1")) }));
-  expect(s.e.map(e => e.exercise)).toEqual(["High-row machine", "EZ-bar reverse curl"]);
+  expect(s.e.map(e => e.exercise)).toEqual(["High-row machine", "EZ-bar reverse curl", "Seated hip abduction machine"]);
   expect(Object.keys(s.st.exercises)).toEqual(["high-row machine"]);
   expect(errors).toEqual([]);
 });

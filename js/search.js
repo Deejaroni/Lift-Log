@@ -28,7 +28,7 @@ const ALIASES = [
   ["calf","calves"], ["calf raise","heel raise"],
   ["reverse fly","rear delt fly","reverse pec deck"], ["lateral raise","side raise","side lateral"],
   ["bulgarian split squat","bss","rear foot elevated split squat","rfess"], ["glute ham raise","ghr"],
-  ["t bar","landmine row"], ["hip abduction","abductor","outer thigh"], ["hip adduction","adductor","inner thigh"],
+  ["t bar","landmine row"], ["hip abduction","abductor","outer thigh","bad girl"], ["hip adduction","adductor","inner thigh","good girl"],
   ["preacher","scott curl"], ["abs","abdominal","core"],
   ["stair climber","stairmaster","stepmill"], ["rowing machine","rower","erg"],
   ["air bike","assault bike","fan bike"], ["elliptical","cross trainer"],

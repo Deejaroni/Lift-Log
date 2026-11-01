@@ -64,7 +64,7 @@ function renameExercise(from, to){
   if(prefs.repeat && Array.isArray(prefs.repeat.items)) prefs.repeat.items.forEach(it=>{ if((it.exercise||"").toLowerCase()===from) it.exercise = to; });
 }
 // Migration (2026-10-31): duplicate spellings removed from the exercise library move to the name that was kept.
-const RETIRED = {"high-to-low cable fly":"Cable fly — high-to-low", "high row machine":"High-row machine", "cable high row":"High cable row", "reverse ez-bar curl":"EZ-bar reverse curl"};
+const RETIRED = {"high-to-low cable fly":"Cable fly — high-to-low", "high row machine":"High-row machine", "cable high row":"High cable row", "reverse ez-bar curl":"EZ-bar reverse curl", "hip abduction machine":"Seated hip abduction machine"};
 // Setters for values other files change.
 function setPrefs(v){ prefs = v; }
 

@@ -159,6 +159,8 @@ test("the newer movements match the right pictures", async ({ page }) => {
       ["Russian twist", "Abdominals", "Obliques / lateral trunk", "russianTwist"], ["Kettlebell Russian twist", "Abdominals", "Kettlebell", "russianTwist"],
       ["Kettlebell windmill", "Abdominals", "Kettlebell", "windmill"], ["Kettlebell halo", "Shoulders", "Kettlebell", "halo"],
       ["Kettlebell high pull", "Back", "Kettlebell", "highPull"], ["Turkish get-up", "Full body", "Kettlebell", "getUp"], ["Renegade row", "Back", "Kettlebell", "renegadeRow"],
+      ["Seated hip abduction machine", "Glutes", "Hip abduction", "abductionSeated"], ["Seated hip adduction machine", "Quadriceps", "Hip adduction", "adduction"],
+      ["Banded hip abduction", "Glutes", "Hip abduction", "abduction"],
     ];
     return want.filter(([n, m, s, k]) => patternKey(n, m, s) !== k).map(([n, m, s, k]) => `${n}: ${patternKey(n, m, s)} (want ${k})`);
   });

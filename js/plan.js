@@ -41,7 +41,7 @@ const TEMPLATES = {
     ua:["Upper A",["Seated chest press|3|8|12","Lat pulldown — medium overhand|3|8|12","Dumbbell bench press — low incline|3|8|12","Chest-supported row machine|3|8|12","Single-arm cable lateral raise|3|12|20","Preacher curl machine|3|10|15","Rope pushdown|3|10|15"]],
     la:["Lower A",["Hack squat|3|8|12","Seated leg curl|3|10|15","Leg extension machine|3|12|15","Romanian deadlift|3|8|10","Standing calf raise|4|10|15"]],
     ub:["Upper B",["Cable fly — mid pulley|3|12|15","Seated cable row|3|8|12","Seated dumbbell shoulder press|3|8|12","Single-arm cable row|3|10|12","Reverse pec deck|3|12|20","Incline dumbbell curl|3|10|12","Overhead cable triceps extension|3|10|15"]],
-    lb:["Lower B",["Leg press|3|10|15","Lying leg curl|3|10|15","Bulgarian split squat|3|8|12","Hip thrust machine|3|8|12","Hip abduction machine|2|12|20","Seated calf raise|4|12|15"]]}},
+    lb:["Lower B",["Leg press|3|10|15","Lying leg curl|3|10|15","Bulgarian split squat|3|8|12","Hip thrust machine|3|8|12","Seated hip abduction machine|2|12|20","Seated calf raise|4|12|15"]]}},
   pl:{name:"Powerlifting", desc:"Four days built around squat, bench and deadlift in low rep ranges, plus supporting accessories.",
     fixed:["sq","bp",null,"dl","bp2",null,null], rot:["sq","bp","dl","bp2"], prog:[5,10], w:{
     sq:["Squat day",["Low-bar back squat|5|3|5","Pause squat|3|3|5","Leg press|3|8|10","Lying leg curl|3|10|12","Hanging leg raise|3|8|12"]],

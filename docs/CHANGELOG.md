@@ -2,6 +2,11 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-01
+- New exercise: Seated hip adduction machine (inner thighs, listed under Quadriceps), with a moving picture of the seated machine.
+- "Hip abduction machine" is now "Seated hip abduction machine" and shows the seated machine instead of a standing leg raise. Sets you logged under the old name move to the new one.
+- Search knows the gym nicknames: "good girl" finds the adduction machine and "bad girl" the abduction machine.
+
 ## 2026-10-31 (tenth update)
 - Russian twists (plain, weighted and kettlebell), kettlebell windmills, halos and high pulls, and renegade rows now have moving pictures.
 - The Turkish get-up shows each step: lying with the bell pressed up, onto your elbow, a half kneel, then standing, and back down the same way.
