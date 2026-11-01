@@ -493,6 +493,6 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 @media (max-width:359px){
   .kicker{font-stretch:75%}
   nav.tabs button{font-stretch:72%;font-size:.9rem}
-  .ladder span{font-stretch:62%;font-size:.75rem;text-overflow:clip}
+  .ladder span{font-stretch:62%;font-size:.75rem;font-weight:500;letter-spacing:-.03em;text-overflow:clip}
   .mode button{font-stretch:85%;padding:10px 6px}
 }

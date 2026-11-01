@@ -59,7 +59,10 @@ test("on narrow screens the tab, tier and set-type labels fit", async ({ page })
   // 300 px is a 390 px phone with its text size at 130%.
   await page.setViewportSize({ width: 300, height: 650 });
   const errors = await openApp(page, demo(TODAY));
-  const cut = sel => page.evaluate(s => [...document.querySelectorAll(s)].filter(el => el.getClientRects().length && el.scrollWidth > el.clientWidth + 1).map(el => el.textContent.trim()), sel);
+  // Text that needs more than 95% of its box: fonts draw a little wider on the Linux publish machine than on Windows.
+  const cut = sel => page.evaluate(s => [...document.querySelectorAll(s)].filter(el => el.getClientRects().length).filter(el => {
+    const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width > el.clientWidth * .95;
+  }).map(el => el.textContent.trim()), sel);
   expect(await cut("nav.tabs button")).toEqual([]);
   expect((await lines(page, "#log-form .mode button")).every(n => n === 1)).toBe(true);
   await page.click('nav.tabs [data-tab="progress"]');
