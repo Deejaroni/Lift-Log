@@ -1,19 +1,29 @@
-// UI audit: opens the app with the sample data in tests/fixtures/demo.js at phone size, in light and dark,
-// screenshots each screen and measures what the design rules in CLAUDE.md ask for.
-// Run: npm run audit:ui   Output: tools/out/ui-audit/index.html (gallery + findings) and findings.json.
+// UI audit: opens the app at phone size in light and dark with the sample data in tests/fixtures/demo.js (plus a
+// first launch, long names and big numbers, and larger text), screenshots each screen and measures what the design
+// rules in CLAUDE.md ask for, how the screens hold together, how they feel to use, and what changed since last run.
+// Run: npm run audit:ui   Output: tools/out/ui-audit/index.html (report) and findings.json.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { inspect, snapRects, movedRects, timeTap, drawReach, diffImages } from "./audit/page.mjs";
+import { SCENARIOS } from "./audit/scenarios.mjs";
+import { wording, consistency, writeReport } from "./audit/report.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("@playwright/test");
-const { demo } = require("../tests/fixtures/demo.js");
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = path.join(ROOT, "tools", "out", "ui-audit");
-const W = 390, H = 844, MIN_TAP = 40;
-const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const OUT = path.join(ROOT, "tools", "out", "ui-audit"), SHOTS = path.join(OUT, "shots");
+const W = 390, H = 844, MIN_TAP = 40, GUTTER = 16, SLOW = 4;
+// A fixed day (a Wednesday, like the tests), so screenshots only change when the app does.
+const TODAY = "2026-03-04";
+
+// The controls used most during a workout, for the thumb-reach map. FREQUENT ones should be easy to reach.
+const ACTIONS = [["Log set", "#save"], ["Weight − / +", '[data-step="weight"]'], ["Reps − / +", '[data-step="reps"]'], ["Quick add", "#quick-add button"],
+  ["Rest", "#rest-start"], ["Exercise search", "#exercise-search"], ["Start plan", "#plan-today button"], ["Tabs", "nav.tabs button"]];
+const FREQUENT = new Set(["Log set", "Weight − / +", "Reps − / +", "Quick add", "Rest"]);
+const zoneOf = (x, y) => { const fx = x / W, fy = y / H; if (fy < .3 || (fy < .45 && fx < .4)) return "hard"; if (fy >= .55 && !(fx < .18 && fy > .9)) return "easy"; return "stretch"; };
 
 // A tiny static server for the repo (no caching, like npm run serve).
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json",
@@ -28,73 +38,50 @@ const server = http.createServer((req, res) => {
 await new Promise(r => server.listen(0, "127.0.0.1", r));
 const BASE = `http://127.0.0.1:${server.address().port}/`;
 
-// ---------- checks that run in the page ----------
-// Visible controls shorter than 40 px, fields with no name, text below WCAG contrast, and sideways scrolling.
-function measure(MIN_TAP) {
-  const vis = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none"; };
-  const name = el => `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
-  const text = el => (el.getAttribute("aria-label") || el.textContent || el.placeholder || "").trim().replace(/\s+/g, " ").slice(0, 32);
-  const small = [...document.querySelectorAll("button, select, a[href], [role=button], input:not([type=hidden]):not([type=checkbox]):not([type=radio])")]
-    .filter(vis).filter(el => el.getBoundingClientRect().height < MIN_TAP)
-    .map(el => `${name(el)} "${text(el)}" is ${Math.round(el.getBoundingClientRect().height)} px tall`);
-  const unnamed = [...document.querySelectorAll("input:not([type=hidden]), select, textarea, button")].filter(vis)
-    .filter(el => !el.getAttribute("aria-label") && !el.getAttribute("aria-labelledby") && !el.title && !(el.id && document.querySelector(`label[for="${el.id}"]`)) && !el.closest("label") && !(el.tagName === "BUTTON" && el.textContent.trim()))
-    .map(el => `${name(el)} has no name for screen readers`);
-  // Contrast: each element's own text against the first solid background behind it.
-  const rgb = c => { const m = c.match(/[\d.]+/g); return m ? m.map(Number) : null; };
-  const lum = ([r, g, b]) => [r, g, b].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }).reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0);
-  const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c && (c[3] === undefined || c[3] > .9)) return c; } return rgb(getComputedStyle(document.body).backgroundColor); };
-  const low = new Map();
-  for (const el of document.querySelectorAll("body *")) {
-    if (!vis(el) || el.closest("svg, [aria-hidden=true]")) continue;
-    const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(" ").trim();
-    if (!own) continue;
-    const s = getComputedStyle(el), fg = rgb(s.color), bg = bgOf(el);
-    if (!fg || (fg[3] !== undefined && fg[3] < .9) || +s.opacity < 1) continue;
-    const [a, b] = [lum(fg), lum(bg)], ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
-    const size = parseFloat(s.fontSize), large = size >= 24 || (size >= 18.66 && +s.fontWeight >= 700), need = large ? 3 : 4.5;
-    if (ratio < need) { const k = `${s.color} on rgb(${bg.slice(0, 3).join(", ")})`; if (!low.has(k)) low.set(k, `"${own.slice(0, 32)}" ${ratio.toFixed(2)}:1, needs ${need}:1 (${name(el)}, ${s.color} on rgb(${bg.slice(0, 3).join(", ")}))`); }
-  }
-  const wide = document.documentElement.scrollWidth > innerWidth + 1 ? [`the page scrolls sideways (${document.documentElement.scrollWidth} px wide)`] : [];
-  return { small, unnamed, contrast: [...low.values()], wide };
-}
-
 // ---------- the screens ----------
-const tab = t => async page => { await page.click(`nav.tabs [data-tab="${t}"]`); await page.waitForTimeout(400); };
+const tab = t => async page => { await page.click(`nav.tabs [data-tab="${t}"]`); };
 const SCREENS = [
   ["Log: top", tab("log")],
+  ["Log: form", async page => { await tab("log")(page); await page.evaluate(() => { const s = document.querySelector("#save").getBoundingClientRect(), nav = document.querySelector("nav.tabs").getBoundingClientRect(); scrollBy(0, s.bottom - (nav.top - 16)); }); }],
   ["Log: today's sets", async page => { await tab("log")(page); await page.locator("#day-list").scrollIntoViewIfNeeded(); }],
-  ["Exercise picker", async page => { await tab("log")(page); await page.click("#exercise-search"); await page.fill("#exercise-search", ""); await page.waitForTimeout(300); }],
-  ["Search results", async page => { await tab("log")(page); await page.fill("#exercise-search", "bench"); await page.waitForTimeout(300); }],
+  ["Exercise picker", async page => { await tab("log")(page); await page.click("#exercise-search"); await page.fill("#exercise-search", ""); }],
+  ["Search results", async page => { await tab("log")(page); await page.fill("#exercise-search", "bench"); }],
   ["Exercise sheet", async page => { await tab("log")(page); await page.fill("#exercise-search", "Barbell bench press — flat");
-    await page.click('#ex-results [data-name="Barbell bench press — flat"]'); await page.click("#ex-chosen-text"); await page.locator("#exsheet").waitFor(); await page.waitForTimeout(500); }],
+    await page.click('#ex-results [data-name="Barbell bench press — flat"]'); await page.click("#ex-chosen-text"); await page.locator("#exsheet").waitFor(); }],
   ["Plan", tab("plan")],
   ["History", async page => { await tab("history")(page); const more = page.locator("#history [data-more]").first(); if (await more.count()) await more.click(); }],
   ["Progress: top", tab("progress")],
   ["Progress: charts", async page => { await tab("progress")(page); await page.locator("#prog-ex").scrollIntoViewIfNeeded(); }],
   ["Settings", async page => { await tab("log")(page); await page.click("#open-settings"); await page.locator("#settings").waitFor(); }],
 ];
+const REACH = ["Log: top", "Log: form"];
 
-async function open(browser, scheme) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: scheme, serviceWorkers: "block", deviceScaleFactor: 2 });
-  await ctx.addInitScript(seed => {
+// Reduce motion is on, so the moving pictures hold still and screenshots compare cleanly between runs;
+// anything that still moves is a finding.
+async function open(browser, sc, scheme, { motion = "reduce" } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: scheme, reducedMotion: motion, serviceWorkers: "block", deviceScaleFactor: 2 });
+  await ctx.clock.setFixedTime(new Date(`${TODAY}T12:00:00Z`));
+  await ctx.addInitScript(([seed, zoom]) => {
+    if (zoom) { const z = () => document.documentElement && (document.documentElement.style.zoom = zoom); z(); document.addEventListener("DOMContentLoaded", z); }
     if (sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1"); localStorage.clear();
-    localStorage.setItem("liftlog.entries.v1", JSON.stringify(seed.entries));
-    localStorage.setItem("liftlog.settings.v1", JSON.stringify(seed.settings));
-    localStorage.setItem("liftlog.prefs.v1", JSON.stringify(seed.prefs));
-  }, demo(TODAY));
+    for (const [k, v] of [["entries", seed.entries], ["settings", seed.settings], ["prefs", seed.prefs]]) if (v) localStorage.setItem(`liftlog.${k}.v1`, JSON.stringify(v));
+  }, [sc.seed(TODAY), sc.zoom || 0]);
   const page = await ctx.newPage(), errors = [];
   page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   page.on("pageerror", e => errors.push(String(e)));
-  await page.goto(BASE);
-  // A loaded plan, so the Plan tab and the Today ring have content.
-  await page.evaluate(async () => { const { loadTemplate } = await import("./js/plan.js"), { saveSettings } = await import("./js/state.js"); loadTemplate("ppl"); await saveSettings(); });
-  await page.reload();
   return { ctx, page, errors };
 }
+async function load(page, sc) {
+  await page.goto(BASE);
+  // A loaded plan, so the Plan tab and the Today ring have content.
+  if (sc.plan !== false) { await page.evaluate(async () => { const { loadTemplate } = await import("./js/plan.js"), { saveSettings } = await import("./js/state.js"); loadTemplate("ppl"); await saveSettings(); }); await page.reload(); }
+  await page.evaluate(() => document.fonts.ready);
+}
+const frames = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 // ---------- checks on the source ----------
-// Colors outside the token blocks in css/app.css, and inline colors in the page and modules.
+// Colors outside the token blocks in css/app.css, and inline colors and browser pop-ups in the page and modules.
 function sourceChecks() {
   const out = [], css = fs.readFileSync(path.join(ROOT, "css/app.css"), "utf8").split("\n");
   let inTokens = false;
@@ -112,48 +99,87 @@ function sourceChecks() {
 }
 
 // ---------- run ----------
-fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
+// Last run's screenshots, to show what changed.
+const before = new Map();
+if (fs.existsSync(SHOTS)) for (const f of fs.readdirSync(SHOTS)) before.set(f, fs.readFileSync(path.join(SHOTS, f)));
+fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(SHOTS, { recursive: true });
 const browser = await chromium.launch();
-const findings = { source: sourceChecks(), screens: {} }, images = {};   // screenshots go into the report itself, so it opens anywhere
-for (const scheme of ["light", "dark"]) {
-  const { ctx, page, errors } = await open(browser, scheme);
-  for (const [title, go] of SCREENS) {
-    errors.length = 0;
-    await page.keyboard.press("Escape"); await page.waitForTimeout(150);
-    try { await go(page); } catch (e) { errors.push(`couldn't open this screen: ${e.message.split("\n")[0]}`); }
-    await page.waitForTimeout(300);
-    const file = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${scheme}.jpg`;
-    const shot = await page.screenshot({ path: path.join(OUT, file), type: "jpeg", quality: 75 });
-    images[file] = `data:image/jpeg;base64,${shot.toString("base64")}`;
-    const m = await page.evaluate(measure, MIN_TAP);
-    const f = (findings.screens[title] ||= {});
-    f[scheme] = { file, ...m, errors: [...errors] };
+const findings = { day: TODAY, source: sourceChecks(), scenarios: [], reach: [], speed: [] }, images = {}, shots = new Map();
+
+for (const sc of SCENARIOS) {
+  const result = { id: sc.id, title: sc.title, screens: {} };
+  findings.scenarios.push(result);
+  for (const scheme of sc.modes) {
+    const { ctx, page, errors } = await open(browser, sc, scheme);
+    await load(page, sc);
+    for (const [title, go] of SCREENS.filter(([t]) => sc.screens === "all" || sc.screens.includes(t))) {
+      errors.length = 0;
+      await page.keyboard.press("Escape"); await page.waitForTimeout(150);
+      try { await go(page); } catch (e) { errors.push(`couldn't open this screen: ${e.message.split("\n")[0]}`); }
+      // What moves once the screen is open (late content, fonts, charts), then whether anything keeps moving.
+      await frames(page); await page.evaluate(snapRects); await page.waitForTimeout(700);
+      const moves = await page.evaluate(movedRects);
+      const file = `${sc.id}-${slug(title)}-${scheme}`;
+      const a = await page.screenshot({ type: "png" }); await page.waitForTimeout(500); const b = await page.screenshot({ type: "png" });
+      fs.writeFileSync(path.join(SHOTS, `${file}.png`), b); shots.set(`${file}.png`, b);
+      const motion = a.equals(b) ? [] : [`something on screen keeps moving with reduce motion on`];
+      images[file] = `data:image/jpeg;base64,${(await page.screenshot({ type: "jpeg", quality: 72 })).toString("base64")}`;
+      const m = await page.evaluate(inspect, { MIN_TAP, GUTTER, ACTIONS });
+      (result.screens[title] ||= {})[scheme] = { file, ...m, moves, motion, errors: [...errors] };
+      if (sc.id === "main" && scheme === "light" && REACH.includes(title)) {
+        const zones = []; for (let y = 0; y < H; y += 26) for (let x = 0; x < W; x += 26) zones.push({ x, y, w: 26, h: 26, zone: zoneOf(x + 13, y + 13) });
+        const actions = m.actions.map(x => ({ ...x, zone: zoneOf(x.x, x.y) }));
+        await page.evaluate(drawReach, { zones, actions });
+        images[`reach-${slug(title)}`] = `data:image/jpeg;base64,${(await page.screenshot({ type: "jpeg", quality: 72 })).toString("base64")}`;
+        await page.evaluate(() => document.getElementById("audit-reach").remove());
+        findings.reach.push({ screen: title, image: `reach-${slug(title)}`, actions: actions.map(({ label, zone, x, y }) => ({ label, zone, x: Math.round(x), y: Math.round(y) })) });
+      }
+    }
+    await ctx.close();
   }
+}
+
+// Speed: the same taps on a phone about 4× slower than this computer, with motion on as most people have it.
+{
+  const sc = SCENARIOS[0], { ctx, page } = await open(browser, sc, "light", { motion: "no-preference" });
+  const cdp = await ctx.newCDPSession(page); await cdp.send("Emulation.setCPUThrottlingRate", { rate: SLOW });
+  await load(page, sc);
+  await page.locator("#day-list > *").first().waitFor();
+  findings.speed.push({ action: "Open the app until it can log", ms: await page.evaluate(() => performance.now()), budget: 1500 });
+  const med = xs => xs.filter(x => x != null).sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  const logs = [];
+  for (let i = 0; i < 3; i++) { await page.fill("#exercise-search", "Barbell bench press — flat"); await page.click('#ex-results [data-name="Barbell bench press — flat"]');
+    await page.fill("#weight", "135"); await page.fill("#reps", "5"); logs.push(await page.evaluate(timeTap, "#save")); await page.waitForTimeout(300); }
+  findings.speed.push({ action: "Log set", ms: med(logs), budget: 100 });
+  await page.evaluate(() => scrollTo(0, 0));
+  findings.speed.push({ action: "Tap the exercise search", ms: await page.evaluate(timeTap, "#exercise-search"), budget: 100 });
+  for (const t of ["plan", "history", "progress", "log"]) { const xs = [], from = t === "log" ? "progress" : "log";
+    for (let i = 0; i < 3; i++) { await page.click(`nav.tabs [data-tab="${from}"]`); await page.waitForTimeout(300); xs.push(await page.evaluate(timeTap, `nav.tabs [data-tab="${t}"]`)); }
+    findings.speed.push({ action: `Open the ${t[0].toUpperCase() + t.slice(1)} tab`, ms: med(xs), budget: 100 }); }
+  await page.waitForTimeout(300);
+  findings.speed.push({ action: "Open Settings", ms: await page.evaluate(timeTap, "#open-settings"), budget: 100 });
+  findings.speed.forEach(s => { s.ms = s.ms == null ? null : Math.round(s.ms); });
   await ctx.close();
+}
+
+// What changed since the last run, screen by screen.
+findings.changes = { compared: 0, changed: [], added: [], removed: [...before.keys()].filter(f => !shots.has(f)).map(f => f.replace(/\.png$/, "")) };
+{
+  const page = await browser.newPage(); await page.setContent("<body></body>");
+  for (const [f, now] of shots) {
+    const old = before.get(f); if (!old) { if (before.size) findings.changes.added.push(f.replace(/\.png$/, "")); continue; }
+    findings.changes.compared++; if (old.equals(now)) continue;
+    const d = await page.evaluate(diffImages, [`data:image/png;base64,${old.toString("base64")}`, `data:image/png;base64,${now.toString("base64")}`]);
+    if (d.changed > .0002) findings.changes.changed.push({ file: f.replace(/\.png$/, ""), ...d, box: d.box?.map(v => Math.round(v / 2)) });
+  }
+  await page.close();
 }
 await browser.close(); server.close();
 
-// ---------- report ----------
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const KINDS = [["small", "Tap targets under 40 px"], ["contrast", "Low contrast text"], ["unnamed", "No screen-reader name"], ["wide", "Sideways scrolling"], ["errors", "Console errors"]];
-// Each issue once, with the screens and modes it showed up on (the Log tab sits behind Settings and the sheet).
-const issues = new Map();
-for (const [title, s] of Object.entries(findings.screens)) for (const sc of ["light", "dark"]) for (const [k, label] of KINDS) for (const x of s[sc][k] || []) {
-  const key = `${label}|${x}`; if (!issues.has(key)) issues.set(key, { label, text: x, where: new Set(), modes: new Set() });
-  issues.get(key).where.add(title); issues.get(key).modes.add(sc);
-}
-findings.issues = [...issues.values()].map(i => ({ kind: i.label, issue: i.text, modes: [...i.modes], screens: [...i.where] }));
-const total = findings.issues.length + findings.source.length;
-const list = KINDS.map(([, label]) => { const xs = findings.issues.filter(i => i.kind === label);
-  return xs.length ? `<section><h2>${label} (${xs.length})</h2><ul>${xs.map(i => `<li>${esc(i.issue)} <small>${i.modes.join(" and ")} · ${esc(i.screens.join(", "))}</small></li>`).join("")}</ul></section>` : ""; }).join("");
-const rows = Object.entries(findings.screens).map(([title, s]) => `<section><h2>${esc(title)}</h2><div class="pair"><figure><img src="${images[s.light.file]}" alt=""><figcaption>Light</figcaption></figure><figure><img src="${images[s.dark.file]}" alt=""><figcaption>Dark</figcaption></figure></div></section>`).join("");
-fs.writeFileSync(path.join(OUT, "findings.json"), JSON.stringify(findings, null, 1));
-fs.writeFileSync(path.join(OUT, "index.html"), `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UI audit</title>
-<style>body{margin:0;padding:16px;font:15px/1.45 system-ui,sans-serif;background:#f4f5f7;color:#1b2430}h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:0 0 8px}
-section{background:#fff;border:1px solid #d8dde3;border-radius:12px;padding:12px;margin:12px 0}.pair{display:flex;gap:10px;overflow-x:auto}figure{margin:0;flex:0 0 auto}
-img{width:195px;border:1px solid #d8dde3;border-radius:10px;display:block}figcaption{font-size:12px;color:#5b6776;margin-top:2px}ul{margin:8px 0 0;padding-left:18px}small{color:#5b6776}</style></head>
-<body><h1>UI audit, ${TODAY}</h1><p>${total} measured issue${total === 1 ? "" : "s"} at ${W} × ${H}, light and dark, with the sample data. Measured: tap targets, contrast, screen-reader names, sideways scrolling, console errors. Judge the rest by eye.</p>
-${findings.source.length ? `<section><h2>Source (${findings.source.length})</h2><ul>${findings.source.map(x => `<li>${esc(x)}</li>`).join("")}</ul></section>` : ""}${list}<h1 style="margin-top:20px">Screens</h1>${rows}</body></html>`);
+findings.wording = wording(findings.scenarios[0], fs.readFileSync(path.join(ROOT, "js/exercise-library.js"), "utf8"));
+findings.consistency = consistency(findings.scenarios[0]);
+const { total, issues, edge } = writeReport({ OUT, findings, images, W, H, SLOW, FREQUENT });
 console.log(`${total} measured issue(s). Report: ${path.relative(ROOT, path.join(OUT, "index.html"))}`);
 for (const x of findings.source) console.log("  source: " + x);
-for (const i of findings.issues) console.log(`  ${i.kind} (${i.modes.join(", ")}): ${i.issue}  [${i.screens.join(", ")}]`);
+for (const i of issues) console.log(`  ${i.kind} (${i.modes.join(", ")}): ${i.issue}  [${i.screens.join(", ")}]`);
+for (const e of edge) console.log(`  ${e.title}: ${e.issues.length} more (see the report)`);

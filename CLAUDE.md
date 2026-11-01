@@ -49,7 +49,7 @@ GitHub Pages. Used daily at the gym, often one-handed, often in dark mode.
 ## Commands
 - npm test       all tests (Playwright, headless Chromium, phone size)
 - npm run serve  local copy at http://localhost:8080
-- npm run audit:ui   screenshots and design measurements (tools/out/ui-audit)
+- npm run audit:ui   screenshots, design measurements, edge cases, speed and changes since last run (tools/out/ui-audit)
 - npm run mockup -- <spec>   phone mockup in light and dark (tools/out/mockup)
 - /ship          test, changelog, commit, push, watch the publish
 - /mockup        mockup a visual change and wait for approval
