@@ -1,7 +1,7 @@
 // Lift Log: Rest timer, settings sheet, offline support and start-up. Loaded last.
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
-import { $, LS_KEY, toast } from "./ui.js";
+import { $, LS_KEY, soon, toast } from "./ui.js";
 import { bwEntryOn, loadLocal, prefs, recordBW, savePrefs, saveSettings, settings } from "./state.js";
 import { renderBackup } from "./backup.js";
 import { applyUnit, fmt, niceDate, renderPlates, renderQuick, toUnit, today, updateVolPreview } from "./log.js";
@@ -107,8 +107,11 @@ function updateEquipSummary(){
 }
 function setEquipOpen(open){ $("#equip-body").hidden = !open; $("#equip-sum").setAttribute("aria-expanded", String(open)); }
 
+// The two slowest redraws (the exercise list and History) wait for the next frame unless you're looking at them.
 function renderAll(){
-  renderPicker(); renderBrandList(); renderDay(); renderHistory(); renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates(); renderRepeat();
+  soon(renderPicker, !$("#tab-log").hidden && document.activeElement===$("#exercise-search"));
+  renderBrandList(); renderDay(); soon(renderHistory, !$("#tab-history").hidden);
+  renderPlanToday(); renderHead(); renderQuick(); renderPlan(); renderRestSet(); renderSettings(); renderBackup(); renderPlates(); renderRepeat();
   if(!$("#tab-progress").hidden) renderProgress();
 }
 function watchForUpdates(reg){

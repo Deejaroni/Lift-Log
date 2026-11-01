@@ -72,6 +72,26 @@
         </div>
       </div>
 
+      <div id="variant-wrap" class="eq-fields" hidden style="margin-top:14px;border-left-color:var(--red)">
+        <h4>Lateral raise details</h4>
+        <div class="eq-grid">
+          <div><label class="lbl" for="lr-grip">Grip</label><select id="lr-grip"></select></div>
+          <div><label class="lbl" for="lr-path">Arm path</label><select id="lr-path"></select></div>
+          <div><label class="lbl" for="lr-pos">Position</label><select id="lr-pos"></select></div>
+        </div>
+        <p class="cal-sub" id="lr-emph"></p>
+      </div>
+
+      <div class="equip">
+        <button type="button" class="equip-sum" id="equip-sum" aria-expanded="false" aria-controls="equip-body"><span class="lbl" style="margin:0" id="equip-lbl">Equipment</span><span id="equip-sum-text">None</span><span class="chev" aria-hidden="true">›</span></button>
+        <div id="equip-body" hidden>
+          <div class="equip-toggles" id="equip-toggles" role="group" aria-labelledby="equip-lbl"></div>
+          <div id="equip-fields"></div>
+        </div>
+        <datalist id="brand-list"></datalist>
+      </div>
+      <div class="ss-row" id="ss-row"><label class="tog"><input type="checkbox" role="switch" id="ss-on"><span class="sw" aria-hidden="true"></span>Superset with next exercise</label><p class="cal-sub" id="ss-hint" aria-live="polite" hidden></p></div>
+
       <div class="mode" role="group" aria-label="Set type">
         <button data-mode="straight" aria-pressed="true">Straight sets</button>
         <button data-mode="drop" aria-pressed="false">Drop / pyramid</button>
@@ -133,26 +153,6 @@
         <div class="cal-bw" style="margin-top:0"><input type="number" id="bw-today" inputmode="decimal" min="0" step="any" placeholder="Body weight"><span id="bw-today-unit">lb</span></div>
       </div>
 
-      <div id="variant-wrap" class="eq-fields" hidden style="margin-top:14px;border-left-color:var(--red)">
-        <h4>Lateral raise details</h4>
-        <div class="eq-grid">
-          <div><label class="lbl" for="lr-grip">Grip</label><select id="lr-grip"></select></div>
-          <div><label class="lbl" for="lr-path">Arm path</label><select id="lr-path"></select></div>
-          <div><label class="lbl" for="lr-pos">Position</label><select id="lr-pos"></select></div>
-        </div>
-        <p class="cal-sub" id="lr-emph"></p>
-      </div>
-
-      <div class="equip" style="margin-top:14px">
-        <button type="button" class="equip-sum" id="equip-sum" aria-expanded="false" aria-controls="equip-body"><span class="lbl" style="margin:0" id="equip-lbl">Equipment</span><span id="equip-sum-text">None</span><span class="chev" aria-hidden="true">›</span></button>
-        <div id="equip-body" hidden>
-          <div class="equip-toggles" id="equip-toggles" role="group" aria-labelledby="equip-lbl"></div>
-          <div id="equip-fields"></div>
-        </div>
-        <datalist id="brand-list"></datalist>
-      </div>
-
-      <div class="ss-row" id="ss-row"><label class="tog"><input type="checkbox" role="switch" id="ss-on"><span class="sw" aria-hidden="true"></span>Superset with next exercise</label><p class="cal-sub" id="ss-hint" aria-live="polite" hidden></p></div>
       <button class="note-toggle" id="note-toggle" aria-expanded="false">Add a note</button>
       <div id="note-wrap" hidden style="margin-top:8px">
         <label class="lbl" for="note">Note</label>

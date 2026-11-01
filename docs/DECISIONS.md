@@ -74,6 +74,22 @@ Each accent has two tokens: `--red`, `--blue`, `--yellow` and `--green` for fill
 ## Design checks are tools, not tests
 `npm run audit:ui` (tools/ui-audit.mjs) screenshots every main screen at 390 × 844 in light and dark with shared sample data (tests/fixtures/demo.js), and measures tap targets, WCAG contrast, screen-reader names, sideways scrolling and non-token colors. `npm run mockup` (tools/mockup.mjs) draws proposed changes with the app's real stylesheet, tokens, font and figure code. Both write to tools/out/, which isn't committed, and neither is part of the app or its offline cache. The audit reports rather than fails, because contrast and layout calls need judgment; once a rule is agreed (like 40 px tap targets), it moves into a test. Screenshot-comparison tests were left out: fonts render differently on Windows and on the Linux publish machine, so they'd need separate reference images for each.
 
+## A size scale for text, spacing and corners
+The 2026-11-01 audit found 26 font sizes, 21 spacing values and 8 corner radii, many a fraction of a pixel apart. They were snapped to a scale, and tests/polish.spec.js keeps it that way:
+- Text: .75, .85, .9, 1, 1.1, 1.3 and 1.6rem (12, 13.6, 14.4, 16, 17.6, 20.8 and 25.6 px). Big display numbers (1.8rem and up) are set one by one.
+- Spacing: even pixel steps (1 px only for hairline offsets).
+- Corners: 2 px for thin bars, then 4, 8, 10, 12, 14, and 999 for pills.
+A value that falls between steps goes to the nearer one unless that breaks a layout; the stat labels went down to 12 px rather than up, so "Longest (min)" stays on one line.
+
+## Every button has a pressed look
+Bordered buttons fill with `--line` while pressed; text-only buttons (Add a note, exercise names, Export) fade to 55%. Log set, the tabs, the steppers and list rows keep their own pressed styles. tests/polish.spec.js fails if any visible button on the main screens has no `:active` rule.
+
+## Slow redraws wait for the next frame
+After Log set, `renderAll()` redraws everything that depends on your sets. The exercise list and History are the two slow parts (about 30 and 40 ms on a mid-range phone) and usually aren't on screen when you log, so `soon()` in js/ui.js draws them just after the next frame, unless you're looking at them (the History tab is open, or you're typing in the exercise search). Several calls before then draw once. Log set went from about 190 ms to about 30 ms from tap to screen. The UI audit times taps with the browser's Event Timing (press to next frame), the same measure as Core Web Vitals' INP, so work put off until after the frame doesn't count.
+
+## The Log form puts once-per-exercise settings first
+Equipment, the lateral raise details and "Superset with next exercise" sit under the exercise search, above the set type, instead of under the reps. You set them once per exercise, while weight, reps and Log set are tapped every set, so these now sit together at the bottom of the form, closer to your thumb. A sticky log bar above the tabs was the other option; it was left out as the bigger change.
+
 ## What the UI audit measures beyond usability
 The audit also looks at how the screens hold together and feel, not just whether they pass the rules:
 - **Edge cases:** besides the sample data it opens a first launch (no data), long names and big numbers in kg (`stress()` in tools/audit/scenarios.mjs), and text at 130% and 200%. Larger text is browser zoom (a narrower page drawn bigger, so small-screen layouts apply), the way Chrome on Android applies its text size setting. It flags text cut off, text spilling out of its box, and items that overlap. Edge cases list only what the sample data didn't already show.

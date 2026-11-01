@@ -22,7 +22,7 @@ This is a report, not a fix. Change no app files until I say which findings to f
    - buttons with no pressed look, things that move after a screen opens or keep moving with reduce motion on
    - labels that wrap, labels not in sentence case, the same thing said two ways
    - frequent Log controls in the hard-to-reach area for a thumb (a map of the Log tab)
-   - tap-to-screen times with the CPU slowed 4× (aim: 100 ms per tap)
+   - tap-to-screen times (browser Event Timing) with the CPU slowed 4× (aim: 100 ms per tap)
    - every font size, weight, radius, spacing value, shadow and transition in use, with odd ones marked
    - edge cases: first launch, long names and big numbers in kg, text at 130% and 200%
    - what changed since the last run, in red

@@ -1,7 +1,7 @@
 // Lift Log: Equipment toggles and the cardio form.
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
-import { $ } from "./ui.js";
+import { $, soon } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, prefs, recordBW, savePrefs, saveSettings, store } from "./state.js";
 import { LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
 import { cap, editCardioHTML, editing } from "./entries.js";
@@ -273,7 +273,7 @@ function resetForm(){
   setFailSets(new Set()); setFailN(0); setRirPick(null); renderRir(); $("#ss-on").checked = false; renderSuperset();
   $("#note").value = ""; $("#note-wrap").hidden = true; $("#note-toggle").setAttribute("aria-expanded","false");
   $("#c-min").value = 30; $("#c-dist").value = ""; setEffort("moderate"); delete $("#cardio-details").dataset.type; $("#cardio-details").innerHTML = "";
-  setExShowAll(false); renderPicker(); applyFormKind();
+  setExShowAll(false); soon(renderPicker); applyFormKind();
 }
 
 async function saveCardio(exercise){

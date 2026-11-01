@@ -37,10 +37,20 @@ function toast(message, action, onAction, ms){
   if(ms) toast.t = setTimeout(hideToast, ms);
 }
 function hideToast(){ clearTimeout(toast.t); $("#toast").hidden = true; }
+// ---------- later: slow redraws wait until just after the next frame ----------
+// So a tap (like Log set) shows its result at once. `now` draws straight away instead (it's what you're looking at);
+// a later call while one is waiting draws it then.
+const waiting = new Set();
+function soon(fn, now){
+  if(now){ waiting.delete(fn); return fn(); }
+  if(waiting.has(fn)) return;
+  waiting.add(fn);
+  requestAnimationFrame(()=>setTimeout(()=>{ if(waiting.delete(fn)) fn(); }));
+}
 const LS_KEY = "liftlog.entries.v1", PREF_KEY = "liftlog.prefs.v1";
 const KG_PER_LB = 0.45359237;
 export function init(){
   $("#toast-x").onclick = hideToast;
 }
 
-export { $, dialog, askConfirm, notify, toast, hideToast, LS_KEY, PREF_KEY, KG_PER_LB };
+export { $, dialog, askConfirm, notify, toast, hideToast, soon, LS_KEY, PREF_KEY, KG_PER_LB };

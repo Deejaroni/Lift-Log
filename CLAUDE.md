@@ -20,7 +20,10 @@ GitHub Pages. Used daily at the gym, often one-handed, often in dark mode.
   tokens in css/app.css; never hard-code them. Text in an accent color uses
   its -ink token (--red-ink etc.); the plain token is for fills.
 - Font: Archivo (variable, self-hosted; use font-stretch for condensed text). Accents: plate red, blue, yellow, green.
-- Tap targets at least 40 px. Short, plain wording in sentence case.
+- Tap targets at least 40 px, and every button has a pressed (:active) look.
+  Short, plain wording in sentence case.
+- Sizes come from the scale in docs/DECISIONS.md (7 text sizes, even spacing,
+  a few corner radii); tests/polish.spec.js checks it.
 - After any entry is logged, the Log form resets (muscle group: All).
 
 ## The math (keep consistent everywhere)

@@ -147,14 +147,6 @@ export function movedRects() {
   return out.slice(0, 8);
 }
 
-// Times a tap: from the click to the next frame the browser paints.
-export async function timeTap(sel) {
-  const el = document.querySelector(sel); if (!el) return null;
-  const t0 = performance.now(); el.click();
-  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
-  return performance.now() - t0;
-}
-
 // Paints the thumb-reach map over the screen: zones, and an outline on each frequent control.
 export function drawReach({ zones, actions }) {
   const o = document.createElement("div"); o.id = "audit-reach";

@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import { inspect, snapRects, movedRects, timeTap, drawReach, diffImages } from "./audit/page.mjs";
+import { inspect, snapRects, movedRects, drawReach, diffImages } from "./audit/page.mjs";
 import { SCENARIOS } from "./audit/scenarios.mjs";
 import { wording, consistency, writeReport } from "./audit/report.mjs";
 const require = createRequire(import.meta.url);
@@ -147,18 +147,23 @@ for (const sc of SCENARIOS) {
   await load(page, sc);
   await page.locator("#day-list > *").first().waitFor();
   findings.speed.push({ action: "Open the app until it can log", ms: await page.evaluate(() => performance.now()), budget: 1500 });
+  // A real tap, timed by the browser from the press to the next frame on screen (Event Timing, as in Core Web Vitals' INP).
+  // Work an app puts off until after that frame doesn't count, because you already see the result.
+  await page.evaluate(() => { window.__taps = []; new PerformanceObserver(l => window.__taps.push(...l.getEntries())).observe({ type: "event", durationThreshold: 16 }); });
+  const tap = async sel => { await page.evaluate(() => { window.__taps = []; }); await page.click(sel); await page.waitForTimeout(500);
+    return page.evaluate(() => Math.max(16, ...window.__taps.filter(e => /pointer|mouse|click|key/.test(e.name)).map(e => e.duration))); };
   const med = xs => xs.filter(x => x != null).sort((a, b) => a - b)[Math.floor(xs.length / 2)];
   const logs = [];
   for (let i = 0; i < 3; i++) { await page.fill("#exercise-search", "Barbell bench press — flat"); await page.click('#ex-results [data-name="Barbell bench press — flat"]');
-    await page.fill("#weight", "135"); await page.fill("#reps", "5"); logs.push(await page.evaluate(timeTap, "#save")); await page.waitForTimeout(300); }
+    await page.fill("#weight", "135"); await page.fill("#reps", "5"); await page.waitForTimeout(300); logs.push(await tap("#save")); }
   findings.speed.push({ action: "Log set", ms: med(logs), budget: 100 });
   await page.evaluate(() => scrollTo(0, 0));
-  findings.speed.push({ action: "Tap the exercise search", ms: await page.evaluate(timeTap, "#exercise-search"), budget: 100 });
+  findings.speed.push({ action: "Tap the exercise search", ms: await tap("#exercise-search"), budget: 100 });
   for (const t of ["plan", "history", "progress", "log"]) { const xs = [], from = t === "log" ? "progress" : "log";
-    for (let i = 0; i < 3; i++) { await page.click(`nav.tabs [data-tab="${from}"]`); await page.waitForTimeout(300); xs.push(await page.evaluate(timeTap, `nav.tabs [data-tab="${t}"]`)); }
+    for (let i = 0; i < 3; i++) { await page.click(`nav.tabs [data-tab="${from}"]`); await page.waitForTimeout(300); xs.push(await tap(`nav.tabs [data-tab="${t}"]`)); }
     findings.speed.push({ action: `Open the ${t[0].toUpperCase() + t.slice(1)} tab`, ms: med(xs), budget: 100 }); }
   await page.waitForTimeout(300);
-  findings.speed.push({ action: "Open Settings", ms: await page.evaluate(timeTap, "#open-settings"), budget: 100 });
+  findings.speed.push({ action: "Open Settings", ms: await tap("#open-settings"), budget: 100 });
   findings.speed.forEach(s => { s.ms = s.ms == null ? null : Math.round(s.ms); });
   await ctx.close();
 }

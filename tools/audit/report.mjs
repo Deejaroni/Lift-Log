@@ -108,7 +108,7 @@ ${findings.source.length ? `<details class="card" open><summary><h2>Source (${fi
 <h2 class="sec">Edge cases</h2><p class="lead">Issues that show up only with no data, long names and big numbers, or larger text. Expect some at 200%; look for what breaks at 130%.</p>${edges}
 <h2 class="sec">Changes since the last run</h2>${changes}
 <h2 class="sec">Thumb reach</h2><p class="lead">Holding the phone in the right hand: green is easy for the thumb, yellow a stretch, red needs the other hand or a regrip. The zones are this tool's own estimate. ★ marks controls used on every set.</p>${reach}
-<h2 class="sec">Speed</h2><p class="lead">Time from a tap to the next frame on screen, with this computer slowed ${SLOW}× to stand in for a mid-range phone. Under 100 ms feels instant. Rough numbers: run it twice before acting on one.</p><div class="card">${speed}</div>
+<h2 class="sec">Speed</h2><p class="lead">Time from a tap to the next frame on screen, measured by the browser (16 means 16 ms or less), with this computer slowed ${SLOW}× to stand in for a mid-range phone. Under 100 ms feels instant. Rough numbers: run it twice before acting on one.</p><div class="card">${speed}</div>
 <h2 class="sec">Sizes in use</h2><p class="lead">Every value on the sample-data screens, with how many kinds of element use it (hover for which). Yellow ones are used once or sit within a pixel of a more common value: candidates to snap to a standard size.</p>${sizes}
 ${screens}</body></html>`);
   return { total, issues, edge };

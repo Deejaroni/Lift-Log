@@ -2,6 +2,17 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-01 (third update)
+- On today's sets, details like "Dumbbells: one side, per hand" or "2 left · RPE 8" get their own line under the weight instead of a narrow column, so they're readable on any phone.
+- Every button now reacts when you press it: buttons with a border turn gray, and text links fade.
+- Log set responds faster: the result shows right away, and the exercise list and History update a moment later.
+- Equipment and "Superset with next exercise" moved above the set type on the Log form, so weight, reps and Log set sit closer together.
+- Numbers stay with their units: "≈ 126 cal" and "2,280 lb" no longer split across lines.
+- On small phones or with larger text, the tab labels, strength tier names, the Drop / pyramid button and the header lines use narrower letters, so they fit instead of being cut off.
+- A tidier look: text, spacing and corners use a smaller set of consistent sizes.
+- Dark mode: the other sets' bars in History are a quieter gray, so the top set stands out.
+- "No streak yet" is gray instead of red.
+
 ## 2026-11-01 (second update)
 - Colored text is easier to read: calories, the 30-day change, PR badges and strength tiers use a darker shade in light mode, and red and blue text use a brighter shade in dark mode.
 - In dark mode, red buttons and the active tab are a slightly deeper red, so their white text stands out.
