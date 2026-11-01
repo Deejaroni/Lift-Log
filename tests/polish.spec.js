@@ -60,9 +60,11 @@ test("on narrow screens the tab, tier and set-type labels fit", async ({ page })
   await page.setViewportSize({ width: 300, height: 650 });
   const errors = await openApp(page, demo(TODAY));
   // Text that needs more than 95% of its box: fonts draw a little wider on the Linux publish machine than on Windows.
-  const cut = sel => page.evaluate(s => [...document.querySelectorAll(s)].filter(el => el.getClientRects().length).filter(el => {
-    const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width > el.clientWidth * .95;
-  }).map(el => el.textContent.trim()), sel);
+  // A failure says how wide the text and its box are, and whether the condensed font is in use.
+  const cut = sel => page.evaluate(async s => { await document.fonts.ready;
+    return [...document.querySelectorAll(s)].filter(el => el.getClientRects().length).map(el => { const r = document.createRange(); r.selectNodeContents(el); return { el, w: r.getBoundingClientRect().width }; })
+      .filter(x => x.w > x.el.clientWidth * .95).map(({ el, w }) => `${el.textContent.trim()}: ${w.toFixed(1)} px of ${el.clientWidth} px (page ${innerWidth}/${document.documentElement.clientWidth}, `
+        + `${getComputedStyle(el).fontStretch} ${getComputedStyle(el).fontWeight}, Archivo ${document.fonts.check('500 12px "Archivo"') ? "loaded" : "missing"})`); }, sel);
   expect(await cut("nav.tabs button")).toEqual([]);
   expect((await lines(page, "#log-form .mode button")).every(n => n === 1)).toBe(true);
   await page.click('nav.tabs [data-tab="progress"]');
