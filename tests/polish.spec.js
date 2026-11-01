@@ -59,11 +59,11 @@ test("on narrow screens the tab, tier and set-type labels fit", async ({ page })
   // 300 px is a 390 px phone with its text size at 130%.
   await page.setViewportSize({ width: 300, height: 650 });
   const errors = await openApp(page, demo(TODAY));
-  // Text that needs more than 95% of its box: fonts draw a little wider on the Linux publish machine than on Windows.
-  // A failure says how wide the text and its box are, and whether the condensed font is in use.
+  // Text wider than its box. Fonts draw about 7% wider on the Linux publish machine than on Windows (46.7 vs 43.7 px
+  // for "Intermediate" in a 48 px column), so that run is the stricter check. A failure says how wide the text and box are.
   const cut = sel => page.evaluate(async s => { await document.fonts.ready;
     return [...document.querySelectorAll(s)].filter(el => el.getClientRects().length).map(el => { const r = document.createRange(); r.selectNodeContents(el); return { el, w: r.getBoundingClientRect().width }; })
-      .filter(x => x.w > x.el.clientWidth * .95).map(({ el, w }) => `${el.textContent.trim()}: ${w.toFixed(1)} px of ${el.clientWidth} px (page ${innerWidth}/${document.documentElement.clientWidth}, `
+      .filter(x => x.w > x.el.clientWidth + .5).map(({ el, w }) => `${el.textContent.trim()}: ${w.toFixed(1)} px of ${el.clientWidth} px (page ${innerWidth}/${document.documentElement.clientWidth}, `
         + `${getComputedStyle(el).fontStretch} ${getComputedStyle(el).fontWeight}, Archivo ${document.fonts.check('500 12px "Archivo"') ? "loaded" : "missing"})`); }, sel);
   expect(await cut("nav.tabs button")).toEqual([]);
   expect((await lines(page, "#log-form .mode button")).every(n => n === 1)).toBe(true);
