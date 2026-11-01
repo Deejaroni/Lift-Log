@@ -4,7 +4,9 @@
   "description": "Workout journal PWA. No build step: the repo is served as-is.",
   "scripts": {
     "serve": "http-server . -p 8080 -c-1 --silent",
-    "test": "playwright test"
+    "test": "playwright test",
+    "audit:ui": "node --no-warnings tools/ui-audit.mjs",
+    "mockup": "node --no-warnings tools/mockup.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

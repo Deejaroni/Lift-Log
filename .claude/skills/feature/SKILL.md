@@ -11,6 +11,7 @@ The feature: $ARGUMENTS
 2. Write a short plan in plain English: what the user will see, which files change,
    and any new stored data (which needs a migration in js/state.js). Show it to me
    and wait for my OK. Ask if anything about the look or behavior is unclear.
+   If I'll see something new or different, follow /mockup and get my OK on the mockup too.
 3. Write a test in /tests that describes the new behavior. Run it and confirm it fails.
 4. Build the feature. Add any new app file to the cache list in sw.js.
 5. Run `npm test` until everything passes. Check the change at 390 x 844 in light

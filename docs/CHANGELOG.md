@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-01 (second update)
+- Behind the scenes: new design tools. A UI audit screenshots every screen in light and dark mode with sample data and checks button sizes, contrast and labels, and a mockup tool draws proposed changes with the app's real styles. Nothing in the app changed.
+
 ## 2026-11-01
 - New exercise: Seated hip adduction machine (inner thighs, listed under Quadriceps), with a moving picture of the seated machine.
 - "Hip abduction machine" is now "Seated hip abduction machine" and shows the seated machine instead of a standing leg raise. Sets you logged under the old name move to the new one.

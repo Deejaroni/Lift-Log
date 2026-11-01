@@ -68,6 +68,9 @@ The code that used to sit inside index.html is split along its sections into ES 
 
 Rules that follow: a new file needs an import in js/app.js (with `init` if it has start-up code) and an entry in `FILES` in sw.js. tests/files.spec.js checks that every module is reached through imports and cached, that start-up order begins with ui and state and ends with main, and that code files stay under about 600 lines (exercise-library.js, which is data, is exempt).
 
+## Design checks are tools, not tests
+`npm run audit:ui` (tools/ui-audit.mjs) screenshots every main screen at 390 × 844 in light and dark with shared sample data (tests/fixtures/demo.js), and measures tap targets, WCAG contrast, screen-reader names, sideways scrolling and non-token colors. `npm run mockup` (tools/mockup.mjs) draws proposed changes with the app's real stylesheet, tokens, font and figure code. Both write to tools/out/, which isn't committed, and neither is part of the app or its offline cache. The audit reports rather than fails, because contrast and layout calls need judgment; once a rule is agreed (like 40 px tap targets), it moves into a test. Screenshot-comparison tests were left out: fonts render differently on Windows and on the Linux publish machine, so they'd need separate reference images for each.
+
 ## The publish workflow is pinned to Ubuntu 24.04
 GitHub is moving `ubuntu-latest` to Ubuntu 26 (from 2026-10-19). The tests install Chromium with `npx playwright install --with-deps`, which needs Playwright to know the operating system's packages, so a silent switch could break publishing. Both jobs run on `ubuntu-24.04` (supported into 2029) until Playwright lists Ubuntu 26.04 as supported. The actions are on their Node 24 versions (checkout v7, setup-node v7, configure-pages v6, upload-pages-artifact v5, deploy-pages v5), and the tests run on Node 24 to match local development.
 
