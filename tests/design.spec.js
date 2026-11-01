@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { openApp } = require("./helpers");
+const { openApp, set, cardio } = require("./helpers");
 
 test("the app uses the self-hosted Archivo font", async ({ page }) => {
   const errors = await openApp(page);
@@ -45,5 +45,34 @@ test("on small phones the reps and sets steppers stack with + on top and − bel
   const wMinus = await page.locator('[data-step="weight"][data-dir="-1"]').boundingBox();
   const wPlus = await page.locator('[data-step="weight"][data-dir="1"]').boundingBox();
   expect(Math.abs(wMinus.y - wPlus.y)).toBeLessThan(2);
+  expect(errors).toEqual([]);
+});
+
+test("everything you tap is at least 40 px tall", async ({ page }) => {
+  const errors = await openApp(page, { entries: [set({ exercise: "Barbell bench press — flat", muscle: "Chest", weight: 185, reps: 5 }), cardio({ exercise: "Treadmill", minutes: 20 })] });
+  const small = () => page.evaluate(() => [...document.querySelectorAll("button, select, input:not([type=checkbox]):not([type=radio]):not([type=hidden])")]
+    .filter(el => { const r = el.getBoundingClientRect(); return r.width && r.height && getComputedStyle(el).visibility !== "hidden" && r.height < 40; })
+    .map(el => `${el.id || el.className || el.tagName} "${(el.getAttribute("aria-label") || el.textContent).trim().slice(0, 30)}" ${Math.round(el.getBoundingClientRect().height)}px`));
+  const found = { log: await small() };
+  await page.click('nav.tabs [data-tab="progress"]');
+  found.progress = await small();
+  await page.click('nav.tabs [data-tab="history"]');
+  for (const b of await page.locator("#history [data-more]").all()) await b.click();
+  found.history = await small();
+  await page.click("#open-settings");
+  await page.locator("#settings").waitFor();
+  found.settings = await small();
+  expect(found).toEqual({ log: [], progress: [], history: [], settings: [] });
+  expect(errors).toEqual([]);
+});
+
+test("fields and buttons have names for screen readers", async ({ page }) => {
+  const errors = await openApp(page);
+  const missing = await page.evaluate(() => [...document.querySelectorAll("input:not([type=hidden]), select, textarea")]
+    .filter(el => !el.getAttribute("aria-label") && !el.getAttribute("aria-labelledby") && !(el.id && document.querySelector(`label[for="${el.id}"]`)) && !el.closest("label"))
+    .map(el => el.id));
+  expect(missing).toEqual([]);
+  // The note's action button gets its text when shown; until then it's hidden from screen readers too.
+  await expect(page.locator("#toast-act")).toBeHidden();
   expect(errors).toEqual([]);
 });

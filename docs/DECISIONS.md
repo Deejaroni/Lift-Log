@@ -21,7 +21,7 @@ A set marked "One side (unilateral)" is logged as reps for one side, and volume 
 Confirmations and messages use the app's own dialog (`#dlg`), never `alert`, `confirm` or `prompt`. Browser pop-ups were blocked where the app used to be hosted, and they look out of place in an installed PWA.
 
 ## The Claude-hosted copy is retired
-The app used to run as a Claude-hosted artifact. The supported copy is now this repo, deployed to GitHub Pages. Leftover code for the old hosted storage (the `col` / `backend === "db"` branch in `saveSettings`) never runs and can be removed.
+The app used to run as a Claude-hosted artifact. The supported copy is now this repo, deployed to GitHub Pages. The leftover code for the old hosted storage was removed on 2026-11-01.
 
 
 ## Exercise search is forgiving and never hides other groups

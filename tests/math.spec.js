@@ -65,3 +65,46 @@ test("cardio calories from effort", async ({ page }) => {
   await expect(page.locator(`${day} .cardio-row`)).toContainText("Estimate from effort");
   await expect(page.locator(`${day} .cal`)).toContainText("Cardio ≈ 238: 30 min");
 });
+
+test("per-hand dumbbells and two kettlebells count double, and never four times", async ({ page }) => {
+  await openApp(page);
+  const v = await page.evaluate(async () => {
+    const { volOf } = await import("/js/log.js");
+    const s = equip => volOf({ weight: 50, unit: "lb", reps: 10, equip });
+    return [s({ db: { each: true } }), s({ kb: { count: "Two kettlebells", each: true } }), s({ kb: { count: "One kettlebell", each: true } }),
+      s({ db: { each: true, side: "One side (unilateral)" } }), s(null)];
+  });
+  expect(v).toEqual([1000, 1000, 500, 1000, 500]);
+});
+
+test("cardio calories prefer watts, then speed and incline", async ({ page }) => {
+  await openApp(page, { settings: bodyWeight(80, "kg") });
+  const k = await page.evaluate(async () => {
+    const { cardioKcal } = await import("/js/equipment.js");
+    const day = "2026-03-04", c = o => cardioKcal({ kind: "cardio", date: day, exercise: "Treadmill", minutes: 30, effort: "moderate", ...o });
+    return [cardioKcal({ kind: "cardio", date: day, exercise: "Stationary bike", minutes: 30, effort: "moderate", extra: { watts: 150 } }),
+      c({ extra: { speed: 3, speedUnit: "mph", incline: 5 } }), c({ extra: { speed: 6, speedUnit: "mph" } })];
+  });
+  // 150 W × 30 min = 270 kJ ≈ 270 kcal.
+  expect(k[0]).toEqual({ kcal: 270, method: "from watts" });
+  // Walking at 3 mph (80.47 m/min), 5% grade: VO2 = 3.5 + 0.1·v + 1.8·v·0.05 = 18.79 mL/kg/min; × 80 kg × 5 kcal/L × 30 min ÷ 1000.
+  expect(k[1].method).toBe("from speed & incline");
+  expect(k[1].kcal).toBeCloseTo(225.5, 0);
+  // Running at 6 mph (160.93 m/min): VO2 = 3.5 + 0.2·v = 35.69; × 80 × 5 × 30 ÷ 1000.
+  expect(k[2].method).toBe("from speed");
+  expect(k[2].kcal).toBeCloseTo(428.2, 0);
+});
+
+test("body weight is that day's record, else the latest earlier one", async ({ page }) => {
+  await openApp(page, { settings: { bw: 190, bwUnit: "lb", days: {}, bwLog: { "2026-02-01": { w: 80, unit: "kg" }, "2026-03-01": { w: 82, unit: "kg" } } } });
+  const kg = await page.evaluate(async () => { const { bwKgOn } = await import("/js/state.js"); return ["2026-03-01", "2026-03-04", "2026-02-15"].map(bwKgOn); });
+  expect(kg).toEqual([82, 82, 80]);
+});
+
+test("strength scores are age-adjusted 1% per year past 40", async ({ page }) => {
+  await openApp(page, { settings: bodyWeight(80, "kg", { profile: { std: "men", birthYear: 1976 } }) });
+  const f = await page.evaluate(async () => { const { ageFactor, ageNow } = await import("/js/standards.js"); return [ageNow(), ageFactor()]; });
+  // 2026 − 1976 = 50, 10 years past 40.
+  expect(f[0]).toBe(50);
+  expect(f[1]).toBeCloseTo(1.10, 5);
+});

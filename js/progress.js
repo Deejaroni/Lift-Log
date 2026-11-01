@@ -5,7 +5,7 @@ import { $ } from "./ui.js";
 import { entries, prefs, savePrefs, settings } from "./state.js";
 import { css, e1rm, esc, fmt, fmtBig, loadOf, niceDate, sorted, today, volOf } from "./log.js";
 import { cardioTypeOf, countedKcal, isCardio, isMob, mmss, toMeters } from "./equipment.js";
-import { dayTotalCalories } from "./entries.js";
+import { dayTotalCalories, rankable } from "./entries.js";
 import { MUSCLES, groupOf } from "./catalog.js";
 import { alsoOf, fillSelect, renderHistory } from "./search.js";
 import { TIMED } from "./plan.js";
@@ -130,8 +130,9 @@ function renderProgress(){
     const byDay = new Map();
     list.forEach(e=>{
       const w = loadOf(e);
-      const d = byDay.get(e.date) || {top:0,e1rm:0,vol:0,reps:0,best:0};
-      d.top = Math.max(d.top,w); d.e1rm = Math.max(d.e1rm, e1rm(w,e.reps)); d.vol += volOf(e); d.reps += e.reps; d.best = Math.max(d.best, e.reps);
+      const d = byDay.get(e.date) || {top:0,e1rm:null,vol:0,reps:0,best:0};
+      // Est. 1RM only from sets of 10 reps or fewer, like the lift cards; a day with none leaves a gap.
+      d.top = Math.max(d.top,w); if(rankable(e)) d.e1rm = Math.max(d.e1rm||0, e1rm(w,e.reps)); d.vol += volOf(e); d.reps += e.reps; d.best = Math.max(d.best, e.reps);
       byDay.set(e.date,d);
     });
     days = [...byDay.keys()];
@@ -140,7 +141,7 @@ function renderProgress(){
     metrics = bwEx ? [["best","Best set (reps)"],["reps","Total reps"],["top","Added weight"]] : STR_METRICS;
     if(!metrics.some(m=>m[0]===metric)) metric = bwEx ? "best" : "top";
     series = pts.map(p=>p[metric]);
-    const best = pts.reduce((m,p)=>Math.max(m,p.top),0), bestE = pts.reduce((m,p)=>Math.max(m,p.e1rm),0);
+    const best = pts.reduce((m,p)=>Math.max(m,p.top),0), bestE = pts.reduce((m,p)=>Math.max(m,p.e1rm||0),0);
     $("#prog-stats").innerHTML = !list.length ? "" : bwEx ? `
       <div class="stat"><div class="num">${pts.reduce((m,p)=>Math.max(m,p.best),0)}</div><small>Best set (reps)</small></div>
       <div class="stat"><div class="num">${pts.reduce((m,p)=>Math.max(m,p.reps),0)}</div><small>Most reps in a day</small></div>

@@ -7,7 +7,7 @@ import { renderAll } from "./main.js";
 
 // ---------- prefs (per-device convenience) ----------
 let prefs = {unit:"lb"};
-function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }catch(e){} }
+function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }catch(e){ flash("Couldn't save on this device.", true); } }
 
 // ---------- personal settings: body weight + per-day calorie adjustments ----------
 const SET_KEY = "liftlog.settings.v1";
@@ -31,14 +31,11 @@ function recordBW(date, n){
   if(date>=latest){ settings.bw = n; settings.bwUnit = prefs.unit; }
 }
 async function saveSettings(){
-  try{ localStorage.setItem(SET_KEY, JSON.stringify(settings)); }catch(e){}
-  if(typeof col!=="undefined" && col && typeof backend!=="undefined" && backend==="db"){
-    try{ await col.doc("__settings").set(Object.assign({kind:"settings"}, settings)); }catch(e){}
-  }
+  try{ localStorage.setItem(SET_KEY, JSON.stringify(settings)); }catch(e){ flash("Couldn't save on this device.", true); }
   renderAll();
 }
 
-// ---------- storage: synced db when available, local fallback ----------
+// ---------- storage: this device's localStorage ----------
 let entries = [];
 
 function loadLocal(){

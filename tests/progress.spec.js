@@ -38,3 +38,17 @@ test("lift cards show the strength tier ladder", async ({ page }) => {
   await expect(page.locator("#std-panel")).toContainText("Tiers are the app's approximate estimates");
   expect(errors).toEqual([]);
 });
+
+test("the est. 1RM chart only uses sets of 10 reps or fewer", async ({ page }) => {
+  const errors = await openApp(page, { entries: [
+    set({ date: "2026-02-25", exercise: bench, muscle: "Chest", weight: 135, reps: 20 }),
+    set({ exercise: bench, muscle: "Chest", weight: 175, reps: 5 }), set({ exercise: bench, muscle: "Chest", weight: 135, reps: 20 }),
+  ] });
+  await page.click('nav.tabs [data-tab="progress"]');
+  await page.click('#metric-seg [data-metric="e1rm"]');
+  // 135 × 20 would be 225; only 175 × 5 (204.2) counts.
+  const data = await page.evaluate(async () => (await import("/js/progress.js")).exChart.data.datasets[0].data);
+  expect(data).toEqual([null, 204.17]);
+  await expect(page.locator("#prog-stats .stat", { hasText: "Best est. 1RM" }).locator(".num")).toHaveText("204.2");
+  expect(errors).toEqual([]);
+});

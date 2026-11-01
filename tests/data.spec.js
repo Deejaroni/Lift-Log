@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { TODAY, set, openApp } = require("./helpers");
+const { TODAY, set, cardio, openApp } = require("./helpers");
 
 const day = "#day-list";
 const program = { name: "My plan", template: "", mode: "fixed", days: [null, null, "w1", null, null, null, null], rotation: [], workouts: [{ id: "w1", name: "Push", items: [{ exercise: "Pec deck", sets: 3, reps: 10 }] }],
@@ -94,5 +94,34 @@ test("undo brings back a whole drop set", async ({ page }) => {
   await expect(page.locator("#toast")).toContainText("Drop set deleted");
   await page.click("#toast-act");
   await expect(page.locator(`${day} .chain-steps`)).toHaveText("300×10→250×10→200×10");
+  expect(errors).toEqual([]);
+});
+
+test("a CSV export imports back with the same sets", async ({ page }) => {
+  const entries = [
+    set({ exercise: "Barbell bench press — flat", muscle: "Chest", weight: 185, reps: 5, rir: 2, equip: { bb: { bar: 45 } } }),
+    set({ exercise: "Dumbbell row", muscle: "Back", weight: 60, reps: 10, failure: true, note: "slow, \"strict\"" }),
+    cardio({ exercise: "Treadmill", minutes: 25, distance: 2, distUnit: "mi" }),
+  ];
+  const errors = await openApp(page, { entries });
+  const csv = await page.evaluate(async () => (await import("/js/backup.js")).toCSV());
+  await page.evaluate(() => localStorage.setItem("liftlog.entries.v1", "[]"));
+  await page.reload();
+  await page.setInputFiles("#import-file", { name: "lift-log.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")).length)).toBe(3);
+  const back = await page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")));
+  const pick = e => ({ id: e.id, exercise: e.exercise, weight: e.weight, reps: e.reps, kind: e.kind || "", minutes: e.minutes || 0, failure: !!e.failure, note: e.note, rir: e.rir ?? null, equip: e.equip || null });
+  expect(back.map(pick)).toEqual(entries.map(pick));
+  expect(errors).toEqual([]);
+});
+
+test("a failed save of settings or preferences says so", async ({ page }) => {
+  const errors = await openApp(page);
+  await page.evaluate(() => { const real = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (/settings|prefs/.test(k)) throw new DOMException("full", "QuotaExceededError"); return real.call(this, k, v); }; });
+  await page.evaluate(async () => { (await import("/js/state.js")).savePrefs(); });
+  await expect(page.locator("#msg")).toHaveText("Couldn't save on this device.");
+  await page.evaluate(() => { document.querySelector("#msg").textContent = ""; });
+  await page.evaluate(async () => { await (await import("/js/state.js")).saveSettings(); });
+  await expect(page.locator("#msg")).toHaveText("Couldn't save on this device.");
   expect(errors).toEqual([]);
 });

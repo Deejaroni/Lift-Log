@@ -6,6 +6,10 @@ Newest first. One entry per deploy. Describe what users notice, not how the code
 - New exercise: Seated hip adduction machine (inner thighs, listed under Quadriceps), with a moving picture of the seated machine.
 - "Hip abduction machine" is now "Seated hip abduction machine" and shows the seated machine instead of a standing leg raise. Sets you logged under the old name move to the new one.
 - Search knows the gym nicknames: "good girl" finds the adduction machine and "bad girl" the abduction machine.
+- Bigger buttons: Edit and Delete on today's sets, Add a note, the Progress chart and range choices, the theme choices and Export sets as CSV are all at least 40 px tall.
+- The est. 1-rep max chart on Progress now uses only sets of 10 reps or fewer, matching the lift cards and History. A day with only higher-rep sets shows a gap.
+- If the phone can't save your plan, body weight or settings (for example, storage is full), the app now says so instead of failing silently.
+- Screen readers now name the dialog's text box and the restore file picker.
 
 ## 2026-10-31 (tenth update)
 - Russian twists (plain, weighted and kettlebell), kettlebell windmills, halos and high pulls, and renegade rows now have moving pictures.

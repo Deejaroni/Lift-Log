@@ -215,10 +215,10 @@
     </div>
   </section>
 
-  <input type="file" id="import-file" accept=".json,application/json,.csv,text/csv" hidden>
+  <input type="file" id="import-file" accept=".json,application/json,.csv,text/csv" aria-label="Backup or CSV file to restore" hidden>
 </div>
 
-<div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
+<div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" aria-labelledby="dlg-msg" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
 <div id="exsheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="exs-title">
   <div class="exs-head"><h3 id="exs-title"></h3><button type="button" class="rep-x" id="exs-close" aria-label="Close">×</button></div>
   <div id="exs-info">
@@ -276,7 +276,7 @@
     <p class="foot" id="app-version"></p>
   </div>
 </div>
-<div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-msg"></span><button type="button" id="toast-act"></button><button type="button" id="toast-x" aria-label="Dismiss">×</button></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-msg"></span><button type="button" id="toast-act" hidden></button><button type="button" id="toast-x" aria-label="Dismiss">×</button></div>
 <nav class="tabs" role="tablist">
   <button role="tab" aria-selected="true" data-tab="log">Log</button>
   <button role="tab" aria-selected="false" data-tab="plan">Plan</button>
