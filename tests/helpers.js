@@ -9,7 +9,7 @@ const cardio = o => ({ id: `c${++n}`, kind: "cardio", date: TODAY, muscle: "Card
 // Opens the app with the given localStorage contents. Returns the list of console errors seen.
 async function openApp(page, { entries = [], settings = null, prefs = null } = {}) {
   const errors = [];
-  page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+  page.on("console", m => { if (m.type() === "error") errors.push(`${m.text()} (${m.location().url})`); });   // the file it came from, for load failures
   page.on("pageerror", e => errors.push(String(e)));
   await page.clock.setFixedTime(new Date(`${TODAY}T12:00:00Z`));
   await page.addInitScript(seed => {
