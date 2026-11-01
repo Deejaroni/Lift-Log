@@ -59,13 +59,14 @@ const REACH = ["Log: top", "Log: form"];
 // Reduce motion is on, so the moving pictures hold still and screenshots compare cleanly between runs;
 // anything that still moves is a finding.
 async function open(browser, sc, scheme, { motion = "reduce" } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, colorScheme: scheme, reducedMotion: motion, serviceWorkers: "block", deviceScaleFactor: 2 });
+  // Larger text works like browser zoom: the same screen, fewer CSS pixels across, so small-screen layouts apply.
+  const z = sc.zoom || 1;
+  const ctx = await browser.newContext({ viewport: { width: Math.round(W / z), height: Math.round(H / z) }, colorScheme: scheme, reducedMotion: motion, serviceWorkers: "block", deviceScaleFactor: 2 * z });
   await ctx.clock.setFixedTime(new Date(`${TODAY}T12:00:00Z`));
-  await ctx.addInitScript(([seed, zoom]) => {
-    if (zoom) { const z = () => document.documentElement && (document.documentElement.style.zoom = zoom); z(); document.addEventListener("DOMContentLoaded", z); }
+  await ctx.addInitScript(seed => {
     if (sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1"); localStorage.clear();
     for (const [k, v] of [["entries", seed.entries], ["settings", seed.settings], ["prefs", seed.prefs]]) if (v) localStorage.setItem(`liftlog.${k}.v1`, JSON.stringify(v));
-  }, [sc.seed(TODAY), sc.zoom || 0]);
+  }, sc.seed(TODAY));
   const page = await ctx.newPage(), errors = [];
   page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   page.on("pageerror", e => errors.push(String(e)));

@@ -20,7 +20,7 @@ export function stress(today) {
   return d;
 }
 
-// zoom: the page drawn larger, like a phone's text size setting (Chrome on Android scales the page this way).
+// zoom: everything drawn larger, like a phone's text size setting (Chrome on Android zooms the page this way).
 export const SCENARIOS = [
   { id: "main", title: "Sample data", modes: ["light", "dark"], seed: demo, screens: "all" },
   { id: "first", title: "First launch (no data)", modes: ["light", "dark"], seed: () => ({ entries: [] }), plan: false,
