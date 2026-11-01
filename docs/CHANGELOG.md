@@ -3,6 +3,9 @@
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
 ## 2026-11-01 (second update)
+- Colored text is easier to read: calories, the 30-day change, PR badges and strength tiers use a darker shade in light mode, and red and blue text use a brighter shade in dark mode.
+- In dark mode, red buttons and the active tab are a slightly deeper red, so their white text stands out.
+- The button for today's planned workout on the Log tab is a little taller, easier to tap.
 - Behind the scenes: new design tools. A UI audit screenshots every screen in light and dark mode with sample data and checks button sizes, contrast and labels, and a mockup tool draws proposed changes with the app's real styles. Nothing in the app changed.
 
 ## 2026-11-01

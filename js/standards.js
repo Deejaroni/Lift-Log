@@ -13,6 +13,8 @@ import { isoOf } from "./progress.js";
 // to reach [Novice, Intermediate, Advanced, Elite]. Bodyweight lifts: reps in one set with no added weight.
 const TIERS = ["Beginner","Novice","Intermediate","Advanced","Elite"];
 const TIER_COLOR = ["--muted","--green","--blue","--yellow","--red"];
+// The chip's border uses the color; its text uses the readable "ink" shade (muted is already readable).
+const tierStyle = t => `--tc:var(${TIER_COLOR[t]});--tc-ink:var(${t ? TIER_COLOR[t]+"-ink" : TIER_COLOR[t]})`;
 const STD = [
   {label:"Back squat", names:["high-bar back squat","low-bar back squat","back squat","barbell back squat","barbell squat","squat"], men:[1.0,1.5,2.0,2.5], women:[0.75,1.1,1.5,1.9]},
   {label:"Bench press", names:["barbell bench press — flat","bench press","barbell bench press","paused bench press"], men:[0.75,1.0,1.5,1.9], women:[0.45,0.65,0.9,1.15]},
@@ -64,7 +66,7 @@ function stdRow(def, std, af, bwNowKg, since){
     detail = `Est. 1RM ${fmt(Math.round(toUnit(b.oneKg,"kg")))} ${prefs.unit} = ${b.ratio.toFixed(2)}× body weight (${esc(b.exercise)}, ${niceDate(b.date)})`;
     if(hi && bwNowKg){ const need = hi*bwNowKg/af - b.oneKg; next = need>0 ? `${fmt(Math.ceil(toUnit(need,"kg")))} ${prefs.unit} more on your est. 1RM to ${TIERS[t+1]}` : `${TIERS[t+1]} at your current body weight`; }
   }
-  return `<div class="std-row"><div class="std-top"><span class="std-name">${def.label}</span><span class="tier" style="--tc:var(${TIER_COLOR[t]})">${TIERS[t]}</span></div>
+  return `<div class="std-row"><div class="std-top"><span class="std-name">${def.label}</span><span class="tier" style="${tierStyle(t)}">${TIERS[t]}</span></div>
     <span class="cardio-meta">${detail}</span>
     ${ladderHTML(t, pct)}
     <span class="cardio-meta">${hi ? next : "Top tier reached"}</span></div>`;
