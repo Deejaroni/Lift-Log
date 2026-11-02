@@ -10,7 +10,8 @@ import { isoOf } from "./progress.js";
 
 // ---------- strength standards ----------
 // The app's own approximate tiers (not an official standard). Load lifts: estimated 1RM ÷ body weight needed
-// to reach [Novice, Intermediate, Advanced, Elite]. Bodyweight lifts: reps in one set with no added weight.
+// to reach [Novice, Intermediate, Advanced, Elite]. Bodyweight lifts: reps in one set. Their names include harder
+// versions of the move and weighted sets count too, since either means at least that many plain reps.
 const TIERS = ["Beginner","Novice","Intermediate","Advanced","Elite"];
 const TIER_COLOR = ["--muted","--green","--blue","--yellow","--red"];
 // The chip's border uses the color; its text uses the readable "ink" shade (muted is already readable).
@@ -21,10 +22,13 @@ const STD = [
   {label:"Deadlift", names:["conventional deadlift","sumo deadlift","deadlift","barbell deadlift"], men:[1.25,1.75,2.25,2.75], women:[1.0,1.35,1.75,2.25]},
   {label:"Overhead press", names:["barbell overhead press","standing barbell overhead press","overhead press","military press"], men:[0.5,0.7,0.9,1.15], women:[0.35,0.5,0.65,0.85]},
   {label:"Barbell row", names:["barbell bent-over row","pendlay row","barbell row","bent-over row"], men:[0.6,0.85,1.1,1.4], women:[0.4,0.6,0.8,1.05]},
-  {label:"Pull-ups / chin-ups", reps:true, names:["pull-up","chin-up","neutral-grip pull-up"], men:[3,8,14,20], women:[1,4,8,13]},
-  {label:"Push-ups", reps:true, names:["push-up"], men:[15,30,45,60], women:[6,15,25,40]},
-  {label:"Dips", reps:true, names:["parallel bar dips","dips — chest emphasis","dips"], men:[8,15,25,35], women:[3,8,15,22]},
+  {label:"Pull-ups / chin-ups", reps:true, names:["pull-up","chin-up","neutral-grip pull-up","wide-grip pull-up","close-grip pull-up","weighted pull-up"], men:[3,8,14,20], women:[1,4,8,13]},
+  {label:"Push-ups", reps:true, names:["push-up","wide-grip push-up","diamond push-up","decline push-up","archer push-up","clap push-up","ring push-up"], men:[15,30,45,60], women:[6,15,25,40]},
+  {label:"Dips", reps:true, names:["parallel bar dips","dips — chest emphasis","dips","weighted dips","weighted chest dips","ring dips"], men:[8,15,25,35], women:[3,8,15,22]},
 ];
+// Names match without case, spaces, hyphens or a plural "s", so "Pushups" and "push ups" count as "Push-up".
+const squash = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").map(w=>w.length>3 && /[^su]s$/.test(w) ? w.slice(0,-1) : w).join("");
+const matcher = def => { const names = new Set(def.names.map(squash)); return e => !isCardio(e) && names.has(squash(e.exercise)); };
 // DOTS (published powerlifting formula): score = total × 500 / (A + B·bw + C·bw² + D·bw³ + E·bw⁴), kg.
 const DOTS_C = {men:[-307.75076,24.0900756,-0.1918759221,0.0007391293,-0.000001093], women:[-57.96288,13.6175032,-0.1126655495,0.0005158568,-0.0000010706]};
 function dotsScore(totalKg, bwKg, std){
@@ -37,11 +41,10 @@ const ageFactor = () => { const a = ageNow(); return a && a>40 ? 1 + 0.01*(a-40)
 let stdWindow = "90";
 function stdSince(){ if(stdWindow==="all") return "0000"; const d = new Date(today()+"T00:00:00"); d.setDate(d.getDate()-90); return isoOf(d); }
 function bestFor(def, since){
-  const names = new Set(def.names);
-  const list = entries.filter(e=>!isCardio(e) && names.has(e.exercise.toLowerCase()) && e.date>=since);
+  const is = matcher(def), list = entries.filter(e=>is(e) && e.date>=since);
   if(def.reps){
-    const sets = list.filter(e=>!(e.weight>0));
-    return sets.length ? sets.reduce((m,e)=>e.reps>m.reps?e:m) : null;
+    const sets = list.filter(e=>e.reps>=1);   // most reps; at a tie, the heavier set
+    return sets.length ? sets.reduce((m,e)=>e.reps>m.reps || (e.reps===m.reps && (e.weight||0)>(m.weight||0)) ? e : m) : null;
   }
   let best = null;
   list.filter(e=>e.weight>0 && e.reps>=1 && e.reps<=10).forEach(e=>{
@@ -60,7 +63,8 @@ function stdRow(def, std, af, bwNowKg, since){
   const pct = hi ? Math.max(0, Math.min(100, (adj-lo)/(hi-lo)*100)) : 100;
   let detail, next = "";
   if(def.reps){
-    detail = `Best set: ${b.reps} reps (${niceDate(b.date)})`;
+    const added = b.weight>0 ? ` at +${fmt(toUnit(b.weight, b.unit))} ${prefs.unit}` : "", plain = squash(b.exercise)===squash(def.names[0]);
+    detail = `Best set: ${b.reps} reps${added} (${plain ? "" : esc(b.exercise)+", "}${niceDate(b.date)})`;
     if(hi) next = `${Math.max(1, Math.ceil(hi/af) - b.reps)} more rep${Math.ceil(hi/af)-b.reps===1?"":"s"} to ${TIERS[t+1]}`;
   } else {
     detail = `Est. 1RM ${fmt(Math.round(toUnit(b.oneKg,"kg")))} ${prefs.unit} = ${b.ratio.toFixed(2)}× body weight (${esc(b.exercise)}, ${niceDate(b.date)})`;
@@ -78,8 +82,7 @@ function ladderHTML(t, pct){
 }
 // Lift card: best est. 1RM in the window, change over 30 days, a trend line of each day's best, and the tier.
 function liftCard(def, std, af, bwNowKg, since){
-  const names = new Set(def.names);
-  const list = entries.filter(e=>!isCardio(e) && names.has(e.exercise.toLowerCase()) && e.weight>0 && rankable(e));
+  const is = matcher(def), list = entries.filter(e=>is(e) && e.weight>0 && rankable(e));
   const inWin = list.filter(e=>e.date>=since); if(!inWin.length) return null;
   const d30 = new Date(today()+"T00:00:00"); d30.setDate(d30.getDate()-30); const cut = isoOf(d30);
   const best = bestE1rm(inWin), recent = bestE1rm(list.filter(e=>e.date>=cut)), before = bestE1rm(list.filter(e=>e.date<cut));

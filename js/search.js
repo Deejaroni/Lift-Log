@@ -170,6 +170,15 @@ function moveTiles(){
   return `<div class="mv-grid">${Object.entries(PATTERNS).filter(([,p])=>movesIndex().has(p.title) && !seen.has(p.title) && seen.add(p.title))
     .map(([k,p])=>`<button type="button" class="mv-tile" data-move="${esc(p.title)}">${patternStill(k)}<span>${esc(p.title)}</span></button>`).join("")}</div>`;
 }
+// "Recently used" order. The same lifts rarely repeat on back-to-back days, so: anything already
+// logged on the form's date first (next set), then 2–3 days back, then older, and yesterday's last.
+function recentPicks(names){
+  const day = $("#date").value || today(), dn = iso => Date.parse(iso+"T00:00:00Z")/864e5, last = new Map();
+  sorted().forEach(e=>{ if(e.date<=day) last.set(e.exercise.trim().toLowerCase(), e.date); });
+  const rank = n => { const d = dn(day)-dn(last.get(n.toLowerCase()));
+    return d===0 ? 0 : d===2 || d===3 ? 1 : d===1 ? 3 : 2; };
+  return names.filter(n=>last.has(n.toLowerCase())).map((n,i)=>[n,i]).sort((a,b)=>rank(a[0])-rank(b[0]) || a[1]-b[1]).map(x=>x[0]);
+}
 function renderPicker(){
   const q = $("#exercise-search").value.trim(), f = gf(), logged = exercisesByRecent();
   const mine = new Set(logged.map(n=>n.toLowerCase()));
@@ -182,7 +191,7 @@ function renderPicker(){
     html += `<button type="button" class="ex-back" data-move-back>‹ All movements</button>` + sec(`${exMove} · ${lib.length+own.length} exercises`) +
       [...own.map(entryFor), ...lib.map(n=>EX_INDEX.get(n.toLowerCase()))].map(row).join("");
   } else if(!exNorm(q)){
-    const recent = logged.filter(n=>!f || groupOf(n)===f).slice(0, 6);
+    const recent = recentPicks(logged.filter(n=>!f || groupOf(n)===f)).slice(0, 6);
     if(recent.length) html += sec("Recently used") + recent.map(n=>row(entryFor(n))).join("");
     if(f){
       const listed = n => !!n && CATALOG.some(g=>g.muscle===f && g.names.includes(n));
@@ -296,6 +305,7 @@ export function init(){
     else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
     else chooseExercise(b.dataset.name, b.dataset.m);
   });
+  $("#date").addEventListener("change", ()=>{ if(!$("#ex-results").hidden) renderPicker(); });
   $("#ex-change").addEventListener("click", ()=>{
     $("#exercise").value = ""; $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = !!gf();
     $("#muscle").value = gf() || "Other"; setMuscleTouched(false); showLast("");

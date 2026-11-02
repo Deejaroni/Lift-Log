@@ -52,3 +52,24 @@ test("the est. 1RM chart only uses sets of 10 reps or fewer", async ({ page }) =
   await expect(page.locator("#prog-stats .stat", { hasText: "Best est. 1RM" }).locator(".num")).toHaveText("204.2");
   expect(errors).toEqual([]);
 });
+
+// Bodyweight standards count weighted sets, harder variations and other spellings, since each means
+// at least that many plain reps. Easier versions (knee, incline, assisted, bench dips) don't count.
+test("push-ups and dips standards count weighted sets and harder variations", async ({ page }) => {
+  const errors = await openApp(page, { entries: [
+    set({ exercise: "Weighted dips", muscle: "Triceps", weight: 45, reps: 12, equip: { bw: {} } }),
+    set({ exercise: "Bench dips", muscle: "Triceps", weight: 0, reps: 40 }),
+    set({ exercise: "Diamond push-up", muscle: "Chest", weight: 0, reps: 32 }),
+    set({ exercise: "Knee push-up", muscle: "Chest", weight: 0, reps: 70 }),
+    set({ exercise: "Pushups", muscle: "Chest", weight: 0, reps: 20 }),
+  ], settings: bodyWeight(180, "lb", { profile: { std: "men" } }) });
+  await page.click('nav.tabs [data-tab="progress"]');
+  const row = label => page.locator(".std-row").filter({ has: page.locator(".std-name", { hasText: label }) });
+  await expect(row("Push-ups")).toContainText("Best set: 32 reps");
+  await expect(row("Push-ups")).toContainText("Diamond push-up");
+  await expect(row("Push-ups").locator(".tier")).toHaveText("Intermediate");
+  await expect(row("Dips")).toContainText("Best set: 12 reps");
+  await expect(row("Dips")).toContainText("+45 lb");
+  await expect(row("Dips").locator(".tier")).toHaveText("Novice");
+  expect(errors).toEqual([]);
+});
