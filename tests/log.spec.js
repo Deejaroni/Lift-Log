@@ -90,3 +90,18 @@ test("drop steps come in 5 lb increments with the percent", async ({ page }) => 
   await expect(step).toHaveValue("5");
   expect(errors).toEqual([]);
 });
+
+test("cable attachments include common gym handles and bars, and new exercises suggest one", async ({ page }) => {
+  const errors = await openApp(page);
+  await pickExercise(page, "Lat pulldown — wide overhand");
+  await expect(page.locator("#eq-cable-attach")).toHaveValue("Lat pulldown bar");
+  const opts = await page.locator("#eq-cable-attach option").allTextContents();
+  for (const o of ["Lat pulldown bar", "Neutral-grip lat bar", "Multi-grip lat bar", "Revolving straight bar", "Tricep bar", "Close-grip V handle", "D grip"]) expect(opts).toContain(o);
+  const picks = { "Lat pulldown — neutral grip": "Neutral-grip lat bar", "Seated cable row": "Close-grip V handle", "Single-arm cable row": "D grip", "Face pull": "Rope pulldown" };
+  for (const [name, attach] of Object.entries(picks)) {
+    await page.click("#ex-change");
+    await pickExercise(page, name);
+    await expect(page.locator("#eq-cable-attach"), name).toHaveValue(attach);
+  }
+  expect(errors).toEqual([]);
+});

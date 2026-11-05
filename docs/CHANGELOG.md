@@ -2,6 +2,10 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-04
+- More cable attachments to choose from: lat pulldown bar, neutral-grip lat bar, multi-grip lat bar, revolving straight bar and tricep bar.
+- New cable exercises pick a likely attachment for you: a lat bar for pulldowns, the close-grip V handle for seated rows, a D grip for single-arm moves and the rope for face pulls. You can still change it.
+
 ## 2026-11-02
 - "Recently used" in the exercise picker puts what you did 2–3 days ago first, since that is what you are most likely to repeat. Exercises from yesterday go to the end, and anything already logged today stays on top for your next set. It goes by the date on the Log form.
 - Strength standards: push-ups, dips and pull-ups now count weighted sets (shown as "at +45 lb") and harder versions like diamond push-ups, ring dips or weighted pull-ups, and match your own spellings like "Pushups". Before, these showed "Not logged". Easier versions (knee or incline push-ups, bench or assisted dips) still don't count.

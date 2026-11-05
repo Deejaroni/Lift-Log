@@ -21,7 +21,9 @@ function suggestEquip(name){
   else if(/smith/.test(n)) eq.smith = {};
   else if(/plate-loaded|t-bar|hammer row|hammer-style|leverage|pendulum|hack squat|v-squat|belt squat|glute drive|leg press/.test(n)) eq.plate = {};
   else if(/cable|pushdown|face pull|straight-arm|lat pulldown|pulldown|pull-through|pallof|woodchop|cable chop/.test(n)){
-    const a = /single-arm crossbody/.test(n) ? "D grip" : /rope/.test(n) ? "Rope pulldown" : /v-bar/.test(n) ? "V bar" : /straight.?bar|bar straight/.test(n) ? "Straight bar" : /ez/.test(n) ? "EZ bar" : null;
+    const a = /rope|face pull/.test(n) ? "Rope pulldown" : /single-arm|one-arm/.test(n) ? "D grip" : /v-bar/.test(n) ? "V bar" : /straight.?bar|bar straight/.test(n) ? "Straight bar" : /ez/.test(n) ? "EZ bar" :
+      /pulldown/.test(n) && /neutral|parallel/.test(n) ? "Neutral-grip lat bar" : /lat pulldown/.test(n) ? "Lat pulldown bar" :
+      /seated cable row/.test(n) && !/wide|overhand|underhand/.test(n) ? "Close-grip V handle" : null;
     eq.cable = a ? {attach:a} : {};
   }
   else if(/dumbbell|goblet|arnold|zottman|concentration|spider curl|hammer curl|farmer|suitcase/.test(n)) eq.db = {};
@@ -330,7 +332,7 @@ export function init(){
   EQUIP = [
     {key:"smith",   label:"Smith machine",    fields:[{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS},{k:"brand",label:"Brand",brand:true},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"barbell", label:"Barbell",          fields:[{k:"type",label:"Bar type",options:["Straight bar","EZ bar","Trap bar"]},{k:"bar",label:"Bar weight",num:true},{k:"load",label:"Weight you enter",options:LOAD_OPTS}]},
-    {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","MAG grip","Rope pulldown","Long single rope","V bar","Close-grip V handle","Straight bar","EZ bar","Elbow strap","Wrist cuff","Ankle cuff"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
+    {key:"cable",   label:"Cable machine",    fields:[{k:"brand",label:"Brand",brand:true},{k:"attach",label:"Attachment",options:["D grip","MAG grip","Close-grip V handle","Lat pulldown bar","Neutral-grip lat bar","Multi-grip lat bar","Straight bar","Revolving straight bar","EZ bar","V bar","Tricep bar","Rope pulldown","Long single rope","Elbow strap","Wrist cuff","Ankle cuff"]},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"pin",     label:"Pin-select machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 4, pad 2"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"plate",   label:"Plate-loaded machine",fields:[{k:"brand",label:"Brand",brand:true},{k:"seat",label:"Seat / setting",ph:"Seat 3"},{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]}]},
     {key:"db",      label:"Dumbbells",        fields:[{k:"side",label:"Arms / legs",options:["Both sides","One side (unilateral)"]},{k:"each",label:"Weight is per hand",check:true}]},
