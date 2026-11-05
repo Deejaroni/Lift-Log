@@ -2,6 +2,14 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-04 (second update)
+- New badges next to exercises, alongside PR: Rep PR (more reps at a weight than ever), Heaviest, Volume PR, plate milestones (first time at 1, 2, 3… plates a side), body-weight multiples (1× BW, 1.5× BW…), Tier up (for your chosen strength standards), Back (first time in 30+ days) and New (first time logged).
+- Cardio gets Longest and Fastest badges.
+- Green badges are records, yellow are milestones, blue are new or back. An exercise shows at most two: a milestone and a record.
+- History says what each badge was for in the line under the bars, e.g. "Rep PR: 10 reps at 140 lb, up from 8". Today's sets on the Log tab show the badges too.
+- Days in History can show "Biggest day" (most volume ever) and workout counts like "25th workout" or "100th workout".
+- Progress shows a Milestone badge on 4, 8, 12, 26 and 52-week streaks.
+
 ## 2026-11-04
 - More cable attachments to choose from: lat pulldown bar, neutral-grip lat bar, multi-grip lat bar, revolving straight bar and tricep bar.
 - New cable exercises pick a likely attachment for you: a lat bar for pulldowns, the close-grip V handle for seated rows, a D grip for single-arm moves and the rope for face pulls. You can still change it.

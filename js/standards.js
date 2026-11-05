@@ -146,4 +146,4 @@ export function init(){
   });
 }
 
-export { TIERS, TIER_COLOR, STD, DOTS_C, dotsScore, profile, ageNow, ageFactor, stdWindow, stdSince, bestFor, tierOf, stdRow, ladderHTML, liftCard, renderStandards };
+export { TIERS, TIER_COLOR, STD, squash, matcher, DOTS_C, dotsScore, profile, ageNow, ageFactor, stdWindow, stdSince, bestFor, tierOf, stdRow, ladderHTML, liftCard, renderStandards };

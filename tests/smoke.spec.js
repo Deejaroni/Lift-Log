@@ -58,7 +58,7 @@ test("log a cardio entry", async ({ page }) => {
   await page.fill("#c-min", "25");
   await page.click("#save");
   await expect(page.locator(`${day} .cardio-row`)).toContainText("25 min");
-  await expect(page.locator(`${day} .ex-head h3`)).toHaveText("Treadmill");
+  await expect(page.locator(`${day} .ex-head h3`)).toHaveText("Treadmill New");
   expect(errors).toEqual([]);
 });
 

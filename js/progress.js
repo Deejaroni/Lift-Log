@@ -10,6 +10,7 @@ import { MUSCLES, groupOf } from "./catalog.js";
 import { alsoOf, fillSelect, renderHistory } from "./search.js";
 import { TIMED } from "./plan.js";
 import { renderStandards } from "./standards.js";
+import { badgeHTML, streakMilestone } from "./badges.js";
 
 // ---------- charts ----------
 let exChart=null, wkChart=null, metric="top", range="week", tot="vol";
@@ -45,7 +46,7 @@ function renderConsistency(){
     else cells += `<span class="cal-day ${cls}" data-day="${iso}">${d}</span>`;
   }
   $("#consistency").innerHTML = `<h2>Consistency</h2>
-    <div class="streak-row"><span class="streak num${streak ? "" : " none"}">${streak ? `${streak}-week streak` : "No streak yet"}</span><span class="week-now">${now} of ${goal} days this week</span></div>
+    <div class="streak-row"><span class="streak num${streak ? "" : " none"}">${streak ? `${streak}-week streak${streakMilestone(streak) ? badgeHTML([{t:"Milestone", c:"ms"}]) : ""}` : "No streak yet"}</span><span class="week-now">${now} of ${goal} days this week</span></div>
     <div class="cal-nav"><button type="button" data-cal="-1" aria-label="Previous month">‹</button><span class="cal-title">${first.toLocaleDateString(undefined,{month:"long", year:"numeric"})}</span>
       <button type="button" data-cal="1" aria-label="Next month" ${ym>=today().slice(0,7)?"disabled":""}>›</button></div>
     <div class="cal-grid">${["M","T","W","T","F","S","S"].map(w=>`<span class="cal-wd">${w}</span>`).join("")}${cells}</div>

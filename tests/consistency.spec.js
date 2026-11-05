@@ -37,7 +37,7 @@ test("the streak counts weeks that hit the goal, and this week in progress doesn
   const chip = await page.locator(`${panel} [data-goal="2"]`).boundingBox();
   expect(chip.height).toBeGreaterThanOrEqual(40);
   await page.click(`${panel} [data-goal="2"]`);
-  await expect(page.locator(`${panel} .streak`)).toHaveText("4-week streak");
+  await expect(page.locator(`${panel} .streak`)).toHaveText("4-week streak Milestone");   // 4 weeks is a milestone
   await expect(page.locator(`${panel} .week-now`)).toHaveText("2 of 2 days this week");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.prefs.v1")).weekGoal)).toBe(2);
   await page.click(`${panel} [data-goal="4"]`);

@@ -42,7 +42,9 @@ function loadLocal(){
   try { entries = JSON.parse(localStorage.getItem(LS_KEY)||"[]"); } catch(e){ entries = []; }
   if(!Array.isArray(entries)) entries = [];
 }
-function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(entries)); }catch(e){ flash("Couldn't save on this device.", true); } }
+// Counts saves, so code that caches work from the entries knows when to redo it.
+let rev = 0;
+function saveLocal(){ rev++; try{ localStorage.setItem(LS_KEY, JSON.stringify(entries)); }catch(e){ flash("Couldn't save on this device.", true); } }
 
 const store = {
   async add(list){ entries.push(...list); saveLocal(); renderAll(); },
@@ -89,4 +91,4 @@ export function init(){
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
 
-export { prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };
+export { rev, prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };

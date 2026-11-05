@@ -15,10 +15,10 @@ test("History shows a bar per set, the top set, est. 1RM and PRs", async ({ page
   await expect(newest.locator(".bars i")).toHaveCount(3);
   await expect(newest.locator(".bars i.top")).toHaveCount(1);
   await expect(newest.locator(".bar-labels span").nth(2)).toHaveText("165×5");
-  await expect(newest.locator(".ex-foot")).toHaveText("est. 1RM 193 lb");
-  await expect(newest.locator(".pr")).toHaveText("PR");
-  // The first time you do an exercise isn't a PR.
-  await expect(oldest.locator(".pr")).toHaveCount(0);
+  await expect(newest.locator(".ex-foot")).toHaveText("PR: est. 1RM 193 lb, up from 171 lb");
+  await expect(newest.locator(".ex-head .pr")).toHaveText("PR");
+  // The first time you do an exercise isn't a PR; it's New.
+  await expect(oldest.locator(".ex-head .pr")).toHaveText("New");
   expect(errors).toEqual([]);
 });
 

@@ -11,6 +11,7 @@ import { TIMED } from "./plan.js";
 import { restNext, setRestNext } from "./main.js";
 import { visualFor, stillMarkup, patternStill, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
 import { PATTERNS } from "./movements.js";
+import { badgeHTML, dayBadges } from "./badges.js";
 
 let ALIAS_WORDS, EX_INDEX, EX_SQUASH;
 
@@ -271,7 +272,7 @@ function renderHistory(){
   if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
   const days = new Map();
   list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
-  $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel" id="day-${d}"><div class="day-head"><p class="day-date">${niceDate(d)}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
+  $("#history").innerHTML = [...days.entries()].reverse().map(([d,l])=>`<div class="panel" id="day-${d}"><div class="day-head"><p class="day-date">${niceDate(d)}${badgeHTML(dayBadges(d))}</p>${d<today()?`<button type="button" class="edit" data-repeat="${d}" aria-label="Repeat the workout from ${niceDate(d)}">Repeat</button>`:""}</div>${groupHTML(l, true)}${dayTotalHTML(l)}</div>`).join("");
 }
 // Deleting is instant; the note's Undo puts the entries back for a few seconds.
 function offerUndo(gone, message){

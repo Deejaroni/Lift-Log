@@ -173,7 +173,10 @@ h3{font-size:1.1rem;margin:0;font-weight:600}
 #history .set .edit,#history .set .del{display:none}
 #history .set.open .edit,#history .set.open .del{display:inline-block;min-height:40px;padding:8px 12px}
 #history .set.open .more{display:none}
-.pr{display:inline-block;vertical-align:middle;margin-left:6px;font-size:.75rem;font-weight:800;font-stretch:100%;color:var(--green-ink);border:1.5px solid var(--green);border-radius:999px;padding:1px 8px}
+.pr{display:inline-block;vertical-align:middle;margin-left:6px;font-size:.75rem;font-weight:800;font-stretch:100%;color:var(--green-ink);border:1.5px solid var(--green);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pr.ms{color:var(--yellow-ink);border-color:var(--yellow)}
+.pr.nw{color:var(--blue-ink);border-color:var(--blue)}
+.ex-foot b{color:var(--ink);font-weight:700}
 .bars{display:flex;align-items:flex-end;gap:6px;height:56px;margin:10px 0 4px}
 .bars i{flex:1;background:var(--ink);opacity:var(--bar-dim);border-radius:4px 4px 0 0}
 .bars i.top{background:var(--red);opacity:1}

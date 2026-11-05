@@ -6,6 +6,7 @@ import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, setti
 import { barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
 import { CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
+import { badgeHTML, exBadges, whyHTML } from "./badges.js";
 import { renderHistory } from "./search.js";
 import { isoOf } from "./progress.js";
 import { renderHead, renderPlanToday } from "./plan.js";
@@ -218,7 +219,8 @@ function groupHTML(list, hist){
   return [...groups.values()].map(g=>{
     if(isCardio(g[0])){
       const mins = g.reduce((s,e)=>s+(e.minutes||0),0);
-      return `<div class="ex-group"><div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}</h3><span class="vol">${g.length>1?g.length+" sessions · ":""}${fmtMin(mins)}</span></div>${g.map(cardioRow).join("")}</div>`;
+      const b = exBadges(g), why = hist ? whyHTML(b) : [];
+      return `<div class="ex-group"><div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length>1?g.length+" sessions · ":""}${fmtMin(mins)}</span></div>${why.length ? `<p class="ex-foot">${why.join(" · ")}</p>` : ""}${g.map(cardioRow).join("")}</div>`;
     }
     const vol = g.reduce((s,e)=>s+volOf(e),0);
     const parts=[], seen=new Set();
@@ -227,29 +229,29 @@ function groupHTML(list, hist){
       if(seen.has(e.chain)) return; seen.add(e.chain);
       parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step)));
     });
-    const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${hist && isPR(g) ? ' <span class="pr">PR</span>' : ""}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
+    const b = exBadges(g);
+    const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
     const ids = new Set(g.map(e=>e.ss).filter(Boolean)), l = g[0].exercise.toLowerCase();
     const mates = [...new Set(list.filter(e=>ids.has(e.ss) && e.exercise.toLowerCase()!==l).map(e=>e.exercise))];
     const ssTag = mates.length ? `<p class="ss-tag">Superset with ${esc(mates.join(", "))}</p>` : "";
-    return `<div class="ex-group">${head}${ssTag}${hist ? setBars(g) : ""}${parts.join("")}</div>`;
+    return `<div class="ex-group">${head}${ssTag}${hist ? setBars(g, b) : ""}${parts.join("")}</div>`;
   }).join("");
 }
 // History: one bar per set, scaled to the heaviest load; the top set (best est. 1RM, 10 reps or fewer) is red.
 const rankable = e => e.kind!=="cardio" && e.reps>0 && e.reps<=10;
 const bestE1rm = list => list.filter(rankable).reduce((m,e)=>Math.max(m, e1rm(loadOf(e), e.reps)), 0);
-function setBars(g){
+function setBars(g, badges = []){
   const loads = g.map(loadOf), max = Math.max(...loads), best = bestE1rm(g);
   const top = best>0 ? g.findIndex(e=>rankable(e) && e1rm(loadOf(e), e.reps)===best) : loads.indexOf(max);
   const bar = (e,i) => `<i class="${i===top?"top":""}" style="height:${max>0 ? Math.max(8, Math.round(100*loads[i]/max)) : 8}%"></i>`;
   return `<div class="bars" aria-hidden="true">${g.map(bar).join("")}</div>` +
     (g.length<=6 ? `<div class="bar-labels" aria-hidden="true">${g.map((e,i)=>`<span class="${i===top?"top":""}">${fmt(loads[i])}×${e.reps}</span>`).join("")}</div>` : "") +
-    (best>0 ? `<p class="ex-foot">est. 1RM ${Math.round(best)} ${prefs.unit}</p>` : "");
+    footHTML(badges, best);
 }
-// A PR beats every earlier day's best est. 1RM for the exercise. The first session doesn't count.
-function isPR(g){
-  const name = g[0].exercise.toLowerCase(), day = g[0].date;
-  const before = bestE1rm(entries.filter(e=>e.date<day && e.exercise.toLowerCase()===name));
-  return before>0 && bestE1rm(g)>before;
+// Why each badge was earned, then the est. 1RM (unless the PR line already gives it).
+function footHTML(badges, best){
+  const bits = [...whyHTML(badges), ...(best>0 && !badges.some(b=>b.e1rm) ? [`est. 1RM ${Math.round(best)} ${prefs.unit}`] : [])];
+  return bits.length ? `<p class="ex-foot">${bits.join(" · ")}</p>` : "";
 }
 
 function renderDay(){
@@ -281,4 +283,4 @@ export function init(){
   $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); renderHead(); });
 }
 
-export { editing, fld, editActions, editSetHTML, editChainHTML, editCardioHTML, canonName, saveEdit, setRow, chainRow, MET, cap, calOpen, dayCalc, dayTotalCalories, calHTML, dayTotalHTML, groupHTML, rankable, bestE1rm, setBars, isPR, renderDay };
+export { editing, fld, editActions, editSetHTML, editChainHTML, editCardioHTML, canonName, saveEdit, setRow, chainRow, MET, cap, calOpen, dayCalc, dayTotalCalories, calHTML, dayTotalHTML, groupHTML, rankable, bestE1rm, setBars, renderDay };
