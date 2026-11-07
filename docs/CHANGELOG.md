@@ -2,6 +2,12 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-07
+- "Build your own" on the Plan tab now asks six quick questions (goal, where you train, training days, experience, workout length and up to two focus areas) and opens the plan editor with a weekly plan made from your answers. Change anything you like, just as before.
+- Training at home? Choose "Home: dumbbells" or "Home: body weight" and the plan uses only exercises you can do there.
+- A note at the top of that plan lists your answers, with Change answers to rebuild it.
+- The other templates haven't changed.
+
 ## 2026-11-04 (second update)
 - New badges next to exercises, alongside PR: Rep PR (more reps at a weight than ever), Heaviest, Volume PR, plate milestones (first time at 1, 2, 3… plates a side), body-weight multiples (1× BW, 1.5× BW…), Tier up (for your chosen strength standards), Back (first time in 30+ days) and New (first time logged).
 - Cardio gets Longest and Fastest badges.

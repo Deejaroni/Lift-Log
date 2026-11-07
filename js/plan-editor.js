@@ -7,8 +7,9 @@ import { esc, exercisesByRecent, fmt, toUnit, today } from "./log.js";
 import { mmss } from "./equipment.js";
 import { CATALOG, CAT_MUSCLE, MUSCLES, groupOf } from "./catalog.js";
 import { isoOf, weekStart } from "./progress.js";
-import { DOW, TEMPLATES, TIMED, blankProgram, hasProgram, isDeload, loadTemplate, loggedFor, pid, progWeek, suggestFor, workoutById, workoutFor } from "./plan.js";
+import { DOW, TEMPLATES, TIMED, hasProgram, isDeload, loadTemplate, loggedFor, pid, progWeek, suggestFor, workoutById, workoutFor } from "./plan.js";
 import { itemEdit, planEdit, setItemEdit, setPlanEdit } from "./exercise-sheet.js";
+import { buildPlan, endQuiz, quizActive, quizAnswers, quizClick, quizHTML, quizSummary, startQuiz } from "./plan-quiz.js";
 
 const addGroup = {}, addCustom = {};
 function exOptionsFor(group){
@@ -82,7 +83,7 @@ function weekSummary(pr){
 }
 function templateList(cancelable){
   return `<div class="tpl-list">${Object.entries(TEMPLATES).map(([k,t])=>`<button type="button" class="tpl" data-tpl="${k}"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></button>`).join("")}
-    <button type="button" class="tpl" data-tpl="__blank"><b>Build your own</b><span>Start empty and add workouts and exercises yourself.</span></button></div>
+    <button type="button" class="tpl" data-tpl="__quiz"><b>Build your own</b><span>Answer six quick questions and get a plan made from your answers. You can change everything afterward.</span></button></div>
     ${cancelable?`<div class="btn-row"><button type="button" class="secondary" data-pedit="">Cancel</button></div>`:""}`;
 }
 function workoutCard(pr, w){
@@ -109,6 +110,8 @@ function workoutCard(pr, w){
 function renderPlan(){
   if($("#tab-plan").hidden) return;
   const pr = settings.program;
+  if(quizActive()){ $("#plan-root").innerHTML = quizHTML(); return; }
+  // An empty program saved by the old "Build your own" (template "__blank") still opens in the editor.
   if(!hasProgram() && !(pr && pr.template==="__blank")){
     $("#plan-root").innerHTML = `<div class="panel"><h2>Set up a weekly program</h2>
       <p class="cal-sub" style="margin-top:0">Your program decides what shows on the Log tab each day. Pick a template to start from, or build your own. You can change everything afterward.</p>
@@ -133,6 +136,7 @@ function renderPlan(){
     <div class="panel">
       ${nameBlock}
       <p class="cal-sub" style="margin-top:4px">This program decides what shows on the Log tab each day. Tap <b>Edit</b> on any section to change it.</p>
+      ${pr.template==="quiz" && pr.quiz ? `<div class="eq-fields qz-note"><p style="margin:0;font-weight:600">Made from your answers</p><p class="cal-sub">${esc(quizSummary(pr.quiz))}</p><button type="button" class="qz-link" data-quiz-redo>Change answers</button></div>` : ""}
       <div class="plan-sec-head" style="margin-top:14px"><h3>Schedule</h3>${edit("schedule")}</div>
       ${planEdit==="schedule" ? scheduleEditor(pr) : scheduleSummary(pr)}
       <p class="cal-sub" style="font-weight:600">${esc(weekSummary(pr))}</p>
@@ -158,13 +162,21 @@ function planChanged(){ saveSettings(); }
 export function init(){
   $("#tab-plan").addEventListener("click", async e=>{
     const t = e.target, pr = settings.program;
+    const q = quizClick(t);
+    if(q==="cancel"){ endQuiz(); renderPlan(); return; }
+    if(q==="done"){
+      const a = quizAnswers();
+      if(hasProgram() && !(await askConfirm(`Replace "${pr.name}" with a new plan from your answers? Your logged workouts aren't affected.`, "Replace"))) return;
+      settings.program = buildPlan(a); endQuiz(); setPlanEdit(null); setItemEdit(null); planChanged(); window.scrollTo(0, 0); return;
+    }
+    if(q){ renderPlan(); return; }
+    if(t.closest("[data-quiz-redo]")){ startQuiz(pr && pr.quiz); renderPlan(); window.scrollTo(0, 0); return; }
     const tpl = t.closest("[data-tpl]");
+    if(tpl && tpl.dataset.tpl==="__quiz"){ startQuiz(null); setPlanEdit(null); renderPlan(); window.scrollTo(0, 0); return; }
     if(tpl){
-      const k = tpl.dataset.tpl, nm = k==="__blank" ? "a blank program" : `"${TEMPLATES[k].name}"`;
-      if(hasProgram() && !(await askConfirm(`Replace "${pr.name}" with ${nm}? Your logged workouts aren't affected.`, "Replace"))) return;
-      const m = pr ? pr.mode : null;
-      if(k==="__blank"){ settings.program = blankProgram(); settings.program.template="__blank"; if(m) settings.program.mode = m; } else loadTemplate(k);
-      setPlanEdit(k==="__blank" ? null : null); setItemEdit(null); planChanged(); return;
+      const k = tpl.dataset.tpl;
+      if(hasProgram() && !(await askConfirm(`Replace "${pr.name}" with "${TEMPLATES[k].name}"? Your logged workouts aren't affected.`, "Replace"))) return;
+      loadTemplate(k); setPlanEdit(null); setItemEdit(null); planChanged(); return;
     }
     if(!pr) return;
     const pe = t.closest("[data-pedit]"); if(pe){ setPlanEdit(pe.dataset.pedit || null); setItemEdit(null); renderPlan(); return; }

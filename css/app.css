@@ -133,8 +133,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .actions.over .save-rest .rb-fill{background:var(--green)}
 .actions.resting #save{color:transparent}
 .primary:active{transform:translateY(1px);box-shadow:inset 0 2px 0 var(--shadow)}
-.secondary:not(:disabled):active,.edit:active,.icon-btn:active,.equip-sum:active,.tpl:active,.seg button:active,.mode button:active,.unit-toggle button:active,.fchip:active,.chips button:active,.cal-day:not(:disabled):active,.plan-toggle:active{background:var(--line)}
-.note-toggle:active,.ex-name-btn:active,.ex-chosen-text:active,.foot button:active{opacity:.55}
+.secondary:not(:disabled):active,.edit:active,.icon-btn:active,.equip-sum:active,.tpl:active,.qz-opt:active,.qz-days button:active,.seg button:active,.mode button:active,.unit-toggle button:active,.fchip:active,.chips button:active,.cal-day:not(:disabled):active,.plan-toggle:active{background:var(--line)}
+.note-toggle:active,.qz-link:active,.ex-name-btn:active,.ex-chosen-text:active,.foot button:active{opacity:.55}
 .primary{flex:1;border:0;border-radius:12px;padding:14px;background:var(--red);color:var(--on-accent);font-weight:700;font-size:1.1rem;font-family:Archivo,sans-serif;font-stretch:80%;letter-spacing:.03em}
 .secondary{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface);font-weight:600}
 .note-toggle{border:0;background:none;color:var(--blue-ink);padding:10px 0 0;min-height:40px;font-weight:600}
@@ -261,6 +261,21 @@ h3{font-size:1.1rem;margin:0;font-weight:600}
 .tpl{text-align:left;border:1px solid var(--line);background:var(--field);border-radius:12px;padding:12px;display:grid;gap:2px}
 .tpl b{font-family:Archivo,sans-serif;font-stretch:80%;font-size:1.3rem}
 .tpl span{color:var(--muted);font-size:.9rem}
+/* Build your own: the plan quiz */
+.qz-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.qz-step{font-size:.85rem;font-weight:600;color:var(--muted)}
+.qz-dots{display:flex;gap:4px}.qz-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}.qz-dots i.on{background:var(--red)}
+.qz-opt{text-align:left;border:1px solid var(--line);background:var(--field);border-radius:12px;padding:12px;display:grid;gap:2px;min-height:44px;width:100%}
+.qz-opt b{font-family:Archivo,sans-serif;font-stretch:80%;font-size:1.3rem}
+.qz-opt span{color:var(--muted);font-size:.9rem}
+.qz-opt[aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.qz-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.qz-days button{min-height:44px;border:1px solid var(--line);background:var(--field);border-radius:8px;font-weight:600;color:var(--muted);padding:0}
+.qz-days button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.qz-count{margin:10px 0 0;font-weight:600}
+.qz-note{border-left-color:var(--blue)}
+.qz-link{border:0;background:none;color:var(--blue-ink);font-weight:600;padding:10px 0 0;min-height:40px}
+.primary:disabled{opacity:.45}
 .sched{display:grid;gap:6px}
 .sched-row{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;font-weight:600}
 .sched-row.rot{grid-template-columns:24px 1fr auto;padding:4px 0;border-top:1px solid var(--line)}
