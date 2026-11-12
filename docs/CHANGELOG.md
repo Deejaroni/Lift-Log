@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (fifth update)
+- Behind the scenes: the 3D test page has a more lifelike figure with hands, softer muscles shown by color, bars and dumbbells that stay in the hands and turn with them, and better form on all four lifts. Nothing in the app changed.
+
 ## 2026-11-12 (fourth update)
 - Behind the scenes: a test page for the coming 3D exercise figures, at /tools/proto3d/. Nothing in the app changed.
 

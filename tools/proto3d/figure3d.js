@@ -27,8 +27,9 @@ const STAND = {hips:[0,1,0], spine:[0,1,0], chest:[0,1,0], neck:[0,1,0], head:[0
 function expand(p){
   const o = {}, P = {...STAND, ...p};
   for(const k of ["hips","spine","chest","neck","head"]) o[k] = new THREE.Vector3(...P[k]).normalize();
-  for(const part of ["shoulder","upperarm","forearm","hand","thigh","shin","foot"]){
-    const l = P[part], r = P[part + "R"] || [-l[0], l[1], l[2]];
+  for(const part of ["shoulder","upperarm","forearm","hand","palm","thigh","shin","foot"]){
+    const l = P[part]; if(!l) continue;
+    const r = P[part + "R"] || [-l[0], l[1], l[2]];
     o[`${part}_L`] = new THREE.Vector3(...l).normalize(); o[`${part}_R`] = new THREE.Vector3(...r).normalize();
   }
   return o;
@@ -78,61 +79,89 @@ function dumbbell(){
 }
 const box = (w, h, d, m, x, y, z) => { const b = mesh(G.box, m); b.scale.set(w, h, d); b.position.set(x, y, z); return b; };
 
+// Where a hand holds a bar or handle: the middle of the palm.
+const palm = (J, s) => J[`hand_${s}`].clone().lerp(J[`handtip_${s}`], .32);
+const at = (J, base, x, y, z) => J[base].clone().add(new THREE.Vector3(x, y, z).applyQuaternion(J.chestQ));
+
 // ---------- exercises for the prototype ----------
 // Each: two poses, how the body is placed (feet planted, or the hips at a spot), the muscles worked, the gear,
-// and the point the direction arrow follows.
+// and the point the direction arrow follows. Arm, hand and palm directions are relative to the chest
+// (x the figure's left, y toward the head, z out of the chest). A barbell lift gives grip(J, s): where the
+// bar is, and the arms reach for it, so the hands stay on the bar and the bar stays level with the shoulders.
 const EXERCISES = {
   squat: {
     name: "High-bar back squat", roles: {Quadriceps: 1, Glutes: .38}, anchor: "feet",
-    contracted: {upperarm: [.56, -.69, -.44], forearm: [.08, 1, .16], hand: [0, .9, .3]},
-    stretched: {hips: [0, .9, .44], spine: [0, .82, .57], chest: [0, .85, .52], neck: [0, .9, .2], head: [0, 1, .15],
-      upperarm: [.56, -.69, -.44], forearm: [.08, 1, .16], hand: [0, .9, .3],
-      thigh: [.2, -.25, 1], shin: [.08, -.92, -.38], foot: [.05, -.3, 1]},
+    // Feet a little wider than the hips, toes turned out; knees track over the toes; chest up; hips to below parallel.
+    contracted: {thigh: [.12, -1, 0], shin: [.02, -1, 0], foot: [.34, -.35, 1]},
+    stretched: {hips: [0, .86, .5], spine: [0, .8, .6], chest: [0, .82, .57], neck: [0, .92, .38], head: [0, 1, .22],
+      thigh: [.25, -.24, 1], shin: [-.09, -.92, -.4], foot: [.34, -.35, 1]},
+    // The bar rests on the upper traps; hands just outside the shoulders, elbows down and back.
+    grip: J => ({center: at(J, "neck", 0, -.035, -.078), half: .36, hand: [0, .12, -1], palm: [0, 1, .12], pole: [.3, -1, -.6]}),
     gear(g){ g.bar = barbell(); g.add(g.bar); },
-    place(g, J){ g.bar.position.copy(J.neck).add(new THREE.Vector3(0, -.02, -.1).applyQuaternion(J.chestQ)); g.bar.quaternion.copy(J.chestQ); },
-    track: J => J.neck.clone(),
+    place(g, J){ placeBar(g.bar, J); },
+    track: J => J.bar.center.clone(),
   },
   bench: {
-    name: "Barbell bench press — flat", roles: {Chest: 1, "Shoulders:front": .38, Triceps: .38}, anchor: {hips: [0, .56, .05]},
-    contracted: {hips: [0, 0, -1], spine: [0, .05, -1], chest: [0, .03, -1], neck: [0, .1, -1], head: [0, .1, -1],
-      upperarm: [.3, -.05, 1], forearm: [.05, 0, 1], hand: [0, .1, 1],
-      thigh: [.28, 0, 1], shin: [.1, -1, .15], foot: [0, -.2, 1]},
-    stretched: {hips: [0, 0, -1], spine: [0, .05, -1], chest: [0, .03, -1], neck: [0, .1, -1], head: [0, .1, -1],
-      upperarm: [.86, .2, -.42], forearm: [.05, .05, 1], hand: [0, .1, 1],
-      thigh: [.28, 0, 1], shin: [.1, -1, .15], foot: [0, -.2, 1]},
+    name: "Barbell bench press — flat", roles: {Chest: 1, "Shoulders:front": .38, Triceps: .38}, anchor: {hips: [0, .58, .05]},
+    // Shoulders down on the bench with a slight arch, feet flat on the floor behind the knees.
+    contracted: {hips: [0, 0, -1], spine: [0, .08, -1], chest: [0, 0, -1], neck: [0, -.12, -1], head: [0, -.05, -1],
+      thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1]},
+    stretched: {hips: [0, 0, -1], spine: [0, .08, -1], chest: [0, 0, -1], neck: [0, -.12, -1], head: [0, -.05, -1],
+      thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1]},
+    // From over the shoulders down to the lower chest, a slight diagonal; grip about one and a half shoulder widths;
+    // elbows tucked to about 45 degrees, forearms upright.
+    grip: (J, s) => ({center: at(J, "chest", 0, .13, .57).lerp(at(J, "chest", 0, .015, .165), s), half: .34,
+      hand: [0, .3, .95], palm: [0, -.95, .3], pole: [1, -.75, -.5]}),
     gear(g){ g.add(box(.3, .06, 1.25, M.pad, 0, .44, -.2)); g.add(box(.06, .42, .06, M.frame, 0, .21, .25)); g.add(box(.06, .42, .06, M.frame, 0, .21, -.7));
       g.bar = barbell(); g.add(g.bar); },
-    place(g, J){ g.bar.position.copy(J.hand_L).add(J.hand_R).multiplyScalar(.5); },
-    track: J => J.hand_L.clone().add(J.hand_R).multiplyScalar(.5),
+    place(g, J){ placeBar(g.bar, J); },
+    track: J => J.bar.center.clone(),
   },
   pulldown: {
-    name: "Lat pulldown — wide overhand", roles: {Back: 1, Biceps: .38, "Shoulders:rear": .38}, anchor: {hips: [0, .62, 0]},
-    contracted: {spine: [0, .96, -.27], chest: [0, .95, -.3], neck: [0, 1, -.05], head: [0, 1, .05],
-      upperarm: [.82, -.5, -.28], forearm: [-.05, 1, .05], hand: [0, 1, 0],
-      thigh: [.12, 0, 1], shin: [0, -1, .05], foot: [0, -.3, 1]},
-    stretched: {spine: [0, 1, -.1], chest: [0, 1, -.12],
-      upperarm: [.55, .83, 0], forearm: [.38, .92, 0], hand: [.2, 1, 0],
-      thigh: [.12, 0, 1], shin: [0, -1, .05], foot: [0, -.3, 1]},
-    gear(g){ g.add(box(.38, .07, .42, M.pad, 0, .5, .12)); g.add(box(.06, .5, .06, M.frame, 0, .25, .12));
-      g.add(box(.36, .07, .1, M.pad, 0, .78, .32));
-      g.add(box(.08, 2.4, .08, M.frame, 0, 1.2, -.42)); g.add(box(.5, .08, .5, M.frame, 0, 2.4, -.2));
-      g.bar = new THREE.Group(); const b = mesh(G.bar, M.metal); b.scale.set(1.2, 1.4, 1.4); g.bar.add(b);
-      for(const x of [-.6, .6]){ const e = mesh(G.bar, M.metal); e.scale.set(.18, 1.4, 1.4); e.position.set(x * 1.05, -.03, 0); e.rotation.z = x > 0 ? -.5 : .5; g.bar.add(e); }
+    name: "Lat pulldown — wide overhand", roles: {Back: 1, Biceps: .38, "Shoulders:rear": .38}, anchor: {hips: [0, .555, 0]},
+    // Thighs under the pad, feet flat; lean back a little, a little more as the bar reaches the upper chest.
+    contracted: {hips: [0, .95, -.2], spine: [0, .94, -.34], chest: [0, .94, -.34], neck: [0, 1, -.12], head: [0, 1, 0],
+      thigh: [.12, -.05, 1], shin: [0, -1, .1], foot: [.15, -.35, 1]},
+    stretched: {hips: [0, .98, -.12], spine: [0, .98, -.18], chest: [0, .98, -.18], neck: [0, 1, -.06], head: [0, 1, 0],
+      thigh: [.12, -.05, 1], shin: [0, -1, .1], foot: [.15, -.35, 1]},
+    // Arms straight overhead down to the bar touching the top of the chest; elbows drive down and back.
+    grip: (J, s) => ({center: at(J, "chest", 0, .12, .16).lerp(at(J, "chest", 0, .64, .06), s), half: .42,
+      hand: [0, 1, -.05], palm: [0, 0, 1], pole: [.6, -1, -.6]}),
+    gear(g){ g.add(box(.38, .07, .42, M.pad, 0, .43, .12)); g.add(box(.06, .4, .06, M.frame, 0, .2, .12));
+      g.add(box(.36, .07, .1, M.pad, 0, .665, .32)); g.add(box(.06, .66, .06, M.frame, 0, .33, .4));
+      g.add(box(.08, 2.4, .08, M.frame, 0, 1.2, .66)); g.add(box(.08, .08, .82, M.frame, 0, 2.38, .25));
+      g.bar = new THREE.Group(); const b = mesh(G.bar, M.metal); b.scale.set(.9, 1.4, 1.4); g.bar.add(b);
+      for(const x of [-1, 1]){ const e = mesh(G.bar, M.metal); e.scale.set(.32, 1.4, 1.4); e.position.set(x * .58, -.04, 0); e.rotation.z = x * -.28; g.bar.add(e); }
       g.add(g.bar); g.cable = mesh(G.cable, M.metal); g.add(g.cable); },
-    place(g, J){ g.bar.position.copy(J.hand_L).add(J.hand_R).multiplyScalar(.5);
-      const top = new THREE.Vector3(0, 2.36, -.1), d = top.clone().sub(g.bar.position);
-      g.cable.position.copy(g.bar.position).addScaledVector(d, .5); g.cable.scale.y = d.length(); g.cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); },
-    track: J => J.hand_L.clone().add(J.hand_R).multiplyScalar(.5),
+    place(g, J){ placeBar(g.bar, J);
+      const top = new THREE.Vector3(0, 2.34, -.08), d = top.clone().sub(J.bar.center);
+      g.cable.position.copy(J.bar.center).addScaledVector(d, .5); g.cable.scale.y = d.length(); g.cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); },
+    track: J => J.bar.center.clone(),
   },
   lateral: {
     name: "Dumbbell lateral raise", roles: {"Shoulders:side": 1, Back: .38}, anchor: "feet",
-    contracted: {upperarm: [1, .02, .15], forearm: [1, .06, .25], hand: [1, 0, .3]},
-    stretched: {upperarm: [.2, -1, .12], forearm: [.15, -1, .22], hand: [.1, -1, .25]},
+    // Soft knees, chest slightly forward. Arms rise a little in front of the body to shoulder height, elbows soft
+    // and leading; palms face in at the bottom and down at the top.
+    contracted: {hips: [0, 1, .06], spine: [0, 1, .12], chest: [0, 1, .12], neck: [0, 1, .04], head: [0, 1, 0],
+      thigh: [.06, -1, .06], shin: [0, -1, -.05],
+      upperarm: [1, -.04, .42], forearm: [1, -.12, .6], hand: [1, -.1, .6], palm: [0, -1, 0]},
+    stretched: {hips: [0, 1, .06], spine: [0, 1, .12], chest: [0, 1, .12], neck: [0, 1, .04], head: [0, 1, 0],
+      thigh: [.06, -1, .06], shin: [0, -1, -.05],
+      upperarm: [.16, -1, .14], forearm: [.12, -1, .32], hand: [.08, -1, .3], palm: [-1, 0, .1]},
     gear(g){ g.dl = dumbbell(); g.dr = dumbbell(); g.add(g.dl, g.dr); },
-    place(g, J){ for(const [d, s] of [[g.dl, "L"], [g.dr, "R"]]){ d.position.copy(J[`hand_${s}`]).lerp(J[`handtip_${s}`], .45); } },
-    track: J => J.hand_L.clone(),
+    place(g, J){ for(const [d, s] of [[g.dl, "L"], [g.dr, "R"]]) placeInHand(d, J, s); },
+    track: J => palm(J, "L"),
   },
 };
+const _x = new THREE.Vector3(1, 0, 0), X_TO_THUMB = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1));
+// A barbell lies along the line between the hands.
+function placeBar(bar, J){ bar.position.copy(J.bar.center); bar.quaternion.setFromUnitVectors(_x, J.bar.axis); }
+// A dumbbell's handle runs across the palm (the way the thumb points in the model's rest pose).
+function placeInHand(d, J, s){
+  const q = J[`handQ_${s}`];
+  d.quaternion.copy(q).multiply(X_TO_THUMB);
+  d.position.copy(palm(J, s)).addScaledVector(new THREE.Vector3(0, -1, 0).applyQuaternion(q), .012);
+}
 
 // ---------- the shared renderer ----------
 let renderer, scene, camera, model, bones = {}, rest = {}, bodyParts = [], gearRoot, arrow, shadow, ready = null;
@@ -159,6 +188,9 @@ async function load(url){
     model.updateMatrixWorld(true);
     rest.chestWorldInv = bones.chest.getWorldQuaternion(new THREE.Quaternion()).invert();
     rest.feet = bones.foot_L.getWorldPosition(new THREE.Vector3());
+    rest.wqInv = {}; for(const [b] of AIM) rest.wqInv[b] = bones[b].getWorldQuaternion(new THREE.Quaternion()).invert();
+    const gap = (a, b) => bones[a].getWorldPosition(new THREE.Vector3()).distanceTo(bones[b].getWorldPosition(new THREE.Vector3()));
+    rest.len = {upperarm: gap("upperarm_L", "forearm_L"), forearm: gap("forearm_L", "hand_L"), hand: gap("hand_L", "handtip_L")};
     gearRoot = new THREE.Group(); scene.add(gearRoot);
     arrow = new THREE.Group(); const sh = mesh(G.shaft, M.arrow); sh.scale.y = .16; sh.position.y = .08; const co = mesh(G.cone, M.arrow); co.position.y = .2; arrow.add(sh, co); scene.add(arrow);
     shadow = mesh(G.shadow, M.shadow); shadow.scale.setScalar(.55); scene.add(shadow);
@@ -173,7 +205,20 @@ async function load(url){
 // Aim each bone at its target direction, top of the body down, so children follow their parents.
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _q = new THREE.Quaternion(), _w = new THREE.Quaternion(), _p = new THREE.Quaternion();
 const ARM = /^(shoulder|upperarm|forearm|hand)_/;
-const _d = new THREE.Quaternion(), _t = new THREE.Vector3();
+const _d = new THREE.Quaternion(), _t = new THREE.Vector3(), _n = new THREE.Vector3(), _c = new THREE.Vector3(), _x2 = new THREE.Vector3();
+// Turning the palm: the upper arm takes half the turn, the forearm and hand the rest, like a real arm.
+const TWIST = {upperarm: .5, forearm: 1, hand: 1};
+const DOWN = new THREE.Vector3(0, -1, 0);   // the palms face down in the model's rest pose
+function setWorld(bone, wq){ bone.parent.getWorldQuaternion(_p); bone.quaternion.copy(_p.invert().multiply(wq)); bone.updateMatrixWorld(true); }
+function twist(bone, axis, target, share){
+  bone.getWorldQuaternion(_w);
+  _c.copy(DOWN).applyQuaternion(_q.copy(_w).multiply(rest.wqInv[bone.name]));   // the way the palm faces now
+  _c.addScaledVector(axis, -_c.dot(axis)); _n.copy(target).addScaledVector(axis, -target.dot(axis));
+  if(_c.lengthSq() < 1e-6 || _n.lengthSq() < 1e-6) return;
+  _c.normalize(); _n.normalize();
+  const ang = Math.atan2(_x2.crossVectors(_c, _n).dot(axis), _c.dot(_n)) * share;
+  setWorld(bone, _q.setFromAxisAngle(axis, ang).multiply(_w));
+}
 function pose(dirs){
   for(const [b] of AIM) bones[b].quaternion.copy(rest[b]);
   model.position.set(0, 0, 0); model.updateMatrixWorld(true);
@@ -183,29 +228,56 @@ function pose(dirs){
     if(ARM.test(b)){ bones.chest.getWorldQuaternion(_d).multiply(rest.chestWorldInv); t = _t.copy(t).applyQuaternion(_d); }
     bone.getWorldPosition(_a); bones[c].getWorldPosition(_b);
     _q.setFromUnitVectors(_b.sub(_a).normalize(), t);
-    bone.getWorldQuaternion(_w).premultiply(_q); bone.parent.getWorldQuaternion(_p);
-    bone.quaternion.copy(_p.invert().multiply(_w)); bone.updateMatrixWorld(true);
+    setWorld(bone, bone.getWorldQuaternion(_w).premultiply(_q));
+    const [part, side] = b.split("_"), pv = dirs[`palm_${side}`];
+    if(TWIST[part] && pv) twist(bone, t, pv.clone().applyQuaternion(_d), TWIST[part]);
   }
 }
-const JOINTS = ["hips","chest","neck","head","headtop","hand_L","hand_R","handtip_L","handtip_R","foot_L","foot_R","toe_L","toe_R","forearm_L","forearm_R","shin_L","shin_R"];
+const JOINTS = ["hips","chest","neck","head","headtop","upperarm_L","upperarm_R","hand_L","hand_R","handtip_L","handtip_R","foot_L","foot_R","toe_L","toe_R","forearm_L","forearm_R","shin_L","shin_R"];
 function joints(){ const J = {}; for(const n of JOINTS) J[n] = bones[n].getWorldPosition(new THREE.Vector3());
-  J.chestQ = bones.chest.getWorldQuaternion(new THREE.Quaternion()).multiply(rest.chestWorldInv); return J; }
+  J.chestQ = bones.chest.getWorldQuaternion(new THREE.Quaternion()).multiply(rest.chestWorldInv);
+  for(const s of ["L", "R"]) J[`handQ_${s}`] = bones[`hand_${s}`].getWorldQuaternion(new THREE.Quaternion()).multiply(rest.wqInv[`hand_${s}`]);
+  return J; }
+const mirror = (v, s) => new THREE.Vector3(s === "L" ? v[0] : -v[0], v[1], v[2]).normalize();
+// Two-joint reach: the elbow that puts the wrist at w from the shoulder at a, bending toward pole.
+function elbow(a, w, l1, l2, pole){
+  const d = w.clone().sub(a), len = THREE.MathUtils.clamp(d.length(), Math.abs(l1 - l2) + 1e-3, (l1 + l2) * .999);
+  d.normalize();
+  const x = (l1 * l1 - l2 * l2 + len * len) / (2 * len), h = Math.sqrt(Math.max(0, l1 * l1 - x * x));
+  const up = pole.clone().addScaledVector(d, -pole.dot(d)).normalize();
+  return a.clone().addScaledVector(d, x).addScaledVector(up, h);
+}
 // Interpolated pose for an exercise at stretch s (0 contracted .. 1 stretched); places the body and returns its joints.
 function placeAt(ex, s){
   const A = ex._c || (ex._c = expand(ex.contracted)), B = ex._s || (ex._s = expand(ex.stretched)), d = {};
-  for(const k in A) d[k] = A[k].clone().lerp(B[k], s).normalize();
+  for(const k in A) if(B[k]) d[k] = A[k].clone().lerp(B[k], s).normalize();
   pose(d);
   if(ex.anchor === "feet"){ const f = bones.foot_L.getWorldPosition(new THREE.Vector3()), g = bones.foot_R.getWorldPosition(new THREE.Vector3());
     model.position.copy(rest.feet).sub(f.add(g).multiplyScalar(.5)); model.position.x = 0; }
   else { const h = bones.hips.getWorldPosition(new THREE.Vector3()); model.position.set(...ex.anchor.hips).sub(h); }
   model.updateMatrixWorld(true);
-  return joints();
+  if(!ex.grip) return joints();
+  // Barbell lifts: the arms reach for the bar.
+  let J = joints();
+  const g = ex.grip(J, s), axis = new THREE.Vector3(1, 0, 0).applyQuaternion(J.chestQ), inv = J.chestQ.clone().invert(), at0 = model.position.clone();
+  for(const side of ["L", "R"]){
+    const grip = g.center.clone().addScaledVector(axis, side === "L" ? g.half : -g.half);
+    const hand = mirror(g.hand, side).applyQuaternion(J.chestQ), pole = mirror(g.pole, side).applyQuaternion(J.chestQ);
+    const wrist = grip.addScaledVector(hand, -.32 * rest.len.hand), a = J[`upperarm_${side}`];
+    const e = elbow(a, wrist, rest.len.upperarm, rest.len.forearm, pole);
+    d[`upperarm_${side}`] = e.clone().sub(a).normalize().applyQuaternion(inv);
+    d[`forearm_${side}`] = wrist.clone().sub(e).normalize().applyQuaternion(inv);
+    d[`hand_${side}`] = mirror(g.hand, side); d[`palm_${side}`] = mirror(g.palm, side);
+  }
+  pose(d); model.position.copy(at0); model.updateMatrixWorld(true);
+  J = joints(); J.bar = {center: g.center, axis: palm(J, "L").sub(palm(J, "R")).normalize()};
+  return J;
 }
 // Camera framing per exercise, from the joints at both ends of the movement.
 function frame(ex){
   if(ex._frame) return ex._frame;
   const b = new THREE.Box3();
-  for(const s of [0, 1]){ const J = placeAt(ex, s); for(const k in J) b.expandByPoint(J[k]); }
+  for(const s of [0, 1]){ const J = placeAt(ex, s); for(const k in J) if(J[k].isVector3) b.expandByPoint(J[k]); }
   b.expandByPoint(new THREE.Vector3(0, 0, 0));
   ex._frame = {center: b.getCenter(new THREE.Vector3()), radius: b.getSize(new THREE.Vector3()).length() / 2};
   return ex._frame;
@@ -231,7 +303,7 @@ function loop(now){
     if(!w || !h) continue;
     if(v.canvas.width !== w || v.canvas.height !== h){ v.canvas.width = w; v.canvas.height = h; }
     if(renderer.domElement.width < w || renderer.domElement.height < h) renderer.setSize(Math.max(w, renderer.domElement.width), Math.max(h, renderer.domElement.height), false);
-    const ph = calm() ? {s: 0, name: "holdC"} : phaseAt(t + v.offset);
+    const ph = v.still != null ? {s: v.still, name: "holdC"} : calm() ? {s: 0, name: "holdC"} : phaseAt(t + v.offset);
     useGear(ex); paintMuscles(ex.roles);
     const J = placeAt(ex, ph.s); ex.place(gearRoot, J);
     // Direction arrow: while lifting, beside the moving bar or hand, pointing where it's going.
