@@ -8,6 +8,9 @@ const FILES = [
   "js/search.js", "js/progress.js", "js/plan.js", "js/exercise-sheet.js",
   "js/plan-editor.js", "js/standards.js", "js/main.js", "js/app.js",
   "js/figure.js", "js/movements.js", "js/movements-more.js", "js/visuals.js", "js/badges.js", "js/plan-quiz.js", "js/suggest.js", "js/history.js",
+  "js/figure3d.js", "js/gear3d.js", "js/poses3d.js", "js/poses3d-more.js", "models/body.glb",
+  "vendor/three/three.module.js", "vendor/three/three.core.js", "vendor/three/addons/loaders/GLTFLoader.js",
+  "vendor/three/addons/utils/BufferGeometryUtils.js", "vendor/three/addons/utils/SkeletonUtils.js",
   "fonts/archivo-latin-wdth-normal.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"
 ];
@@ -24,8 +27,8 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== location.origin) return;
-  // Test pages (tools/) and their 3D model aren't part of the app: leave them to the network.
-  if (u.pathname.includes("/tools/") || u.pathname.includes("/models/")) return;
+  // Test pages (tools/) aren't part of the app: leave them to the network.
+  if (u.pathname.includes("/tools/")) return;
   // Everything, the page included, comes from this version's own cache; the network is only a fallback.
   const page = e.request.mode === "navigate";
   e.respondWith(caches.open(VERSION).then(async c => {

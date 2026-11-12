@@ -2,7 +2,7 @@
 // ES module (see docs/DECISIONS.md). Figures are SVG markup built from a few key poses; nothing is fetched.
 
 // Colors come from the app's tokens so figures follow light and dark mode.
-const COL = {body:"var(--surface)", line:"var(--muted)", gear:"var(--muted)", plate:"var(--surface)", shadow:"var(--field)", red:"var(--red)", mapBody:"var(--line)"};
+const COL = {body:"var(--surface)", line:"var(--muted)", gear:"var(--muted)", plate:"var(--surface)", shadow:"var(--field)", red:"var(--red)", yellow:"var(--yellow)", mapBody:"var(--line)"};
 // Half-widths of each body part at its two ends.
 const W = {torso:[11,8.5], neck:[3.5,3.5], upper:[5.2,4.2], fore:[4.2,3.4], thigh:[7.5,6], shin:[5.5,4], foot:[3.5,3]};
 const SIDE_SEGS = [["H","K","thigh"],["K","A","shin"],["A","T","foot"],["S","E","upper"],["E","W","fore"]];
@@ -120,10 +120,12 @@ export function bodyMapMarkup(roles){
   let s = "";
   for(const cx of [14,44]) s += `<circle cx="${cx}" cy="4" r="3.2" fill="${COL.mapBody}"/><rect x="${cx-5}" y="8" width="10" height="17" rx="3" fill="${COL.mapBody}"/>`+
     `<path d="M${cx-5.5} 9.5L${cx-8.5} 23M${cx+5.5} 9.5L${cx+8.5} 23M${cx-2.5} 25L${cx-3} 42M${cx+2.5} 25L${cx+3} 42" stroke="${COL.mapBody}" stroke-width="3.4" stroke-linecap="round"/>`;
-  // Draw supporting muscles first so the main one sits on top.
+  // Draw supporting muscles first so the main one sits on top. Main muscles are red and helpers yellow,
+  // like the 3D figures.
   const order = Object.entries(roles).sort((a,b)=>a[1]-b[1]);
-  for(const [m, op] of order) for(const r of MAP[m]||[]) s += r[0]==="c"
-    ? `<circle data-m="${m}" cx="${r[1]}" cy="${r[2]}" r="${r[3]}" fill="${COL.red}" fill-opacity="${op}"/>`
-    : `<ellipse data-m="${m}" cx="${r[1]}" cy="${r[2]}" rx="${r[3]}" ry="${r[4]}" fill="${COL.red}" fill-opacity="${op}"/>`;
+  for(const [m, op] of order){ const fill = op >= 1 ? COL.red : COL.yellow, o = op >= 1 ? 1 : .9;
+    for(const r of MAP[m]||[]) s += r[0]==="c"
+      ? `<circle data-m="${m}" cx="${r[1]}" cy="${r[2]}" r="${r[3]}" fill="${fill}" fill-opacity="${o}"/>`
+      : `<ellipse data-m="${m}" cx="${r[1]}" cy="${r[2]}" rx="${r[3]}" ry="${r[4]}" fill="${fill}" fill-opacity="${o}"/>`; }
   return s;
 }

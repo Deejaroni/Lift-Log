@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All 3D patterns</title>
+<link rel="stylesheet" href="../../css/app.css">
+<script type="importmap">{"imports":{"three":"../../vendor/three/three.module.js","three/addons/":"../../vendor/three/addons/"}}</script>
+<style>
+  body{padding:8px}
+  .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:8px}
+  .c{border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--surface)}
+  .c h4{margin:0 0 4px;font-size:.85rem}
+  .c div{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .c canvas{width:100%;height:190px;background:var(--field);border-radius:8px}
+</style>
+</head>
+<body>
+<p>Each pattern at the contracted end (left) and stretched end (right). Add ?kind=dumbbell (barbell, kettlebell, cable, none) and ?only=key1,key2.</p>
+<div class="g" id="g"></div>
+<script type="module">
+  import { load, show, POSES } from "../../js/figure3d.js";
+  const q = new URLSearchParams(location.search), only = q.get("only");
+  // A typical kind of weight for each pattern (the page can force one with ?kind=).
+  const TYPICAL = {gobletSquat: "dumbbell", lateralRaise: "dumbbell", frontRaise: "dumbbell", reverseFly: "dumbbell", facePull: "cable", pushdown: "cable", curl: "dumbbell",
+    overheadExt: "dumbbell", carry: "dumbbell", sideBend: "dumbbell", chop: "cable", chopUp: "cable", rotation: "cable", kbSwing: "kettlebell", kbClean: "kettlebell", kbSnatch: "kettlebell",
+    halo: "kettlebell", highPull: "kettlebell", getUp: "kettlebell", windmill: "kettlebell", thruster: "kettlebell", russianTwist: "kettlebell", yRaise: "dumbbell", renegadeRow: "dumbbell",
+    wristCurl: "dumbbell", reverseWristCurl: "dumbbell", straightArm: "cable", flyCable: "cable", flyBench: "dumbbell", cablePress: "cable", cableRow: "cable", shrug: "dumbbell"};
+  const kindOf = k => q.get("kind") || TYPICAL[k] || "barbell";
+  await load("../../models/body.glb");
+  const keys = Object.keys(POSES).filter(k => !only || only.split(",").includes(k));
+  document.getElementById("g").innerHTML = keys.map(k => `<section class="c"><h4>${k}</h4><div><canvas data-k="${k}" data-s="0"></canvas><canvas data-k="${k}" data-s="1"></canvas></div></section>`).join("");
+  document.querySelectorAll("canvas").forEach(c => { const v = show(c, {key: c.dataset.k, kind: kindOf(c.dataset.k), roles: {Quadriceps: 1, Chest: 1, Back: 1, Glutes: .38}}, {still: true});
+    if(v){ v.stillAt = +c.dataset.s; } });
+  window.__ready = true;
+</script>
+</body>
+</html>

@@ -5,7 +5,8 @@
 # man with MakeHuman's own targets. It's posed into a T-pose (palms down, thumbs forward, fingers slightly curled),
 # given the skeleton the app's poses use, lightened for phones, and given a muscle map: for each muscle, how
 # much of it each vertex sits on (0..1, soft at the edges), shaped like the muscle itself. The maps are stored
-# as four vertex attributes, _ma.._md, four muscles each, in the MUSCLES order below (figure3d.js uses the same).
+# as one vertex attribute, _mw = (muscle, weight, muscle, weight): each vertex's two strongest muscles, as indexes
+# into the MUSCLES list below (js/figure3d.js uses the same order).
 # The figure faces -Y (Blender), which is +Z in three.js; +X is the figure's left.
 import bpy, math, os, sys
 from collections import defaultdict
@@ -16,7 +17,7 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = argv[0] if argv else "models/body.glb"
 PREVIEW = argv[1] if len(argv) > 1 else None
 HERE = os.path.dirname(os.path.abspath(__file__))
-DECIMATE = 0.55   # share of the triangles kept
+DECIMATE = 0.5   # share of the triangles kept
 HEIGHT = 1.78
 TARGETS = {   # MakeHuman macro shape: male, young, mixed ancestry, somewhat muscular
   "caucasian-male-young": 1 / 3, "african-male-young": 1 / 3, "asian-male-young": 1 / 3,
@@ -184,10 +185,10 @@ for m, s, x in SIDES:
 # Abs: a column down the front of the belly.
 patch("Abdominals", Vector((0, 0, POS["spine"][0].z + .02)), (0, -1, 0), (0, 0, 1), .15, .068, .05)
 me = body.data
-for a in range(4):
-  at = me.attributes.new(f"_m{'abcd'[a]}", "FLOAT_COLOR", "POINT")
-  for i, w in enumerate(W):
-    at.data[i].color = [(w[a * 4 + j] if a * 4 + j < len(MUSCLES) else 0.0) for j in range(4)]
+at = me.attributes.new("_mw", "FLOAT_COLOR", "POINT")
+for i, w in enumerate(W):
+  top = sorted(range(len(MUSCLES)), key=lambda k: -w[k])[:2]
+  at.data[i].color = (top[0], w[top[0]], top[1], w[top[1]])
 
 # ---------- 4. the app's skeleton, skinned to the T-posed body ----------
 P = lambda b, end=0: POS[b][end]
@@ -216,9 +217,8 @@ bpy.ops.object.mode_set(mode="OBJECT")
 skin(body, rig)
 # The eyes move with the head; they join the body so the figure is one mesh with one material.
 eyes.vertex_groups.new(name="head").add(list(range(len(eyes.data.vertices))), 1.0, "REPLACE")
-for a in range(4):
-  at = eyes.data.attributes.new(f"_m{'abcd'[a]}", "FLOAT_COLOR", "POINT")
-  for d in at.data: d.color = (0, 0, 0, 0)
+at = eyes.data.attributes.new("_mw", "FLOAT_COLOR", "POINT")
+for d in at.data: d.color = (0, 0, 0, 0)
 select(body, eyes, active=body); bpy.ops.object.join()
 mat = bpy.data.materials.new("m_body"); body.data.materials.clear(); body.data.materials.append(mat)
 select(body); bpy.ops.object.shade_smooth()
@@ -236,12 +236,11 @@ if PREVIEW:
   # Preview: every muscle map in its own color over grey skin.
   import colorsys
   col = me.color_attributes.new("preview", "FLOAT_COLOR", "POINT")
-  ma = [me.attributes[f"_m{c}"] for c in "abcd"]
+  mw = me.attributes["_mw"]
   for i in range(len(me.vertices)):
-    c = Vector((.72, .74, .78))
-    for k in range(len(MUSCLES)):
-      w = ma[k // 4].data[i].color[k % 4]
-      if w > 0: c = c.lerp(Vector(colorsys.hsv_to_rgb(k / len(MUSCLES), .75, .9)), w)
+    c = Vector((.72, .74, .78)); k1, w1, k2, w2 = mw.data[i].color
+    for k, w in ((k2, w2), (k1, w1)):
+      if w > 0: c = c.lerp(Vector(colorsys.hsv_to_rgb(int(k) / len(MUSCLES), .75, .9)), w)
     col.data[i].color = (*c, 1)
   me.color_attributes.active_color = col
   scene.render.engine = "BLENDER_WORKBENCH"; scene.display.shading.color_type = "VERTEX"; scene.display.shading.light = "STUDIO"

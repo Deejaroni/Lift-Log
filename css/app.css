@@ -499,10 +499,16 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .exs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .exs-head h3{margin:0;min-width:0;overflow-wrap:anywhere}
 .exs-anim{display:block;width:100%;height:auto;aspect-ratio:200/176;background:var(--field);border-radius:12px}
+/* 3D figures: the canvas takes the 2D picture's place once it's ready (js/visuals.js). */
+.fig3d-main[hidden],svg[data-three]{display:none}
+canvas.exs-anim{touch-action:pan-y;cursor:grab}
+.fig3d-w{position:relative;display:block}
+.fig3d-w canvas{position:absolute;inset:0}
+.fig3d-w:has(canvas[data-drawn]) svg{visibility:hidden}
 .exs-cap{display:flex;align-items:center;gap:10px;margin:10px 0 4px}
 .exs-cap p{margin:0;font-size:.9rem;line-height:1.5}
 .mus-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:6px;vertical-align:0}
-.mus-dot.also{opacity:.38}
+.mus-dot.also{background:var(--yellow)}
 .exs-steps{margin:6px 0 10px;padding-left:1.3em;font-size:1rem;line-height:1.45}
 .exs-steps li{margin:4px 0}
 .exs-editrow{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;margin-bottom:6px;color:var(--muted);font-weight:600;font-size:.9rem}

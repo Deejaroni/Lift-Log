@@ -26,7 +26,44 @@ function visualFor(name){
   return {key, pat, kind: kindOf(name), roles, main: label(main, head), also: also.map(m=>label(m, m==="Shoulders" && pat ? pat.head : null))};
 }
 
-// A small picture for lists: the movement's end position, or the body map when there's no animation yet.
+// ---------- 3D figures (js/figure3d.js), loaded on demand; the 2D drawings stay as the fallback ----------
+// Where WebGL works, pictures are canvases the 3D engine draws into, once it has loaded (three.js and the body
+// model are about 2.7 MB, cached for offline use). Until then, or if it can't load, the 2D figures show.
+let has3d = null, engine = null, failed = false;
+function can3d(){
+  if(has3d !== null) return has3d;
+  try { const c = document.createElement("canvas"), gl = c.getContext("webgl2") || c.getContext("webgl"); has3d = !!gl; gl?.getExtension("WEBGL_lose_context")?.loseContext(); }
+  catch { has3d = false; }
+  return has3d;
+}
+function load3d(){
+  if(!engine) engine = import("./figure3d.js").then(async m => { await m.load(new URL("../models/body.glb", import.meta.url).href); return m; })
+    .catch(err => { failed = true; console.warn("3D figures unavailable", err); fallBack(); return null; });
+  return engine;
+}
+const use3d = () => !failed && can3d();
+const specOf = el => ({key: el.dataset.key, kind: el.dataset.kind || "barbell", roles: JSON.parse(el.dataset.roles || "{}")});
+// A small 3D picture: the 2D drawing sits underneath until the first 3D frame is drawn.
+const fig3d = (key, kind, roles, w, h, svg) => `<span class="fig3d-w" style="width:${w}px;height:${h}px">${svg}` +
+  `<canvas class="fig3d" width="${w*2}" height="${h*2}" style="width:${w}px;height:${h}px" data-key="${key}" data-kind="${kind}" data-roles='${JSON.stringify(roles).replace(/'/g, "&#39;")}' aria-hidden="true"></canvas></span>`;
+// Small pictures in lists and tiles start as soon as they're added to the page.
+function hydrate(root){
+  const cs = root.querySelectorAll ? root.querySelectorAll("canvas.fig3d[data-key]:not([data-on])") : [];
+  if(!cs.length) return;
+  load3d().then(m => { if(!m) return; cs.forEach(c => { c.dataset.on = "1"; m.show(c, specOf(c), {tight: true, offset: Math.random() * 3}); }); });
+}
+// If 3D can't load, every canvas turns back into its 2D still.
+function fallBack(){
+  document.querySelectorAll("canvas.fig3d[data-key]").forEach(c => c.remove());
+  document.querySelectorAll("canvas.fig3d-main").forEach(c => { c.hidden = true; const svg = c.previousElementSibling; if(svg) svg.removeAttribute("data-three"); });
+}
+if(typeof requestIdleCallback !== "undefined") requestIdleCallback(() => { if(use3d()) load3d(); }, {timeout: 4000});
+else setTimeout(() => { if(use3d()) load3d(); }, 1500);
+if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
+  new MutationObserver(ms => { if(!use3d()) return; for(const m of ms) for(const n of m.addedNodes) if(n.nodeType === 1) hydrate(n.matches?.("canvas.fig3d") ? n.parentNode : n); })
+    .observe(document.documentElement, {childList: true, subtree: true});
+
+// A small picture for lists: the movement in 3D (or its end position in 2D), or the body map when there's no animation.
 const stills = new Map();
 function stillMarkup(name, size=[40,36]){
   const v = visualFor(name);
@@ -35,7 +72,7 @@ function stillMarkup(name, size=[40,36]){
   if(!stills.has(id)) stills.set(id, v.pat
     ? `<svg viewBox="${poseBox(v.pat)}" width="${size[0]}" height="${size[1]}" aria-hidden="true" focusable="false">${figureMarkup(v.pat, 1, v.roles, v.kind, {noShadow:true})}</svg>`
     : `<svg viewBox="0 0 58 44" width="${size[0]}" height="${size[1]}" aria-hidden="true" focusable="false">${bodyMapMarkup(v.roles)}</svg>`);
-  return stills.get(id);
+  return v.pat && use3d() ? fig3d(v.key, v.kind, v.roles, size[0], size[1], stills.get(id)) : stills.get(id);
 }
 
 // A still for a movement on its own (browse tiles), with every muscle it shows.
@@ -43,7 +80,7 @@ function patternStill(key){
   const id = `pattern|${key}`, p = PATTERNS[key];
   const roles = Object.fromEntries([...(p.bands||[]).map(b=>[b.m,1]), ...(p.regions||[]).map(r=>[r[1],1])]);
   if(!stills.has(id)) stills.set(id, `<svg viewBox="${poseBox(p)}" width="44" height="40" aria-hidden="true" focusable="false">${figureMarkup(p, 1, roles, "barbell", {noShadow:true})}</svg>`);
-  return stills.get(id);
+  return use3d() ? fig3d(key, p.kind3d || "barbell", roles, 60, 50, stills.get(id).replace(/width="44" height="40"/, 'width="60" height="50"')) : stills.get(id);
 }
 
 // ---------- animation loop: one requestAnimationFrame for every figure on screen ----------
@@ -63,13 +100,34 @@ function tick(now){
   }
   if(live.size) raf = requestAnimationFrame(tick);
 }
-// tight: crop to the body (small pictures); otherwise the whole scene with its equipment.
+// The 3D canvas that stands in for a big picture's SVG (#ex-thumb, #exs-anim): made once, right after it.
+function canvasFor(svg){
+  let c = svg.nextElementSibling;
+  if(!c || !c.classList.contains("fig3d-main")){
+    c = document.createElement("canvas"); c.className = `${svg.getAttribute("class") || ""} fig3d-main`; c.id = `${svg.id}-3d`;
+    c.setAttribute("role", "img"); c.hidden = true; svg.after(c);
+  }
+  return c;
+}
+// tight: crop to the body (small pictures); otherwise the whole scene with its equipment. The big how-to
+// picture can be turned by dragging and shows the direction arrow.
 function animate(svg, v, tight=false){
+  if(use3d()){
+    // The 2D figure shows until the 3D one is ready; then the canvas takes its place.
+    const c = canvasFor(svg), big = !tight, token = c._t = (c._t || 0) + 1;
+    load3d().then(m => { if(!m || c._t !== token) return;
+      m.show(c, {key: v.key, kind: v.kind, roles: v.roles}, {tight, rotate: big, arrows: big});
+      c.setAttribute("aria-label", svg.getAttribute("aria-label") || ""); c.hidden = false; svg.setAttribute("data-three", "1"); live.delete(svg); });
+  }
   svg.setAttribute("viewBox", tight ? poseBox(v.pat, v.pat.loop ? [0,.25,.5,.75] : v.pat.pose ? [0,.33,.67,1] : [0,.5,1]) : FIGURE_VIEWBOX);
   if(reduceMotion()){ live.delete(svg); draw(svg, v, 1); svg.dataset.still = "1"; return; }   // a still of the end position
   delete svg.dataset.still; live.set(svg, v); draw(svg, v, 0);
   if(!raf) raf = requestAnimationFrame(tick);
 }
-const stopAnimating = svg => live.delete(svg);
+function stopAnimating(svg){
+  live.delete(svg);
+  const c = svg.nextElementSibling;
+  if(c && c.classList.contains("fig3d-main")){ c._t = (c._t || 0) + 1; c.hidden = true; svg.removeAttribute("data-three"); engine?.then(m => m?.release(c)); }
+}
 
 export { visualFor, stillMarkup, patternStill, animate, stopAnimating, bodyMapMarkup, FIGURE_VIEWBOX };

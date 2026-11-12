@@ -8,7 +8,8 @@ const read = f => fs.readFileSync(path.join(root, f), "utf8");
 const jsFiles = fs.readdirSync(path.join(root, "js")).filter(f => f.endsWith(".js")).map(f => `js/${f}`);
 const cached = [...read("sw.js").matchAll(/"([^"]+)"/g)].map(m => m[1]);
 const html = read("index.html");
-const importsOf = f => [...read(f).matchAll(/^import (?:[^;]*? from )?"\.\/([^"]+)";/gm)].map(m => `js/${m[1]}`);
+// Static imports, plus modules loaded on demand with import("./x.js") (the 3D figures).
+const importsOf = f => [...read(f).matchAll(/^import (?:[^;]*? from )?"\.\/([^"]+)";|import\("\.\/([^"]+)"\)/gm)].map(m => `js/${m[1] || m[2]}`);
 
 test("the page starts one module, app.js, and no classic app scripts", () => {
   expect([...html.matchAll(/<script type="module" src="([^"]+)"/g)].map(m => m[1])).toEqual(["js/app.js"]);

@@ -2,6 +2,14 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (seventh update)
+- Exercise pictures are now a realistic 3D body doing the movement, with the weight moving in its hands, on the Log card, in the exercise list and in Browse by movement.
+- In an exercise's how-to sheet, drag the picture to turn it; a blue arrow shows which way to push or pull while lifting.
+- Every movement keeps one steady tempo: about 2 seconds down, a short pause, 1 second up.
+- The muscles worked light up on the body: the main muscle in red, helping muscles in yellow (the body map and its legend use the same colors now).
+- With Reduce Motion on, the pictures hold still. On a phone that can't show 3D, the drawn pictures appear as before.
+- The first time a 3D picture loads, the app downloads about 2.7 MB once; after that it works offline.
+
 ## 2026-11-12 (sixth update)
 - Behind the scenes: the 3D test page has a realistic body (from the free MakeHuman model), hands that close around the bar, and muscle highlights shaped like the muscles themselves: main muscles in red, helping muscles in yellow. Softer lighting, and the floor shadow stays dark in dark mode. Nothing in the app changed.
 

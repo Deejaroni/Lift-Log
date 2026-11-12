@@ -36,21 +36,25 @@ test("every pattern draws cleanly at the start, middle and end, with each kind o
   expect(errors).toEqual([]);
 });
 
-test("the chosen exercise shows a moving picture that opens the how-to sheet", async ({ page }) => {
+// The 3D figure draws into a canvas next to the 2D picture and counts its frames in data-drawn.
+const drawn = loc => loc.getAttribute("data-drawn").then(Number);
+
+test("the chosen exercise shows a moving 3D picture that opens the how-to sheet", async ({ page }) => {
   const errors = await openApp(page);
   await pickExercise(page, "Romanian deadlift");
-  const thumb = page.locator("#ex-thumb");
-  await expect(thumb).toBeVisible();
+  const thumb = page.locator("#ex-thumb-3d");
+  await expect(thumb).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#ex-thumb")).toBeHidden();   // the 2D picture steps aside
   const box = await page.locator("#ex-chosen-text").boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(44);
   // It animates.
-  const first = await thumb.innerHTML();
-  await expect.poll(() => thumb.innerHTML(), { timeout: 3000 }).not.toBe(first);
+  const first = await drawn(thumb);
+  await expect.poll(() => drawn(thumb), { timeout: 3000 }).toBeGreaterThan(first);
   await page.click("#ex-chosen-text");
   const sheet = page.locator("#exsheet");
   await expect(sheet).toBeVisible();
   await expect(page.locator("#exs-title")).toHaveText("Romanian deadlift");
-  await expect(page.locator("#exs-anim path").first()).toBeAttached();
+  await expect(page.locator("#exs-anim-3d")).toBeVisible();
   await expect(page.locator("#exs-steps li")).toHaveCount(3);
   await expect(page.locator("#exs-muscles-text")).toContainText("Hamstrings");
   await expect(page.locator("#exs-muscles-text")).toContainText("Glutes");
@@ -82,18 +86,22 @@ test("with reduced motion the pictures hold still", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const errors = await openApp(page);
   await pickExercise(page, "Romanian deadlift");
-  const thumb = page.locator("#ex-thumb");
-  await expect(thumb).toHaveAttribute("data-still", "1");
-  const first = await thumb.innerHTML();
+  const thumb = page.locator("#ex-thumb-3d");
+  await expect(thumb).toHaveAttribute("data-still", "1", { timeout: 10000 });
+  // It may be redrawn (a theme change, coming into view), but always in the same position.
+  const pic = () => thumb.evaluate(c => c.toDataURL());
+  await page.waitForTimeout(300);
+  const first = await pic();
   await page.waitForTimeout(700);
-  expect(await thumb.innerHTML()).toBe(first);
+  expect(await pic()).toBe(first);
   expect(errors).toEqual([]);
 });
 
 test("search results show a picture, and you can browse by movement", async ({ page }) => {
   const errors = await openApp(page, { entries: [set({ date: "2026-03-01", exercise: "Leg press", muscle: "Quadriceps", weight: 300, reps: 10 })] });
   await page.fill("#exercise-search", "seated cable row");
-  await expect(page.locator('#ex-results [data-name="Seated cable row"] .ex-th svg')).toBeAttached();
+  await expect(page.locator('#ex-results [data-name="Seated cable row"] .ex-th canvas.fig3d')).toBeAttached();
+  await expect.poll(() => page.locator('#ex-results [data-name="Seated cable row"] .ex-th canvas').getAttribute("data-drawn"), { timeout: 10000 }).not.toBeNull();
   await page.fill("#exercise-search", "");
   const tile = page.locator('#ex-results [data-move="Row"]');
   await expect(tile).toBeVisible();
@@ -113,14 +121,14 @@ test("search results show a picture, and you can browse by movement", async ({ p
 test("cardio machines show a looping picture with no muscles; other cardio has none", async ({ page }) => {
   const errors = await openApp(page);
   await pickExercise(page, "Treadmill");
-  const thumb = page.locator("#ex-thumb");
-  await expect(thumb).toBeVisible();
-  const first = await thumb.innerHTML();
-  expect(first).not.toContain("var(--red)");
-  await expect.poll(() => thumb.innerHTML(), { timeout: 3000 }).not.toBe(first);
+  expect(await page.locator("#ex-thumb").innerHTML()).not.toContain("var(--red)");
+  const thumb = page.locator("#ex-thumb-3d");
+  await expect(thumb).toBeVisible({ timeout: 10000 });
+  const first = await drawn(thumb);
+  await expect.poll(() => drawn(thumb), { timeout: 3000 }).toBeGreaterThan(first);
   await expect(page.locator("#ex-chosen-tip")).toBeHidden();
   await page.click("#ex-chosen-text");
-  await expect(page.locator("#exs-anim")).toBeVisible();
+  await expect(page.locator("#exs-anim-3d")).toBeVisible();
   await expect(page.locator(".exs-cap")).toBeHidden();
   await expect(page.locator("#exs-steps li")).toHaveCount(0);
   await expect(page.locator("#exs-name")).toBeVisible();
@@ -128,8 +136,10 @@ test("cardio machines show a looping picture with no muscles; other cardio has n
   await page.click("#ex-change");
   await pickExercise(page, "Swim");
   await expect(page.locator("#ex-thumb")).toBeHidden();
+  await expect(page.locator("#ex-thumb-3d")).toBeHidden();
   await page.click("#ex-chosen-text");
   await expect(page.locator("#exs-anim")).toBeHidden();
+  await expect(page.locator("#exs-anim-3d")).toBeHidden();
   await expect(page.locator("#exs-name")).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -207,5 +217,34 @@ test("browse by movement lists lifting movements only, not cardio machines", asy
   await expect(page.locator('#ex-results [data-move="Nordic curl"]')).toBeVisible();
   await expect(page.locator('#ex-results [data-move="Bike"]')).toHaveCount(0);
   await expect(page.locator('#ex-results [data-move="Treadmill"]')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("every movement has 3D poses that place cleanly with each kind of weight", async ({ page }) => {
+  const errors = await openApp(page);
+  const r = await page.evaluate(async () => {
+    const { PATTERNS } = await import("/js/movements.js"), m = await import("/js/figure3d.js");
+    await m.load("/models/body.glb");
+    const missing = Object.keys(PATTERNS).filter(k => !m.POSES[k]), broken = [];
+    for (const k of Object.keys(PATTERNS)) for (const kind of ["barbell", "dumbbell", "kettlebell", "cable", "none"]) for (const s of [0, .5, 1]) {
+      const J = m.check(k, kind, s);
+      if (Object.values(J).flat().some(n => !Number.isFinite(n)) || J.head[1] < -.05) broken.push(`${k}/${kind}/${s}`);
+    }
+    return { missing, broken };
+  });
+  expect(r.missing).toEqual([]);
+  expect(r.broken).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("without WebGL the 2D pictures show instead", async ({ page }) => {
+  await page.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/.test(t) ? null : get.call(this, t, ...a); }; });
+  const errors = await openApp(page);
+  await expect(page.locator("#ex-results .mv-tile svg").first()).toBeAttached();
+  await expect(page.locator("#ex-results canvas.fig3d")).toHaveCount(0);
+  await pickExercise(page, "Romanian deadlift");
+  await expect(page.locator("#ex-thumb")).toBeVisible();
+  await expect(page.locator("#ex-thumb-3d")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

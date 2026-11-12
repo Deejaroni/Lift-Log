@@ -93,7 +93,7 @@ test("recently used favors 2–3 days ago over yesterday", async ({ page }) => {
     set({ date: "2026-03-04", exercise: "Lunge", muscle: "Quadriceps", weight: 50, reps: 10 }),        // today
   ] });
   // Today's stays first for the next set; yesterday's drops to the end.
-  expect(await names(page)).toEqual(["Lunge", "Squat", "Pull-up", "Deadlift", "Leg press", "Bench press"]);
+  await expect.poll(() => names(page)).toEqual(["Lunge", "Squat", "Pull-up", "Deadlift", "Leg press", "Bench press"]);
   expect(errors).toEqual([]);
 });
 
@@ -102,12 +102,12 @@ test("recently used goes by the Log form's date", async ({ page }) => {
     set({ date: "2026-02-27", exercise: "Squat", muscle: "Quadriceps", weight: 225, reps: 5 }),
     set({ date: "2026-03-02", exercise: "Bench press", muscle: "Chest", weight: 185, reps: 5 }),
   ] });
-  expect(await names(page)).toEqual(["Bench press", "Squat"]);
+  await expect.poll(() => names(page)).toEqual(["Bench press", "Squat"]);
   // Back-dating to Mar 3 makes bench "yesterday" and squat 4 days back.
   await page.click("#ctx-line");
   await page.fill("#date", "2026-03-03");
   await page.click("#exercise-search");
-  expect(await names(page)).toEqual(["Squat", "Bench press"]);
+  await expect.poll(() => names(page)).toEqual(["Squat", "Bench press"]);
   expect(errors).toEqual([]);
 });
 

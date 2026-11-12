@@ -29,9 +29,9 @@ jobs:
       - name: Collect site files
         run: |
           mkdir _site
-          cp -r index.html manifest.webmanifest sw.js css js vendor fonts icons _site/
-          # The 3D figure prototype (not linked from the app): /tools/proto3d/
-          mkdir -p _site/tools && cp -r tools/proto3d _site/tools/ && cp -r models _site/
+          cp -r index.html manifest.webmanifest sw.js css js vendor fonts icons models _site/
+          # Test pages for the 3D figures (not linked from the app): /tools/proto3d/
+          mkdir -p _site/tools && cp -r tools/proto3d _site/tools/
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
