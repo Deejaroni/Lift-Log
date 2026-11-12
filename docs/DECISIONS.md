@@ -168,3 +168,9 @@ The plan for the next updates is in docs/ROADMAP.md.
 - The Day calendar shows the days in History's current list, so with one exercise chosen only its days are tappable. It opens on the month of the latest day shown and closes when you pick a day.
 - The one-exercise summary uses the same rules as elsewhere: best set and est. 1RM from sets of 10 reps or fewer, load including the bar. Cardio shows sessions, longest and total time instead.
 - The picker lists only exercises you've logged (there'd be nothing to show for the rest): favorites first, then most recent.
+
+## 3D figures: the body (prototype, 2026-11-12)
+- The 3D body is the MakeHuman base mesh (released as CC0, so no attribution or license terms carry into the app), shaped into a young adult man with MakeHuman's own targets. Bodies built from simple shapes in Blender kept reading as mannequins. The source mesh, the targets used and the CC0 text live in tools/model/makehuman/; tools/model/build-body.py turns them into models/body.glb. Nothing is downloaded at runtime.
+- The build poses the body into a T-pose with palms down and thumbs forward, because the app's poses and palm turning assume that rest pose.
+- Worked muscles are shown by per-vertex muscle maps (soft oval patches shaped and placed like each muscle), not by coloring whole regions; one material blends the highlight in, so the body is a single draw per view. Each patch covers the whole muscle with a crisp outline and a short fade. Main muscles are red and helping muscles yellow (from the color tokens), each with a faint glow so they read at thumbnail size. The floor shadow uses the --shadow token, so it stays dark in dark mode.
+- Fingers have bones and close around the bar or handle in the app, since every exercise shown holds something; open hands looked like waving.

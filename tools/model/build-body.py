@@ -1,228 +1,254 @@
 # Builds the 3D body for the exercise animations: models/body.glb.
 # Run:  "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --factory-startup --python tools/model/build-body.py -- <out.glb> [preview.png]
 #
-# The body is one smooth surface fused from simple shapes sized like a real person, hands included. Each
-# face is then labeled with the muscle region it sits in, as a material named m_<Muscle>, so the app can
-# color the muscles an exercise works. A skeleton is added and skinned
-# automatically. The figure stands in a T-pose facing -Y (Blender), which is +Z in three.js.
-import bpy, bmesh, math, sys
-from mathutils import Vector, Quaternion
+# The body is the MakeHuman base mesh (CC0, tools/model/makehuman/, with its license) shaped into a young adult
+# man with MakeHuman's own targets. It's posed into a T-pose (palms down, thumbs forward, fingers slightly curled),
+# given the skeleton the app's poses use, lightened for phones, and given a muscle map: for each muscle, how
+# much of it each vertex sits on (0..1, soft at the edges), shaped like the muscle itself. The maps are stored
+# as four vertex attributes, _ma.._md, four muscles each, in the MUSCLES order below (figure3d.js uses the same).
+# The figure faces -Y (Blender), which is +Z in three.js; +X is the figure's left.
+import bpy, math, os, sys
+from collections import defaultdict
+from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = argv[0] if argv else "models/body.glb"
 PREVIEW = argv[1] if len(argv) > 1 else None
-DECIMATE = 0.09   # share of the remeshed triangles kept
+HERE = os.path.dirname(os.path.abspath(__file__))
+DECIMATE = 0.55   # share of the triangles kept
+HEIGHT = 1.78
+TARGETS = {   # MakeHuman macro shape: male, young, mixed ancestry, somewhat muscular
+  "caucasian-male-young": 1 / 3, "african-male-young": 1 / 3, "asian-male-young": 1 / 3,
+  "universal-male-young-maxmuscle-averageweight": 0.45,
+}
+MUSCLES = ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Chest", "Back", "Lower back", "Abdominals",
+           "Shoulders:front", "Shoulders:side", "Shoulders:rear", "Biceps", "Triceps", "Forearms"]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 
-# ---------- joints (meters, T-pose; X = the figure's left, -Y = front, Z = up) ----------
-J = {
-  "hips": (0, 0, 0.98), "spine": (0, 0, 1.10), "chest": (0, 0, 1.30), "neck": (0, 0.01, 1.50), "head": (0, 0, 1.58), "headtop": (0, 0, 1.80),
-}
-for s, x in (("L", 1), ("R", -1)):
-  J.update({
-    f"shoulder_{s}": (0.17 * x, 0.0, 1.44), f"upperarm_{s}": (0.20 * x, 0, 1.43), f"forearm_{s}": (0.48 * x, 0, 1.43), f"hand_{s}": (0.74 * x, 0, 1.43), f"handtip_{s}": (0.92 * x, 0, 1.43),
-    f"thigh_{s}": (0.10 * x, 0, 0.96), f"shin_{s}": (0.11 * x, -0.01, 0.53), f"foot_{s}": (0.11 * x, 0.02, 0.09), f"toe_{s}": (0.11 * x, -0.15, 0.03),
-  })
-V = lambda k: Vector(J[k])
+# ---------- load the MakeHuman body with the targets applied ----------
+def load():
+  folder = os.path.join(HERE, "makehuman")
+  V = []; faces = defaultdict(list); groups = defaultdict(set); g = None
+  for line in open(os.path.join(folder, "base.obj")):
+    if line.startswith("v "): V.append(Vector(tuple(float(x) for x in line.split()[1:4])))
+    elif line.startswith("g "): g = line.split()[1]
+    elif line.startswith("f "):
+      idx = [int(t.split("/")[0]) - 1 for t in line.split()[1:]]
+      groups[g].update(idx); faces[g].append(idx)
+  for name, w in TARGETS.items():
+    for line in open(os.path.join(folder, name + ".target")):
+      if line[:1].isdigit():
+        i, dx, dy, dz = line.split(); V[int(i)] += Vector((float(dx), float(dy), float(dz))) * w
+  # MakeHuman: Y up, faces +Z, decimeters. Here: Z up, faces -Y, meters, feet at 0.
+  P = [Vector((v.x, -v.z, v.y)) for v in V]
+  lo = min(P[i].z for i in groups["body"]); k = HEIGHT / (max(P[i].z for i in groups["body"]) - lo)
+  P = [Vector((p.x * k, p.y * k, (p.z - lo) * k)) for p in P]
+  joints = {n[6:]: sum((P[i] for i in s), Vector()) / len(s) for n, s in groups.items() if n.startswith("joint-")}
+  def obj(name, gs):
+    used = sorted({i for gg in gs for f in faces[gg] for i in f}); remap = {i: n for n, i in enumerate(used)}
+    me = bpy.data.meshes.new(name); me.from_pydata([P[i] for i in used], [], [[remap[i] for i in f] for gg in gs for f in faces[gg]]); me.update()
+    ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); return ob
+  return obj("Body", ["body"]), obj("Eyes", ["helper-l-eye", "helper-r-eye"]), joints
+body, eyes, JT = load()
 
-# ---------- the body: a smooth, everyday-athletic figure ----------
-# Shapes are sized like a real person, and muscles only round the surface slightly. The muscle colors are
-# painted on afterwards by region (front of the upper arm = biceps and so on), not grown as lumps.
-PARTS = []
+def select(*obs, active=None):
+  bpy.ops.object.select_all(action="DESELECT")
+  for o in obs: o.select_set(True)
+  bpy.context.view_layer.objects.active = active or obs[0]
 
-def blob(center, size, along=None):
-  """An ellipsoid with half extents size (x along `along` when given)."""
-  bpy.ops.mesh.primitive_uv_sphere_add(segments=28, ring_count=18, radius=1, location=Vector(center))
-  o = bpy.context.active_object
-  o.rotation_mode = "QUATERNION"
-  o.rotation_quaternion = Vector((1, 0, 0)).rotation_difference(Vector(along).normalized()) if along else Quaternion()
-  o.scale = Vector(size); PARTS.append(o)
+def make_rig(name, bones):
+  """bones: [(name, head, tail, parent)]"""
+  arm = bpy.data.objects.new(name, bpy.data.armatures.new(name)); scene.collection.objects.link(arm)
+  select(arm); bpy.ops.object.mode_set(mode="EDIT")
+  for n, h, t, p in bones:
+    b = arm.data.edit_bones.new(n); b.head = h; b.tail = t
+    if p: b.parent = arm.data.edit_bones[p]
+  bpy.ops.object.mode_set(mode="OBJECT")
+  return arm
 
-def tube(a, b, ra, rb):
-  """A tapered tube from a to b with round ends, so the body stays one piece."""
-  a, b = Vector(a), Vector(b)
-  bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=ra, radius2=rb, depth=(b - a).length, location=(a + b) / 2)
-  o = bpy.context.active_object
-  o.rotation_mode = "QUATERNION"; o.rotation_quaternion = Vector((0, 0, 1)).rotation_difference((b - a).normalized())
-  PARTS.append(o)
-  for p, r in ((a, ra), (b, rb)):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=12, radius=r, location=p); PARTS.append(bpy.context.active_object)
+def skin(mesh, arm):
+  select(mesh, arm, active=arm); bpy.ops.object.parent_set(type="ARMATURE_AUTO")
 
-def belly(a, b, r, frac, off=(0, 0, 0)):
-  """A gentle muscle belly between fractions of the segment a->b."""
-  a, b = Vector(a), Vector(b)
-  p0, p1 = a.lerp(b, frac[0]), a.lerp(b, frac[1])
-  blob((p0 + p1) / 2 + Vector(off), ((p1 - p0).length / 2, r, r), along=(p1 - p0))
+# ---------- 1. pose the A-pose body into a T-pose with a temporary skeleton ----------
+SIDES = (("l", "L", 1), ("r", "R", -1))
+tmp = [("hips", JT["pelvis"], JT["spine-3"], None), ("spine", JT["spine-3"], JT["spine-1"], "hips"),
+       ("chest", JT["spine-1"], JT["neck"], "spine"), ("neck", JT["neck"], JT["head"], "chest"), ("head", JT["head"], JT["head-2"], "neck")]
+for m, s, _ in SIDES:
+  tmp += [(f"clav_{s}", JT[f"{m}-clavicle"], JT[f"{m}-shoulder"], "chest"), (f"upper_{s}", JT[f"{m}-shoulder"], JT[f"{m}-elbow"], f"clav_{s}"),
+          (f"fore_{s}", JT[f"{m}-elbow"], JT[f"{m}-hand"], f"upper_{s}"), (f"hand_{s}", JT[f"{m}-hand"], JT[f"{m}-finger-3-1"], f"fore_{s}"),
+          (f"thigh_{s}", JT[f"{m}-upper-leg"], JT[f"{m}-knee"], "hips"), (f"shin_{s}", JT[f"{m}-knee"], JT[f"{m}-ankle"], f"thigh_{s}"),
+          (f"foot_{s}", JT[f"{m}-ankle"], JT[f"{m}-toe-3-1"], f"shin_{s}")]
+  for f in range(1, 6):
+    tmp += [(f"f{f}1_{s}", JT[f"{m}-finger-{f}-1"], JT[f"{m}-finger-{f}-2"], f"hand_{s}"),
+            (f"f{f}2_{s}", JT[f"{m}-finger-{f}-2"], JT[f"{m}-finger-{f}-3"], f"f{f}1_{s}"),
+            (f"f{f}3_{s}", JT[f"{m}-finger-{f}-3"], JT[f"{m}-finger-{f}-4"], f"f{f}2_{s}")]
+rig0 = make_rig("PoseRig", tmp)
+skin(body, rig0)
+select(rig0); bpy.ops.object.mode_set(mode="POSE")
+PB = rig0.pose.bones
+def turn(pb, rot):
+  """Rotate a pose bone by rot (armature space) about its posed head; its children follow."""
+  bpy.context.view_layer.update()
+  m = pb.matrix.copy(); h = m.to_translation()
+  pb.matrix = Matrix.Translation(h) @ rot.to_matrix().to_4x4() @ Matrix.Translation(-h) @ m
+  bpy.context.view_layer.update()
+def frame(h, t):
+  h = h.normalized(); t = (t - h * t.dot(h)).normalized(); return Matrix((h, t, h.cross(t))).transposed()
+for m, s, x in SIDES:
+  out = Vector((x, 0, 0))
+  for b in (f"upper_{s}", f"fore_{s}"):
+    pb = PB[b]; turn(pb, (pb.tail - pb.head).rotation_difference(out))
+  # The hand: fingers out along the arm, palm down, index finger forward.
+  pb = PB[f"hand_{s}"]
+  h = PB[f"f31_{s}"].head - pb.head; t = PB[f"f21_{s}"].head - PB[f"f51_{s}"].head
+  turn(pb, (frame(out, Vector((0, -1, 0))) @ frame(h, t).transposed()).to_quaternion())
+  # Fingers gently curled toward the palm; the thumb tucked a little.
+  curl = out.cross(Vector((0, 0, -1)))
+  for f in range(2, 6):
+    for j, ang in ((1, 8), (2, 14), (3, 10)):
+      turn(PB[f"f{f}{j}_{s}"], Matrix.Rotation(math.radians(ang), 3, curl).to_quaternion())
+  for j, ang in ((2, 6), (3, 6)):
+    turn(PB[f"f1{j}_{s}"], Matrix.Rotation(math.radians(ang), 3, curl).to_quaternion())
+bpy.context.view_layer.update()
+# New joint positions, read off the posed skeleton.
+POS = {b.name: (b.head.copy(), b.tail.copy()) for b in PB}
+bpy.ops.object.mode_set(mode="OBJECT")
+select(body); bpy.ops.object.modifier_apply(modifier=body.modifiers[0].name)
+body.parent = None; body.vertex_groups.clear()
+bpy.data.objects.remove(rig0)
 
-# Head: skull, jaw, a hint of a nose and ears.
-blob((0, 0.012, 1.685), (0.074, 0.092, 0.098))
-blob((0, -0.022, 1.615), (0.058, 0.062, 0.052))
-blob((0, -0.088, 1.648), (0.011, 0.014, 0.022))
-for x in (1, -1): blob((0.074 * x, 0.012, 1.655), (0.012, 0.022, 0.03))
-tube((0, 0.012, 1.48), (0, 0.004, 1.62), 0.054, 0.05)                  # neck
-blob((0, 0.035, 1.475), (0.12, 0.05, 0.045))                           # traps slope into the shoulders
-# Face: a chin (a brow ridge read as a hat brim at this size). Neck: the two cords from behind the ears to the breastbone.
-blob((0, -0.07, 1.584), (0.022, 0.014, 0.016))
-for x in (1, -1): tube((0.048 * x, 0.004, 1.628), (0.016 * x, -0.058, 1.47), 0.014, 0.012)
-# Collarbones in front, shoulder blades behind.
-for x in (1, -1):
-  tube((0.02 * x, -0.06, 1.452), (0.13 * x, -0.031, 1.458), 0.008, 0.008)
-  blob((0.088 * x, 0.07, 1.36), (0.05, 0.016, 0.07), along=(0.25 * x, 0.15, 1))
-# Torso: rib cage, a gentle chest, waist, pelvis.
-blob((0, 0.0, 1.32), (0.16, 0.1, 0.17))
-blob((0, -0.025, 1.36), (0.155, 0.075, 0.075))                         # broad, flat chest
-blob((0, 0.005, 1.42), (0.2, 0.085, 0.058))                            # shoulder girdle
-blob((0, 0.0, 1.14), (0.136, 0.09, 0.13))                              # waist
-blob((0, 0.005, 0.975), (0.162, 0.1, 0.1))                             # pelvis
-for x in (1, -1): blob((0.068 * x, 0.052, 0.925), (0.072, 0.055, 0.078))    # glutes
-tube((0, 0, 0.98), (0, 0, 1.40), 0.125, 0.14)
-for s, x in (("L", 1), ("R", -1)):
-  sh, el, wr = V(f"upperarm_{s}"), V(f"forearm_{s}"), V(f"hand_{s}")
-  blob((0.198 * x, 0.0, 1.428), (0.06, 0.054, 0.056))                   # deltoid cap
-  tube(sh, el, 0.05, 0.037)
-  belly(sh, el, 0.046, (0.22, 0.8), off=(0, -0.004, 0.0))              # upper arm
-  tube(el, wr, 0.037, 0.024)
-  belly(el, wr, 0.041, (0.05, 0.5), off=(0, 0, 0.003))                 # forearm
-  blob(el + Vector((0, 0.03, 0)), (0.018, 0.018, 0.018))               # point of the elbow
-  blob(wr + Vector((-0.004 * x, 0.012, 0.012)), (0.012, 0.012, 0.012))  # wrist bone
-  # Hand, palm facing down (-Z) with the thumb forward (-Y): a palm, four slightly curled fingers, a thumb.
-  wx = wr.x
-  blob((wx + 0.048 * x, 0, 1.428), (0.05, 0.043, 0.017))
-  for y, ln in ((-0.031, 0.042), (-0.0105, 0.047), (0.0105, 0.044), (0.03, 0.035)):
-    k = Vector((wx + 0.094 * x, y, 1.429)); m = k + Vector((ln * 0.62 * x, 0, -0.006)); t = m + Vector((ln * 0.42 * x, 0, -0.016))
-    tube(k, m, 0.0098, 0.0088); tube(m, t, 0.0088, 0.0078)
-  t0 = Vector((wx + 0.028 * x, -0.03, 1.424)); t1 = Vector((wx + 0.062 * x, -0.06, 1.416)); t2 = Vector((wx + 0.088 * x, -0.072, 1.41))
-  tube(t0, t1, 0.0135, 0.0112); tube(t1, t2, 0.0112, 0.0095)
-  # Legs and feet.
-  hp, kn, an, toe = V(f"thigh_{s}"), V(f"shin_{s}"), V(f"foot_{s}"), V(f"toe_{s}")
-  tube(hp + Vector((-0.012 * x, 0, 0.02)), kn, 0.092, 0.054)
-  belly(hp, kn, 0.076, (0.08, 0.82), off=(0.002 * x, -0.01, 0))         # thigh
-  blob(kn + Vector((0, -0.022, 0.01)), (0.042, 0.03, 0.04))             # knee cap
-  tube(kn, an, 0.047, 0.03)
-  belly(kn, an, 0.05, (0.1, 0.55), off=(0, 0.014, 0))                 # calf
-  blob(an + Vector((0, 0.025, -0.045)), (0.034, 0.042, 0.036))          # heel
-  for dx in (0.026, -0.024): blob(an + Vector((dx, 0.012, -0.012)), (0.014, 0.014, 0.016))   # ankle bones
-  tube(an + Vector((0, 0.05, -0.03)), kn.lerp(an, 0.55) + Vector((0, 0.03, 0)), 0.014, 0.022)   # Achilles tendon
-  tube(an + Vector((0, 0, -0.02)), an + Vector((0, -0.09, -0.045)), 0.034, 0.03)
-  blob(an + Vector((0, -0.105, -0.06)), (0.075, 0.044, 0.024), along=(0, -1, -0.15))   # foot to the toes
+# ---------- 2. lighten the mesh ----------
+dm = body.modifiers.new("Decimate", "DECIMATE"); dm.ratio = DECIMATE
+select(body); bpy.ops.object.modifier_apply(modifier=dm.name)
 
-bpy.ops.object.select_all(action="DESELECT")
-for o in PARTS: o.select_set(True)
-bpy.context.view_layer.objects.active = PARTS[0]
-bpy.ops.object.join()
-body = bpy.context.active_object
-body.name = "Body"
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-# Fuse everything into one closed surface (fine enough for fingers), soften the seams, then lighten it.
-rm = body.modifiers.new("Remesh", "REMESH"); rm.mode = "VOXEL"; rm.voxel_size = 0.0055
-bpy.ops.object.modifier_apply(modifier=rm.name)
-sm = body.modifiers.new("Smooth", "LAPLACIANSMOOTH"); sm.lambda_factor = 0.5; sm.iterations = 4
-bpy.ops.object.modifier_apply(modifier=sm.name)
+# ---------- 3. muscle maps, shaped like the muscles ----------
+bvh = BVHTree.FromObject(body, bpy.context.evaluated_depsgraph_get())
+def surface(inside, toward):
+  hit = bvh.ray_cast(Vector(inside), Vector(toward).normalized(), 1.0)[0]
+  return hit if hit is not None else Vector(inside)
+VERTS = [v.co.copy() for v in body.data.vertices]
+W = [[0.0] * len(MUSCLES) for _ in VERTS]
+# Patches cover each muscle end to end (GROW stretches the sizes below along and across the muscle) and keep a
+# fairly crisp outline: full strength to EDGE of the radius, then a short fade.
+GROW, EDGE = (1.3, 1.15), 0.84
+def patch(muscle, inside, toward, along, ra, rb, rn=0.045):
+  """A soft oval patch of `muscle` where the ray from `inside` toward `toward` meets the skin: radius ra along
+  `along`, rb across, rn into the body. Full strength in the middle, fading out at the rim of the oval;
+  the depth only trims it to one side of the limb, so it doesn't fade where the skin curves away."""
+  ra *= GROW[0]; rb *= GROW[1]
+  c = surface(inside, toward); n = Vector(toward).normalized(); u = Vector(along).normalized()
+  u = (u - n * u.dot(n)).normalized(); v = n.cross(u)
+  k = MUSCLES.index(muscle)
+  for i, p in enumerate(VERTS):
+    d = p - c; q = math.sqrt((d.dot(u) / ra) ** 2 + (d.dot(v) / rb) ** 2); z = abs(d.dot(n)) / (rn * 1.6)
+    if q < 1 and z < 1:
+      w = fade(q, EDGE) * fade(z, 0.85)
+      W[i][k] = max(W[i][k], w)
+L = lambda a, b, t: a.lerp(b, t)
+def fade(q, start):
+  e = max(0.0, (q - start) / (1 - start)); return 1 - e * e * (3 - 2 * e)
+for m, s, x in SIDES:
+  X = lambda a, b, c: Vector((a * x, b, c))
+  sh, el, wr = POS[f"upper_{s}"][0], POS[f"fore_{s}"][0], POS[f"hand_{s}"][0]
+  hp, kn, an = POS[f"thigh_{s}"][0], POS[f"shin_{s}"][0], POS[f"foot_{s}"][0]
+  arm = X(1, 0, 0)
+  # Arms: biceps on the front of the upper arm, triceps behind, forearm muscles near the elbow, top and bottom.
+  patch("Biceps", L(sh, el, .56), (0, -1, .15), arm, .12, .042, .045)
+  patch("Triceps", L(sh, el, .45), (0, 1, .2), arm, .13, .04, .045)
+  patch("Triceps", L(sh, el, .3), (0, .4, -1), arm, .08, .03, .04)
+  patch("Forearms", L(el, wr, .3), (0, -.3, 1), arm, .1, .035, .04)
+  patch("Forearms", L(el, wr, .3), (0, -.3, -1), arm, .1, .035, .04)
+  # Delts: three heads around the shoulder.
+  patch("Shoulders:front", sh + X(.015, 0, 0), X(.15, -1, .45), X(.35, 0, -1), .085, .042, .045)
+  patch("Shoulders:side", sh + X(.025, 0, 0), X(.5, 0, 1), X(1, 0, -.2), .085, .05, .045)
+  patch("Shoulders:rear", sh + X(.015, 0, 0), X(.15, 1, .45), X(.35, 0, -1), .085, .042, .045)
+  # Chest: a fan from the breastbone to the armpit.
+  patch("Chest", X(.07, 0, sh.z - .085), (0, -1, 0), X(1, 0, .3), .1, .07, .05)
+  patch("Chest", X(.13, 0, sh.z - .05), X(.2, -1, 0), X(1, 0, .4), .055, .04, .045)
+  # Back: lats sweeping from the armpit down toward the waist, traps over the upper back and up the neck.
+  patch("Back", X(.1, 0, sh.z - .17), X(.55, 1, 0), X(-.35, 0, -1), .17, .065, .06)
+  patch("Back", X(.06, 0, sh.z - .03), X(.1, 1, .25), X(1, 0, 0), .1, .085, .05)
+  patch("Back", X(.06, 0, sh.z + .06), X(.15, .6, 1), X(1, 0, -.3), .07, .03, .045)
+  patch("Lower back", X(.035, 0, hp.z + .12), (0, 1, 0), (0, 0, 1), .11, .032, .05)
+  patch("Glutes", X(.075, 0, hp.z - .03), X(.3, 1, 0), X(.2, 0, -1), .1, .085, .06)
+  # Legs: the quads' teardrop down the front of the thigh plus the inner bulge by the knee; hamstrings behind; calves.
+  leg = kn - hp
+  patch("Quadriceps", L(hp, kn, .47), (0, -1, 0), leg, .22, .08, .06)
+  patch("Quadriceps", L(hp, kn, .55), X(1, -.8, 0), leg, .17, .05, .05)
+  patch("Quadriceps", L(hp, kn, .82), X(-.6, -1, 0), leg, .065, .04, .04)
+  patch("Hamstrings", L(hp, kn, .52), (0, 1, 0), leg, .19, .065, .055)
+  for dx in (.5, -.5): patch("Calves", L(kn, an, .3), X(dx, 1, 0), an - kn, .11, .032, .04)
+# Abs: a column down the front of the belly.
+patch("Abdominals", Vector((0, 0, POS["spine"][0].z + .02)), (0, -1, 0), (0, 0, 1), .15, .068, .05)
+me = body.data
+for a in range(4):
+  at = me.attributes.new(f"_m{'abcd'[a]}", "FLOAT_COLOR", "POINT")
+  for i, w in enumerate(W):
+    at.data[i].color = [(w[a * 4 + j] if a * 4 + j < len(MUSCLES) else 0.0) for j in range(4)]
 
-# ---------- paint muscle regions ----------
-# Each face goes to the body part it's nearest, then a simple rule per part picks the muscle.
-names = []
-def mat(name):
-  if name not in names:
-    m = bpy.data.materials.new("m_" + name.replace(" ", "_").replace(":", "_"))
-    body.data.materials.append(m)
-    names.append(name)
-  return names.index(name)
-mat("skin")
-SEGS = [("head", Vector((0, 0, 1.52)), Vector((0, 0, 1.78)), 0.08), ("torso", Vector((0, 0, 0.94)), Vector((0, 0, 1.45)), 0.15)]
-for s in ("L", "R"):
-  SEGS += [("upperarm", V(f"upperarm_{s}"), V(f"forearm_{s}"), 0.045), ("forearm", V(f"forearm_{s}"), V(f"hand_{s}"), 0.035),
-           ("hand", V(f"hand_{s}"), V(f"handtip_{s}"), 0.035), ("thigh", V(f"thigh_{s}"), V(f"shin_{s}"), 0.07),
-           ("shin", V(f"shin_{s}"), V(f"foot_{s}"), 0.045), ("foot", V(f"foot_{s}") + Vector((0, 0.04, -0.05)), V(f"toe_{s}"), 0.04)]
-def seg_t(p, a, b):
-  ab = b - a; t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared)); return t, (p - a.lerp(b, t)).length
-def muscle(p):
-  ax = abs(p.x)
-  # Deltoids: the cap of the shoulder.
-  if ax > 0.15 and (Vector((ax, p.y, p.z)) - Vector((0.205, 0, 1.43))).length < 0.078 and p.z > 1.37:
-    return "Shoulders:front" if p.y < -0.022 else "Shoulders:rear" if p.y > 0.022 else "Shoulders:side"
-  best = min(SEGS, key=lambda g: seg_t(p, g[1], g[2])[1] / g[3])
-  part, t = best[0], seg_t(p, best[1], best[2])[0]
-  if part == "head":
-    return "Back" if p.y > 0.02 and p.z < 1.53 else "skin"
-  if part == "torso":
-    if p.y < 0:
-      if ((ax - 0.072) / 0.098) ** 2 + ((p.z - 1.352) / 0.088) ** 2 < 1: return "Chest"     # two rounded pecs
-      if 0.99 < p.z < 1.262 and ax < 0.088 - 0.022 * (1.262 - p.z) / 0.27: return "Abdominals"
-      return "skin"
-    if p.z > 1.13: return "Back"
-    if p.z > 1.0: return "Lower back" if ax < 0.085 else "Back" if p.z > 1.06 else "skin"
-    return "Glutes" if p.z > 0.84 else "skin"
-  if part == "upperarm": return ("Biceps" if p.y < 0 else "Triceps") if 0.12 < t < 0.92 else "skin"
-  if part == "forearm": return "Forearms" if t < 0.82 else "skin"
-  if part == "thigh":
-    if p.y > 0.03 and p.z > 0.84: return "Glutes"
-    return ("Quadriceps" if p.y < 0.0 else "Hamstrings") if t < 0.9 else "skin"
-  if part == "shin": return "Calves" if p.y > 0.0 and 0.06 < t < 0.62 else "skin"
-  return "skin"
-bm = bmesh.new(); bm.from_mesh(body.data)
-for f in bm.faces:
-  f.material_index = mat(muscle(f.calc_center_median()))
-# Vertices on a border between regions keep their place when the mesh is lightened, so borders stay smooth.
-border = set()
-for e in bm.edges:
-  if len(e.link_faces) == 2 and e.link_faces[0].material_index != e.link_faces[1].material_index:
-    border.update(v.index for v in e.verts)
-bm.to_mesh(body.data); bm.free()
-vg = body.vertex_groups.new(name="lighten")
-vg.add([v.index for v in body.data.vertices if v.index not in border], 1.0, "REPLACE")
-dm = body.modifiers.new("Decimate", "DECIMATE"); dm.ratio = DECIMATE; dm.vertex_group = "lighten"; dm.vertex_group_factor = 1.0
-bpy.ops.object.modifier_apply(modifier=dm.name)
-if "lighten" in body.vertex_groups: body.vertex_groups.remove(body.vertex_groups["lighten"])
-bpy.ops.object.shade_smooth()
-
-# ---------- skeleton ----------
-arm_data = bpy.data.armatures.new("Rig")
-rig = bpy.data.objects.new("Rig", arm_data)
-scene.collection.objects.link(rig)
-bpy.context.view_layer.objects.active = rig
-bpy.ops.object.mode_set(mode="EDIT")
+# ---------- 4. the app's skeleton, skinned to the T-posed body ----------
+P = lambda b, end=0: POS[b][end]
+J = {"hips": P("hips"), "spine": P("spine"), "chest": P("chest"), "neck": P("neck"), "head": P("head"), "headtop": P("head", 1)}
+for m, s, x in SIDES:
+  wr = P(f"hand_{s}")
+  J.update({f"shoulder_{s}": P(f"clav_{s}"), f"upperarm_{s}": P(f"upper_{s}"), f"forearm_{s}": P(f"fore_{s}"), f"hand_{s}": wr,
+            f"handtip_{s}": wr + (P(f"hand_{s}", 1) - wr).normalized() * 0.18,
+            f"thigh_{s}": P(f"thigh_{s}"), f"shin_{s}": P(f"shin_{s}"), f"foot_{s}": P(f"foot_{s}"), f"toe_{s}": P(f"foot_{s}", 1)})
 BONES = [("hips", "spine", None), ("spine", "chest", "hips"), ("chest", "neck", "spine"), ("neck", "head", "chest"), ("head", "headtop", "neck")]
 for s in ("L", "R"):
   BONES += [(f"shoulder_{s}", f"upperarm_{s}", "chest"), (f"upperarm_{s}", f"forearm_{s}", f"shoulder_{s}"), (f"forearm_{s}", f"hand_{s}", f"upperarm_{s}"), (f"hand_{s}", f"handtip_{s}", f"forearm_{s}"),
             (f"thigh_{s}", f"shin_{s}", "hips"), (f"shin_{s}", f"foot_{s}", f"thigh_{s}"), (f"foot_{s}", f"toe_{s}", f"shin_{s}")]
-eb = arm_data.edit_bones
-for name, tail, parent in BONES:
-  b = eb.new(name); b.head = V(name); b.tail = V(tail)
-  if parent: b.parent = eb[parent]; b.use_connect = False
+spec = [(n, J[n], J[t], p) for n, t, p in BONES]
+# Finger bones (f<finger><joint>_<side>, finger 1 = thumb), so the app can close the hands around a bar.
+for s in ("L", "R"):
+  for f in range(1, 6):
+    for j in (1, 2, 3):
+      h, t = POS[f"f{f}{j}_{s}"]; spec.append((f"f{f}{j}_{s}", h, t, f"hand_{s}" if j == 1 else f"f{f}{j - 1}_{s}"))
 # End bones give every bone a child, so the app can read each bone's direction.
-for name, tail, parent in [("headtop", None, "head")] + [(f"handtip_{s}", None, f"hand_{s}") for s in "LR"] + [(f"toe_{s}", None, f"foot_{s}") for s in "LR"]:
-  b = eb.new(name); b.head = V(name); b.tail = V(name) + Vector((0, 0, 0.02)); b.parent = eb[parent]; b.use_deform = False
+spec += [(n, J[n], J[n] + Vector((0, 0, 0.02)), p) for n, p in [("headtop", "head")] + [(f"handtip_{s}", f"hand_{s}") for s in "LR"] + [(f"toe_{s}", f"foot_{s}") for s in "LR"]]
+rig = make_rig("Rig", spec)
+select(rig); bpy.ops.object.mode_set(mode="EDIT")
+for n in ["headtop"] + [f"{e}_{s}" for e in ("handtip", "toe") for s in "LR"]: rig.data.edit_bones[n].use_deform = False
 bpy.ops.object.mode_set(mode="OBJECT")
-
-bpy.ops.object.select_all(action="DESELECT")
-body.select_set(True); rig.select_set(True)
-bpy.context.view_layer.objects.active = rig
-bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+skin(body, rig)
+# The eyes move with the head; they join the body so the figure is one mesh with one material.
+eyes.vertex_groups.new(name="head").add(list(range(len(eyes.data.vertices))), 1.0, "REPLACE")
+for a in range(4):
+  at = eyes.data.attributes.new(f"_m{'abcd'[a]}", "FLOAT_COLOR", "POINT")
+  for d in at.data: d.color = (0, 0, 0, 0)
+select(body, eyes, active=body); bpy.ops.object.join()
+mat = bpy.data.materials.new("m_body"); body.data.materials.clear(); body.data.materials.append(mat)
+select(body); bpy.ops.object.shade_smooth()
+me = body.data
 
 # ---------- export ----------
-bpy.ops.object.select_all(action="DESELECT")
-body.select_set(True); rig.select_set(True)
+select(body, rig)
 bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB", use_selection=True, export_yup=True, export_skins=True,
   export_animations=False, export_morph=False, export_texcoords=False, export_tangents=False, export_materials="EXPORT",
-  export_apply=False)
-tri = sum(len(p.vertices) - 2 for p in body.data.polygons)
-print("BODY_OK", len(body.data.vertices), "verts", tri, "tris", len(names), "materials:", ", ".join(names))
+  export_attributes=True, export_apply=False)
+tri = sum(len(p.vertices) - 2 for p in me.polygons)
+print("BODY_OK", len(me.vertices), "verts", tri, "tris")
 
 if PREVIEW:
-  cols = {"skin": (.75, .77, .8, 1)}
-  for i, n in enumerate(names):
-    m = body.data.materials[i]
-    m.diffuse_color = cols.get(n, ((0.55 + 0.4 * ((i * 37) % 7) / 7), (0.25 + 0.5 * ((i * 53) % 5) / 5), (0.3 + 0.6 * ((i * 29) % 3) / 3), 1))
-  scene.render.engine = "BLENDER_WORKBENCH"
-  scene.display.shading.color_type = "MATERIAL"
-  scene.display.shading.light = "STUDIO"
+  # Preview: every muscle map in its own color over grey skin.
+  import colorsys
+  col = me.color_attributes.new("preview", "FLOAT_COLOR", "POINT")
+  ma = [me.attributes[f"_m{c}"] for c in "abcd"]
+  for i in range(len(me.vertices)):
+    c = Vector((.72, .74, .78))
+    for k in range(len(MUSCLES)):
+      w = ma[k // 4].data[i].color[k % 4]
+      if w > 0: c = c.lerp(Vector(colorsys.hsv_to_rgb(k / len(MUSCLES), .75, .9)), w)
+    col.data[i].color = (*c, 1)
+  me.color_attributes.active_color = col
+  scene.render.engine = "BLENDER_WORKBENCH"; scene.display.shading.color_type = "VERTEX"; scene.display.shading.light = "STUDIO"
   scene.render.resolution_x, scene.render.resolution_y = 900, 700
   cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam")); scene.collection.objects.link(cam); scene.camera = cam
   for tag, loc, look, lens in (("front", (1.3, -2.2, 1.35), (0, 0, 1.0), 38), ("back", (-1.4, 2.1, 1.4), (0, 0, 1.05), 38),
-                               ("hand", (0.95, -0.45, 1.62), (0.82, 0, 1.42), 60), ("face", (0.35, -0.9, 1.62), (0, 0, 1.52), 55)):
+                               ("hand", (0.95, -0.45, 1.62), (0.8, 0, 1.4), 60), ("face", (0.3, -0.9, 1.62), (0, 0, 1.55), 55)):
     cam.location = loc; cam.data.lens = lens
     cam.rotation_euler = (Vector(look) - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.render.filepath = PREVIEW.replace(".png", "-" + tag + ".png")

@@ -46,24 +46,50 @@ function geo(){
   G.cable = new THREE.CylinderGeometry(.005, .005, 1, 6);
   G.shaft = new THREE.CylinderGeometry(.012, .012, 1, 12); G.cone = new THREE.ConeGeometry(.04, .08, 18);
   G.shadow = new THREE.CircleGeometry(1, 40); G.shadow.rotateX(-Math.PI / 2);
+  // The floor shadow fades out from the middle.
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+  const x = cv.getContext("2d"), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, "#fff"); gr.addColorStop(.5, "#aaa"); gr.addColorStop(1, "#000"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  G.soft = new THREE.CanvasTexture(cv);
 }
 const M = {};   // materials, recolored from the app's color tokens
+// The body's muscle maps: four vertex attributes (_ma.._md), four muscles each, in this order (see build-body.py).
+// Each vertex says how much of each muscle it sits on (crisp outline, short fade); the shader blends in the main
+// muscles' color (red) or the helping muscles' color (yellow), and adds a faint glow so a worked muscle stands
+// out even when the figure is small or in shadow.
+const MUSCLES = ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Chest", "Back", "Lower back", "Abdominals",
+  "Shoulders:front", "Shoulders:side", "Shoulders:rear", "Biceps", "Triceps", "Forearms"];
+const MAIN = [0, 1, 2, 3].map(() => new THREE.Vector4()), HELP = [0, 1, 2, 3].map(() => new THREE.Vector4());
+function skinMaterial(m){
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, {uMain: {value: MAIN}, uHelp: {value: HELP}, cMain: {value: M.main.color}, cHelp: {value: M.help.color}});
+    const sum = u => `clamp(dot(_ma, ${u}[0]) + dot(_mb, ${u}[1]) + dot(_mc, ${u}[2]) + dot(_md, ${u}[3]), 0., 1.)`;
+    sh.vertexShader = `attribute vec4 _ma, _mb, _mc, _md;\nuniform vec4 uMain[4], uHelp[4];\nvarying float vMain, vHelp;\n` + sh.vertexShader.replace("#include <begin_vertex>",
+      `#include <begin_vertex>\n  vMain = ${sum("uMain")};\n  vHelp = ${sum("uHelp")};`);
+    sh.fragmentShader = `uniform vec3 cMain, cHelp;\nvarying float vMain, vHelp;\n` + sh.fragmentShader
+      .replace("#include <color_fragment>", `#include <color_fragment>\n  diffuseColor.rgb = mix(mix(diffuseColor.rgb, cHelp, vHelp), cMain, vMain);`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n  totalEmissiveRadiance += cMain * vMain * .3 + cHelp * vHelp * (1. - vMain) * .2;`);
+  };
+  return m;
+}
 function mats(){
   if(M.body) return;
   const std = o => new THREE.MeshStandardMaterial({roughness: .62, metalness: 0, ...o});
-  Object.assign(M, {body: std({}), main: std({}), also: std({}), metal: std({metalness: .5, roughness: .35}), plate: std({roughness: .5}),
+  Object.assign(M, {body: skinMaterial(std({})), main: std({}), help: std({}), metal: std({metalness: .5, roughness: .35}), plate: std({roughness: .5}),
     pad: std({roughness: .8}), frame: std({metalness: .3, roughness: .45}), arrow: new THREE.MeshBasicMaterial({transparent: true}),
-    shadow: new THREE.MeshBasicMaterial({transparent: true, depthWrite: false, opacity: .18})});
+    shadow: new THREE.MeshBasicMaterial({transparent: true, depthWrite: false, opacity: .32, alphaMap: G.soft})});
 }
 function readColors(){
   const cs = getComputedStyle(document.documentElement), c = v => new THREE.Color().setStyle(cs.getPropertyValue(v).trim() || "#888");
   const surface = c("--surface"), muted = c("--muted"), ink = c("--ink"), red = c("--red"), line = c("--line");
   M.body.color.copy(surface).lerp(muted, .42);
-  M.main.color.copy(red);
-  M.also.color.copy(red).lerp(M.body.color, .5);
+  M.main.color.copy(red); M.help.color.copy(c("--yellow"));
   M.metal.color.copy(muted).lerp(ink, .3); M.plate.color.copy(ink).lerp(muted, .25);
   M.pad.color.copy(line).lerp(ink, .35); M.frame.color.copy(muted);
-  M.arrow.color.copy(c("--blue")); M.shadow.color.copy(ink);
+  M.arrow.color.copy(c("--blue"));
+  // The floor shadow uses the app's --shadow token (an rgba color: its alpha sets how dark the shadow is).
+  const sh = (cs.getPropertyValue("--shadow").trim().match(/[\d.]+/g) || [0, 0, 0, .3]).map(Number);
+  M.shadow.color.setRGB(sh[0] / 255, sh[1] / 255, sh[2] / 255, THREE.SRGBColorSpace); M.shadow.opacity = Math.min(1, (sh[3] ?? .3) * 1.4);
 }
 const mesh = (g, m) => new THREE.Mesh(g, m);
 const scaled = (o, x, y, z) => { o.scale.set(x, y, z); return o; };
@@ -110,7 +136,7 @@ const EXERCISES = {
       thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1]},
     // From over the shoulders down to the lower chest, a slight diagonal; grip about one and a half shoulder widths;
     // elbows tucked to about 45 degrees, forearms upright.
-    grip: (J, s) => ({center: at(J, "chest", 0, .13, .57).lerp(at(J, "chest", 0, .015, .165), s), half: .34,
+    grip: (J, s) => ({center: at(J, "chest", 0, .08, .57).lerp(at(J, "chest", 0, -.08, .16), s), half: .34,
       hand: [0, .3, .95], palm: [0, -.95, .3], pole: [1, -.75, -.5]}),
     gear(g){ g.add(box(.3, .06, 1.25, M.pad, 0, .44, -.2)); g.add(box(.06, .42, .06, M.frame, 0, .21, .25)); g.add(box(.06, .42, .06, M.frame, 0, .21, -.7));
       g.bar = barbell(); g.add(g.bar); },
@@ -125,7 +151,7 @@ const EXERCISES = {
     stretched: {hips: [0, .98, -.12], spine: [0, .98, -.18], chest: [0, .98, -.18], neck: [0, 1, -.06], head: [0, 1, 0],
       thigh: [.12, -.05, 1], shin: [0, -1, .1], foot: [.15, -.35, 1]},
     // Arms straight overhead down to the bar touching the top of the chest; elbows drive down and back.
-    grip: (J, s) => ({center: at(J, "chest", 0, .12, .16).lerp(at(J, "chest", 0, .64, .06), s), half: .42,
+    grip: (J, s) => ({center: at(J, "chest", 0, .03, .16).lerp(at(J, "chest", 0, .6, .06), s), half: .42,
       hand: [0, 1, -.05], palm: [0, 0, 1], pole: [.6, -1, -.6]}),
     gear(g){ g.add(box(.38, .07, .42, M.pad, 0, .43, .12)); g.add(box(.06, .4, .06, M.frame, 0, .2, .12));
       g.add(box(.36, .07, .1, M.pad, 0, .665, .32)); g.add(box(.06, .66, .06, M.frame, 0, .33, .4));
@@ -164,7 +190,7 @@ function placeInHand(d, J, s){
 }
 
 // ---------- the shared renderer ----------
-let renderer, scene, camera, model, bones = {}, rest = {}, bodyParts = [], gearRoot, arrow, shadow, ready = null;
+let renderer, scene, camera, model, bones = {}, rest = {}, gearRoot, arrow, shadow, ready = null;
 const views = new Set();
 async function load(url){
   if(ready) return ready;
@@ -173,16 +199,17 @@ async function load(url){
     renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, preserveDrawingBuffer: true});
     renderer.setPixelRatio(1); renderer.setSize(720, 720, false); renderer.setScissorTest(true);
     scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.6));
-    const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2.5, 4, 3); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xffffff, .8); rim.position.set(-3, 2, -2.5); scene.add(rim);
+    // Soft studio light: sky and floor fill, a key from the upper front right, a weaker fill from the left, a rim behind.
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 1.5));
+    const key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(2.2, 3.5, 3.5); scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, .55); fill.position.set(-3, 1.5, 2); scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 1); rim.position.set(-2, 3, -3.5); scene.add(rim);
     camera = new THREE.PerspectiveCamera(30, 1, .05, 50);
     const gltf = await new GLTFLoader().loadAsync(url);
     model = gltf.scene; scene.add(model);
     model.traverse(o => {
       if(o.isBone) bones[o.name] = o;
-      if(o.isMesh){ o.frustumCulled = false; const n = (o.material.name || "").replace(/^m_/, "");
-        bodyParts.push({mesh: o, muscle: n === "skin" ? null : n.replace("Shoulders_", "Shoulders:").replace("Lower_back", "Lower back")}); }
+      if(o.isMesh){ o.frustumCulled = false; o.material = M.body; }
     });
     for(const [b] of AIM) rest[b] = bones[b].quaternion.clone();
     model.updateMatrixWorld(true);
@@ -190,6 +217,14 @@ async function load(url){
     rest.feet = bones.foot_L.getWorldPosition(new THREE.Vector3());
     rest.wqInv = {}; for(const [b] of AIM) rest.wqInv[b] = bones[b].getWorldQuaternion(new THREE.Quaternion()).invert();
     const gap = (a, b) => bones[a].getWorldPosition(new THREE.Vector3()).distanceTo(bones[b].getWorldPosition(new THREE.Vector3()));
+    // Fingers close around a bar by turning each joint about the hand's width (in the rest pose the hands are
+    // palm down along +X / -X, so that's -Z for the left hand and +Z for the right, in three.js).
+    rest.fingers = [];
+    for(const s of ["L", "R"]) for(let f = 1; f <= 5; f++) for(let j = 1; j <= 3; j++){
+      const b = bones[`f${f}${j}_${s}`]; if(!b) continue;
+      const axis = new THREE.Vector3(0, 0, s === "L" ? -1 : 1).applyQuaternion(b.getWorldQuaternion(new THREE.Quaternion()).invert());
+      rest.fingers.push({b, q: b.quaternion.clone(), axis, ang: THREE.MathUtils.degToRad(f === 1 ? [8, 18, 18][j - 1] : [42, 55, 38][j - 1])});
+    }
     rest.len = {upperarm: gap("upperarm_L", "forearm_L"), forearm: gap("forearm_L", "hand_L"), hand: gap("hand_L", "handtip_L")};
     gearRoot = new THREE.Group(); scene.add(gearRoot);
     arrow = new THREE.Group(); const sh = mesh(G.shaft, M.arrow); sh.scale.y = .16; sh.position.y = .08; const co = mesh(G.cone, M.arrow); co.position.y = .2; arrow.add(sh, co); scene.add(arrow);
@@ -209,7 +244,8 @@ const _d = new THREE.Quaternion(), _t = new THREE.Vector3(), _n = new THREE.Vect
 // Turning the palm: the upper arm takes half the turn, the forearm and hand the rest, like a real arm.
 const TWIST = {upperarm: .5, forearm: 1, hand: 1};
 const DOWN = new THREE.Vector3(0, -1, 0);   // the palms face down in the model's rest pose
-function setWorld(bone, wq){ bone.parent.getWorldQuaternion(_p); bone.quaternion.copy(_p.invert().multiply(wq)); bone.updateMatrixWorld(true); }
+// Only this bone is updated here; children update when read (getWorld* walks up) and all at once at the end.
+function setWorld(bone, wq){ bone.parent.getWorldQuaternion(_p); bone.quaternion.copy(_p.invert().multiply(wq)); bone.updateWorldMatrix(false, false); }
 function twist(bone, axis, target, share){
   bone.getWorldQuaternion(_w);
   _c.copy(DOWN).applyQuaternion(_q.copy(_w).multiply(rest.wqInv[bone.name]));   // the way the palm faces now
@@ -219,8 +255,10 @@ function twist(bone, axis, target, share){
   const ang = Math.atan2(_x2.crossVectors(_c, _n).dot(axis), _c.dot(_n)) * share;
   setWorld(bone, _q.setFromAxisAngle(axis, ang).multiply(_w));
 }
+const _f = new THREE.Quaternion();
 function pose(dirs){
   for(const [b] of AIM) bones[b].quaternion.copy(rest[b]);
+  for(const f of rest.fingers) f.b.quaternion.copy(f.q).multiply(_f.setFromAxisAngle(f.axis, f.ang * (dirs.grip ?? 1)));
   model.position.set(0, 0, 0); model.updateMatrixWorld(true);
   for(const [b, c] of AIM){
     const bone = bones[b]; let t = dirs[b]; if(!t) continue;
@@ -287,8 +325,10 @@ function useGear(ex){
   if(gearRoot.userData.ex === ex) return;
   gearRoot.clear(); gearRoot.userData.ex = ex; ex.gear(gearRoot);
 }
+// Main muscles in red, helping muscles in yellow.
 function paintMuscles(roles){
-  for(const p of bodyParts){ const r = p.muscle ? roles[p.muscle] : 0; p.mesh.material = r >= 1 ? M.main : r > 0 ? M.also : M.body; }
+  MUSCLES.forEach((m, i) => { const r = roles[m] || 0;
+    MAIN[i >> 2].setComponent(i & 3, r >= 1 ? 1 : 0); HELP[i >> 2].setComponent(i & 3, r > 0 && r < 1 ? 1 : 0); });
 }
 
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -305,11 +345,10 @@ function loop(now){
     if(renderer.domElement.width < w || renderer.domElement.height < h) renderer.setSize(Math.max(w, renderer.domElement.width), Math.max(h, renderer.domElement.height), false);
     const ph = v.still != null ? {s: v.still, name: "holdC"} : calm() ? {s: 0, name: "holdC"} : phaseAt(t + v.offset);
     useGear(ex); paintMuscles(ex.roles);
+    // Direction arrow: while lifting, beside the moving bar or hand, pointing where it's going (a moment ahead).
+    const ahead = v.arrows && ph.name === "con" ? ex.track(placeAt(ex, Math.max(0, ph.s - .04))) : null;
     const J = placeAt(ex, ph.s); ex.place(gearRoot, J);
-    // Direction arrow: while lifting, beside the moving bar or hand, pointing where it's going.
-    const dt = .05, p0 = ex.track(J), next = placeAt(ex, Math.max(0, ph.s - .04)), p1 = ex.track(next);
-    placeAt(ex, ph.s); ex.place(gearRoot, J);
-    const dir = p1.sub(p0); arrow.visible = v.arrows && ph.name === "con" && dir.lengthSq() > 1e-8;
+    const p0 = ex.track(J), dir = ahead ? ahead.sub(p0) : new THREE.Vector3(); arrow.visible = !!ahead && dir.lengthSq() > 1e-8;
     if(arrow.visible){ dir.normalize(); arrow.position.copy(p0).add(new THREE.Vector3(.28, 0, .12)); arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
       M.arrow.opacity = Math.sin(Math.PI * Math.min(1, ph.k || 0)) * .95; }
     shadow.position.set(0, .002, ex.anchor === "feet" ? .03 : 0);

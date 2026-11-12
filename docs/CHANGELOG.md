@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (sixth update)
+- Behind the scenes: the 3D test page has a realistic body (from the free MakeHuman model), hands that close around the bar, and muscle highlights shaped like the muscles themselves: main muscles in red, helping muscles in yellow. Softer lighting, and the floor shadow stays dark in dark mode. Nothing in the app changed.
+
 ## 2026-11-12 (fifth update)
 - Behind the scenes: the 3D test page has a more lifelike figure with hands, softer muscles shown by color, bars and dumbbells that stay in the hands and turn with them, and better form on all four lifts. Nothing in the app changed.
 
