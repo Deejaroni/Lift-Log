@@ -582,3 +582,32 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .today-chips button:active{background:var(--line)}
 .next-tag{display:inline-block;margin:0 0 6px;padding:2px 8px;border-radius:999px;border:1px solid var(--blue);color:var(--blue-ink);font-size:.75rem;font-weight:700}
 .next-tag[hidden]{display:none}
+
+/* ---------- Motion and feedback (phase 3). Quick (150-250 ms) and off with reduce motion (see the rule above). ---------- */
+@keyframes slide-in{from{opacity:0;transform:translateY(-6px)}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes tab-in{from{opacity:0;transform:translateY(6px)}}
+@keyframes fade-in{from{opacity:0}}
+@keyframes sheet-up{from{opacity:0;transform:translateY(24px)}}
+@keyframes reveal{from{opacity:0;transform:translateY(-4px)}}
+@keyframes ring-done{from{stroke:var(--red);opacity:.5}}
+@keyframes rest-pulse{0%{box-shadow:0 0 0 0 var(--green)}100%{box-shadow:0 0 0 10px transparent}}
+@keyframes ping{50%{box-shadow:0 0 0 3px var(--green)}}
+#day-list .new{animation:slide-in .2s ease-out}
+.pr.pop{animation:pop .25s ease-out}
+.tab-in{animation:tab-in .15s ease-out}
+.dlg-back{animation:fade-in .2s ease-out}
+.dlg-back .dlg,.sheet{animation:sheet-up .25s cubic-bezier(.2,.8,.2,1)}
+#equip-body,#note-wrap,#ctx-fields,#drop-wrap,.ed-eq-body,[data-ed-more-body],.edit-box{animation:reveal .18s ease-out}
+#today-ring .seg.fresh{animation:ring-done .4s ease-out}
+.actions.over .save-rest{animation:rest-pulse .6s ease-out 2}
+nav.tabs button.ping{animation:ping .5s ease-in-out 3}
+/* The red pill that glides between tabs; the new tab's own red waits until it arrives. */
+nav.tabs button{position:relative;z-index:1}
+.tab-glide{position:absolute;z-index:0;border-radius:999px;background:var(--red);pointer-events:none}
+.tab-glide[hidden]{display:none}
+.tab-glide.go{transition:left .2s ease,width .2s ease}
+nav.tabs button.gliding{background:none}
+/* "✓ Logged" over the Log button for a moment after a log */
+.save-ok{position:absolute;inset:0;z-index:2;border-radius:12px;background:var(--red);color:var(--on-accent);display:grid;place-items:center;font-weight:700;font-size:1.1rem;font-family:Archivo,sans-serif;font-stretch:80%;opacity:0;pointer-events:none;transition:opacity .15s}
+.actions.logged .save-ok{opacity:1}

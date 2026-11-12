@@ -125,11 +125,12 @@ const repText = it => it.minutes ? `${fmt(it.minutes)} min` : `${it.sets} × ${i
 // ----- Today's plan (Log tab) -----
 // Header: the tab's title, and on the Log tab the day's workout with a ring of its exercises.
 let todayRing = null;   // {name, items:[{name, done}]} for the Log date's planned workout
-function ringSVG(items){
+let ringWas = null;   // {date, done:Set} from the last header draw, so a segment that just finished can animate
+function ringSVG(items, fresh = new Set()){
   const n = items.length, C = 2*Math.PI*24, S = C/n, gap = n>1 ? Math.min(4, S/3) : 0;
   const cur = items.findIndex(x=>!x.done), doneN = items.filter(x=>x.done).length;
   return `<svg viewBox="0 0 58 58" width="58" height="58" role="img" aria-label="${doneN} of ${n} exercises done">${items.map((x,i)=>
-    `<circle class="seg ${x.done?"done":i===cur?"now":"todo"}" cx="29" cy="29" r="24" stroke-dasharray="${(S-gap).toFixed(2)} ${(C-S+gap).toFixed(2)}" stroke-dashoffset="${(-i*S).toFixed(2)}" transform="rotate(-90 29 29)"/>`).join("")}<text x="29" y="34" text-anchor="middle">${doneN}/${n}</text></svg>`;
+    `<circle class="seg ${x.done?"done":i===cur?"now":"todo"}${fresh.has(x.name)?" fresh":""}" cx="29" cy="29" r="24" stroke-dasharray="${(S-gap).toFixed(2)} ${(C-S+gap).toFixed(2)}" stroke-dashoffset="${(-i*S).toFixed(2)}" transform="rotate(-90 29 29)"/>`).join("")}<text x="29" y="34" text-anchor="middle">${doneN}/${n}</text></svg>`;
 }
 function renderHead(){
   const tab = document.querySelector('nav.tabs [aria-selected="true"]').dataset.tab, log = tab==="log";
@@ -137,7 +138,10 @@ function renderHead(){
   $("#head-title").textContent = !log ? {plan:"Plan", history:"History", progress:"Progress"}[tab] : date===today() ? "Today" : niceDate(date);
   $("#head-kicker").textContent = !log ? "Lift Log" : [date===today() ? niceDate(date) : "Past day", r && r.name].filter(Boolean).join(" · ");
   $("#head-next").hidden = !next; $("#head-next").textContent = next ? `Next: ${next.name}` : "";
-  $("#today-ring").hidden = !r; $("#today-ring").innerHTML = r ? ringSVG(r.items) : "";
+  const doneNow = new Set(r ? r.items.filter(x=>x.done).map(x=>x.name) : []);
+  const fresh = ringWas && ringWas.date===date ? new Set([...doneNow].filter(n=>!ringWas.done.has(n))) : new Set();
+  ringWas = r ? {date, done:doneNow} : null;
+  $("#today-ring").hidden = !r; $("#today-ring").innerHTML = r ? ringSVG(r.items, fresh) : "";
 }
 function renderPlanToday(){
   const box = $("#plan-today"); todayRing = null;

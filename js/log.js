@@ -30,7 +30,23 @@ const exercisesByRecent = ()=>{
 const lastFor = name => sorted().reverse().find(e=>e.kind!=="cardio" && e.exercise.toLowerCase()===name.toLowerCase());
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
+// "✓ Logged" on the Log button for a moment after a log.
+function confirmLogged(){
+  const a = document.querySelector(".actions"); a.classList.remove("logged"); void a.offsetWidth; a.classList.add("logged");
+  clearTimeout(confirmLogged.t); confirmLogged.t = setTimeout(()=>a.classList.remove("logged"), 900);
+}
 function flash(text, err){ const m=$("#msg"); m.textContent=text; m.className="msg"+(err?" err":""); clearTimeout(flash.t); flash.t=setTimeout(()=>m.textContent="",2600); }
+
+// ---------- tab bar: a red pill glides from the old tab to the new one ----------
+function glideTab(a, to){
+  if(!a || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const nav = document.querySelector("nav.tabs"), n = nav.getBoundingClientRect();
+  let g = nav.querySelector(".tab-glide"); if(!g){ g = document.createElement("i"); g.className = "tab-glide"; g.setAttribute("aria-hidden","true"); nav.prepend(g); }
+  const place = r => Object.assign(g.style, {left:`${r.left-n.left-nav.clientLeft}px`, top:`${r.top-n.top-nav.clientTop}px`, width:`${r.width}px`, height:`${r.height}px`});
+  g.classList.remove("go"); place(a); g.hidden = false; to.classList.add("gliding");
+  void g.offsetWidth; g.classList.add("go"); place(to.getBoundingClientRect());
+  clearTimeout(glideTab.t); glideTab.t = setTimeout(()=>{ g.hidden = true; to.classList.remove("gliding"); }, 230);
+}
 
 // ---------- unit toggle ----------
 function applyUnit(){
@@ -76,7 +92,7 @@ async function repeatLast(){
   ["failure","ss","ssLead"].forEach(k=>delete copy[k]);
   try{
     await store.add([copy]);
-    flash(`Logged 1 × ${e.reps} @ ${fmt(toUnit(e.weight, e.unit))} ${prefs.unit} — ${e.exercise}`);
+    flash(`Logged 1 × ${e.reps} @ ${fmt(toUnit(e.weight, e.unit))} ${prefs.unit} — ${e.exercise}`); confirmLogged();
     if(e.date===today()) startRest();
   }catch(err){ flash("Couldn't save that set. Try again.", true); }
 }
@@ -332,8 +348,11 @@ export function init(){
 
   // ---------- tabs ----------
   document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+    const from = document.querySelector('nav.tabs [aria-selected="true"]'), a = from && from.getBoundingClientRect();
     document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
-    ["log","plan","history","progress"].forEach(t=> $("#tab-"+t).hidden = t!==b.dataset.tab);
+    if(from!==b) glideTab(a, b);
+    ["log","plan","history","progress"].forEach(t=>{ const sec = $("#tab-"+t); sec.hidden = t!==b.dataset.tab; sec.classList.remove("tab-in"); });
+    if(from!==b){ const sec = $("#tab-"+b.dataset.tab); void sec.offsetWidth; sec.classList.add("tab-in"); }
     window.scrollTo(0,0);
     renderHead();
     if(b.dataset.tab==="plan") renderPlan();
@@ -421,7 +440,7 @@ export function init(){
       if(supersetLogged(ssf, date, name) && date===today()) startRest();
       resetForm();
       const up = ssf.ssLead ? "" : planAdvance(name, date);
-      flash(up ? `${msg}. ${up}` : msg);
+      flash(up ? `${msg}. ${up}` : msg); confirmLogged();
     }catch(e){ flash("Couldn't save that set. Try again.", true); }
     btn.disabled=false;
   };
@@ -458,4 +477,4 @@ export function init(){
   ["grip","path","pos"].forEach(k=>{ $("#lr-"+k).innerHTML = `<option value="">Not recorded</option>` + LR[k].map(o=>`<option>${o}</option>`).join(""); });
 }
 
-export { renderCtx, renderSuggest, renderRepeat, today, uid, toUnit, fmt, fmtBig, e1rm, niceDate, esc, sorted, exercisesByRecent, lastFor, css, flash, applyUnit, quickSteps, renderQuick, showLast, prefill, mode, dropRows, stepSize, roundStep, readDropRows, renderDropRows, dropStep, dropPicked, renderDropStep, addDropRow, ssOpen, supersetFields, supersetLogged, renderSuperset, supersetFor, loadMult, multReason, LOAD_OPTS, loadModeOf, barAddRaw, totalRaw, loadOf, failSets, failN, renderFailChips, rirPick, rirText, renderRir, PLATES, PLATE_COLOR, platesFor, renderPlates, weightLabel, volOf, EX_INFO, LR, lrEmphasis, variantText, readVariant, variantField, updateLrEmph, extrasFor, refreshExerciseExtras, updateVolPreview, setMode, setDropRows, setDropPicked, setFailSets, setFailN, setRirPick };
+export { confirmLogged, renderCtx, renderSuggest, renderRepeat, today, uid, toUnit, fmt, fmtBig, e1rm, niceDate, esc, sorted, exercisesByRecent, lastFor, css, flash, applyUnit, quickSteps, renderQuick, showLast, prefill, mode, dropRows, stepSize, roundStep, readDropRows, renderDropRows, dropStep, dropPicked, renderDropStep, addDropRow, ssOpen, supersetFields, supersetLogged, renderSuperset, supersetFor, loadMult, multReason, LOAD_OPTS, loadModeOf, barAddRaw, totalRaw, loadOf, failSets, failN, renderFailChips, rirPick, rirText, renderRir, PLATES, PLATE_COLOR, platesFor, renderPlates, weightLabel, volOf, EX_INFO, LR, lrEmphasis, variantText, readVariant, variantField, updateLrEmph, extrasFor, refreshExerciseExtras, updateVolPreview, setMode, setDropRows, setDropPicked, setFailSets, setFailN, setRirPick };

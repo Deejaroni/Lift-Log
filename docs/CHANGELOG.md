@@ -2,6 +2,14 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (second update)
+- Quick, quiet motion: after Log set, the button reads "✓ Logged" for a moment, the new set slides into today's list, the exercise's total counts up and the header ring segment fills. A badge you just earned pops in.
+- Switching tabs, the red pill glides to the new tab and the page fades in.
+- Sheets and dialogs slide up when they open, and sections like Equipment or Add a note fade into place instead of jumping.
+- When rest is over, the Log button pulses green and the Log tab flashes, as well as the chime.
+- New in Settings → Rest timer: a switch for the chime (on, as before).
+- All motion turns off if your phone is set to reduce motion.
+
 ## 2026-11-12
 - Favorites: tap the star next to any exercise in the picker, or in its how-to sheet. Favorites show first, and the chosen exercise shows a ★.
 - A row of today's exercises sits above the exercise, with how many sets you've done. Tap one to switch back to it, handy for supersets and circuits. Planned exercises you haven't started show at the end.

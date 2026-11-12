@@ -22,14 +22,16 @@ const canNotify = () => "Notification" in window && "serviceWorker" in navigator
 function renderRestSet(){
   $("#rest-sec").innerHTML = REST_OPTS.map(s=>`<option value="${s}" ${s===restDefault()?"selected":""}>${s?mmss(s):"Off"}</option>`).join("");
   $("#rest-alert-row").hidden = !(canNotify() && Notification.permission==="default");
-  const note = $("#rest-alert-note");
-  if(note) note.textContent = window.top!==window ? "The timer chimes while the app is open. This version can't send notifications; the home-screen version can on Android."
-    : !canNotify() ? "The timer chimes while the app is open. Background alerts need the installed home-screen version."
+  const note = $("#rest-alert-note"), c = chimeOn() ? "The timer chimes while the app is open." : "The chime is off; the Log button still turns green when rest is over.";
+  $("#rest-chime").checked = chimeOn(); $("#rest-chime-state").textContent = chimeOn() ? "On" : "Off";
+  if(note) note.textContent = window.top!==window ? `${c} This version can't send notifications; the home-screen version can on Android.`
+    : !canNotify() ? `${c} Background alerts need the installed home-screen version.`
     : Notification.permission==="granted" ? "Rest alerts are on. On iPhone, an alert may appear only when you return to the app."
     : Notification.permission==="denied" ? "Alerts are blocked. Allow notifications for this app in your phone's settings to turn them on."
-    : "The timer chimes while the app is open.";
+    : c;
 }
 function unlockAudio(){ try{ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
+const chimeOn = () => prefs.chime!==false;   // on unless you turned it off (Settings → Rest timer)
 function chime(){
   try{ if(!actx) return; const t0 = actx.currentTime;
     [0,0.25,0.5].forEach(d=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type="sine"; o.frequency.value=880;
@@ -51,6 +53,7 @@ function showRest(text, fill, over){
   $("#save-rest").hidden = !on;
   $("#rb-time").textContent = on ? text : "";
   $("#rb-fill").style.width = (fill||0).toFixed(1)+"%";
+  if(!over) logTab.classList.remove("ping");
   $("#rest-start").lastChild.textContent = on && !over ? "+30s" : "Rest";
   $("#rest-start").setAttribute("aria-label", on && !over ? "Add 30 seconds of rest" : "Start rest timer");
   logTab.textContent = on && !over ? `Log ${text.match(/\d+:\d\d/)[0]}` : "Log";
@@ -65,7 +68,8 @@ function finishRest(skip){
   clearInterval(restIv); clearTimeout(restNotifyT); clearTimeout(restOverT); restEnd = 0;
   if(skip){ showRest(null); return; }
   showRest("Rest over · log your next set", 100, true);
-  chime(); try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
+  document.querySelector('nav.tabs [data-tab="log"]').classList.add("ping");
+  if(chimeOn()) chime(); try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
   restOverT = setTimeout(()=>showRest(null), 5000);
 }
 function scheduleNotify(){
@@ -131,6 +135,7 @@ function setRestNext(v){ restNext = v; }
 
 export function init(){
   $("#rest-sec").addEventListener("change", e=>{ settings.rest = {sec:+e.target.value}; saveSettings(); });
+  $("#rest-chime").addEventListener("change", e=>{ prefs.chime = e.target.checked; savePrefs(); renderRestSet(); });
   $("#rest-start").addEventListener("click", ()=>{
     unlockAudio();
     if(!restEnd) return startRest(restDefault() || 90);
@@ -172,4 +177,4 @@ export function init(){
   ["input","change","click"].forEach(t=>$("#tab-log").addEventListener(t, ()=>setTimeout(updateVolPreview,0)));
 }
 
-export { REST_OPTS, restEnd, restTotal, restIv, restNext, restOverT, restNotifyT, actx, restDefault, canNotify, renderRestSet, unlockAudio, chime, startRest, showRest, tickRest, finishRest, scheduleNotify, applyTheme, renderSettings, openSettings, closeSettings, updateEquipSummary, setEquipOpen, renderAll, watchForUpdates, setRestNext };
+export { chimeOn, REST_OPTS, restEnd, restTotal, restIv, restNext, restOverT, restNotifyT, actx, restDefault, canNotify, renderRestSet, unlockAudio, chime, startRest, showRest, tickRest, finishRest, scheduleNotify, applyTheme, renderSettings, openSettings, closeSettings, updateEquipSummary, setEquipOpen, renderAll, watchForUpdates, setRestNext };

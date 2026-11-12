@@ -172,7 +172,8 @@ test("misspelled words are corrected, with a note saying so", async ({ page }) =
 test("a half-typed misspelled word still finds results", async ({ page }) => {
   const errors = await openApp(page);
   await search(page, "bnc");
-  expect((await names(page)).some(n => /bench/i.test(n))).toBe(true);
+  // Waits: a redraw left over from start-up can land just after typing.
+  await expect.poll(async () => (await names(page)).some(n => /bench/i.test(n))).toBe(true);
   await search(page, "bnch pr");
   expect((await names(page)).slice(0, 5).some(n => /bench press/i.test(n))).toBe(true);
   expect(errors).toEqual([]);

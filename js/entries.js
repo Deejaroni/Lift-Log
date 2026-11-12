@@ -250,11 +250,11 @@ function groupHTML(list, hist){
       parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step), !hist));
     });
     const b = exBadges(g);
-    const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
+    const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · <span class="cnt" data-v="${Math.round(vol)}">${fmtBig(vol)}</span> ${prefs.unit}</span></div>`;
     const ids = new Set(g.map(e=>e.ss).filter(Boolean)), l = g[0].exercise.toLowerCase();
     const mates = [...new Set(list.filter(e=>ids.has(e.ss) && e.exercise.toLowerCase()!==l).map(e=>e.exercise))];
     const ssTag = mates.length ? `<p class="ss-tag">Superset with ${esc(mates.join(", "))}</p>` : "";
-    return `<div class="ex-group">${head}${ssTag}${hist ? setBars(g, b) : ""}${parts.join("")}</div>`;
+    return `<div class="ex-group" data-ex="${esc(l)}">${head}${ssTag}${hist ? setBars(g, b) : ""}${parts.join("")}</div>`;
   }).join("");
 }
 // History: one bar per set, scaled to the heaviest load; the top set (best est. 1RM, 10 reps or fewer) is red.
@@ -274,11 +274,31 @@ function footHTML(badges, best){
   return bits.length ? `<p class="ex-foot">${bits.join(" · ")}</p>` : "";
 }
 
+// What the day list showed last time, so a redraw after logging can move only what's new.
+let shown = {date:null, ids:null};
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function countUp(el, from){
+  const to = +el.dataset.v; if(calm() || !(from>=0) || from===to || Math.max(from,to)>=10000) return;
+  const t0 = performance.now(), dur = 300;
+  const step = t => { const k = Math.min(1, (t-t0)/dur), v = from + (to-from)*(1-Math.pow(1-k,3)); el.textContent = fmtBig(Math.round(v)); if(k<1) requestAnimationFrame(step); };
+  el.textContent = fmtBig(from); requestAnimationFrame(step);
+}
 function renderDay(){
   const d = $("#date").value || today();
   $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
   const list = sorted().filter(e=>e.date===d);
+  const before = new Map([...document.querySelectorAll("#day-list .ex-group[data-ex]")].map(g=>[g.dataset.ex, {v: +(g.querySelector(".cnt")||{dataset:{}}).dataset.v, badges: [...g.querySelectorAll(".ex-head .pr")].map(b=>b.textContent)}]));
   $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
+  // Newly logged sets slide in; their exercise's total counts up and any badge they earned pops in.
+  const fresh = shown.date===d && shown.ids ? list.filter(e=>!shown.ids.has(e.id)) : [];
+  shown = {date:d, ids:new Set(list.map(e=>e.id))};
+  fresh.forEach(e=>{
+    const row = document.querySelector(`#day-list [data-tap="${CSS.escape(e.chain||e.id)}"]`); if(row) row.classList.add("new");
+    const g = document.querySelector(`#day-list .ex-group[data-ex="${CSS.escape(e.exercise.toLowerCase())}"]`), was = before.get(e.exercise.toLowerCase());
+    if(!g || g.dataset.done) return; g.dataset.done = "1";
+    const c = g.querySelector(".cnt"); if(c && was) countUp(c, was.v);
+    g.querySelectorAll(".ex-head .pr").forEach(b=>{ if(!was || !was.badges.includes(b.textContent)) b.classList.add("pop"); });
+  });
   renderRepeat(); renderTodayRow();
 }
 export function init(){

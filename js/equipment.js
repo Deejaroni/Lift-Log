@@ -3,7 +3,7 @@
 
 import { $, soon } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, prefs, recordBW, savePrefs, saveSettings, store } from "./state.js";
-import { renderCtx, LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
+import { confirmLogged, renderCtx, LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
 import { cap, editCardioHTML, editing } from "./entries.js";
 import { BW_NAMES, CARDIO_TYPE, muscleTouched, setMuscleTouched } from "./catalog.js";
 import { exShowAll, renderPicker, setExShowAll, showPicker } from "./search.js";
@@ -318,7 +318,7 @@ async function saveCardio(exercise){
     const k = countedKcal(e), msg = `Logged ${fmtMin(minutes)} — ${name}${k!=null?` (≈ ${Math.round(k)} cal)`:""}`;
     resetForm();
     const up = planAdvance(name, e.date);
-    flash(up ? `${msg}. ${up}` : msg);
+    flash(up ? `${msg}. ${up}` : msg); confirmLogged();
   }catch(err){ flash("Couldn't save that entry. Try again.", true); }
   btn.disabled=false;
 }
@@ -341,7 +341,7 @@ async function saveDrop(exercise){
     if(supersetLogged(ssf, date, name) && date===today()) startRest();
     resetForm();
     const up = ssf.ssLead ? "" : planAdvance(name, date);
-    flash(`Logged ${rows.length}-step drop set — ${name}${up ? `. ${up}` : ""}`);
+    flash(`Logged ${rows.length}-step drop set — ${name}${up ? `. ${up}` : ""}`); confirmLogged();
   }catch(e){ flash("Couldn't save that drop set. Try again.", true); }
   btn.disabled=false;
 }

@@ -165,7 +165,7 @@
 
       <p class="cal-sub" id="vol-preview" aria-live="polite" style="margin-top:12px"></p>
       <div class="actions">
-        <div class="save-wrap"><button class="primary" id="save">Log set</button><div class="save-rest" id="save-rest" hidden aria-hidden="true"><i class="rb-fill" id="rb-fill"></i><span id="rb-time"></span></div></div>
+        <div class="save-wrap"><button class="primary" id="save">Log set</button><span class="save-ok" id="save-ok" aria-hidden="true">✓ Logged</span><div class="save-rest" id="save-rest" hidden aria-hidden="true"><i class="rb-fill" id="rb-fill"></i><span id="rb-time"></span></div></div>
         <button class="secondary rest-btn" id="rest-start" type="button" aria-label="Start rest timer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg>Rest</button>
       </div>
       <button type="button" class="secondary again" id="repeat-last" hidden></button>
@@ -260,6 +260,7 @@
     <section class="set-group">
       <h3>Rest timer</h3>
       <div class="set-row"><label for="rest-sec">Start automatically after each set</label><select id="rest-sec"></select></div>
+      <div class="set-row"><span id="rest-chime-lbl">Chime when rest ends</span><label class="tog"><input type="checkbox" role="switch" id="rest-chime" aria-labelledby="rest-chime-lbl" checked><span class="sw" aria-hidden="true"></span><span id="rest-chime-state">On</span></label></div>
       <p class="cal-sub" id="rest-alert-row" hidden><button class="note-toggle" id="rest-alerts" type="button" style="padding:0">Turn on rest alerts</button> so you're notified when the app is in the background.</p>
       <p class="cal-sub" id="rest-alert-note"></p>
     </section>
