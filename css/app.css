@@ -514,3 +514,46 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
   .ladder span{font-stretch:62%;font-size:.75rem;font-weight:500;letter-spacing:-.03em;text-overflow:clip}
   .mode button{font-stretch:85%;padding:10px 6px}
 }
+
+/* ---------- Faster logging (phase 1) ---------- */
+.ctx-line{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;border:0;background:none;padding:0;color:var(--muted);font-weight:600;font-size:.9rem;text-align:left}
+.ctx-line b{color:var(--ink);font-weight:700}
+.ctx-line .chev{margin-left:auto;color:var(--blue-ink);font-weight:600;flex:none}
+.ctx-line:active{opacity:.55}
+#ctx-fields{margin:4px 0 8px}
+.sug{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 8px 8px 12px;border:1px solid var(--green);border-radius:10px;background:var(--field)}
+.sug[hidden]{display:none}
+.sug p{margin:0;flex:1;min-width:0;font-size:.85rem;color:var(--muted)}
+.sug p b{display:block;color:var(--green-ink);font-size:1rem}
+.sug button{flex:none;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:700}
+.sug button:active{background:var(--line)}
+.again{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:48px;margin-top:8px;padding:8px 12px}
+.again[hidden]{display:none}
+.again b{font-weight:700}
+.again span{max-width:100%;color:var(--muted);font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-bar{position:fixed;left:0;right:0;top:0;z-index:20;display:flex;gap:8px;padding:8px 16px;background:var(--surface);border-top:1px solid var(--line)}
+.kb-bar[hidden]{display:none}
+.kb-bar .primary{flex:1;padding:10px;font-size:1rem}
+.kb-bar .secondary{min-width:88px;padding:10px 14px}
+/* Today's sets on the Log tab: the whole row opens the editor. */
+#day-list [data-tap]{cursor:pointer;border-radius:8px}
+#day-list .set[data-tap]{padding:6px 4px;margin:0 -4px}
+#day-list .set[data-tap]:active,#day-list .chain[data-tap]:active{background:var(--field)}
+#day-list [data-tap] .edit,#day-list [data-tap] .del{display:none}
+#day-list [data-tap] .tap-chev{margin-left:auto;flex:none;color:var(--muted);font-size:1.3rem;line-height:1}
+.tap-chev{display:none}
+#day-list .tap-chev{display:inline}
+.chain-top .tap-chev{margin-left:auto}
+.ed-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ed-two .spin input{font-size:1.6rem}
+.ed-two .spin button{width:40px;min-height:48px;font-size:1.3rem}
+.edit-box .ed-lbl{margin:12px 0 6px}
+.edit-box .fail-chips{display:flex;gap:6px;flex-wrap:wrap}
+.edit-box .tog{margin-top:12px}
+.ed-eq{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:8px 12px;text-align:left;font-weight:600}
+.ed-eq span{color:var(--muted);font-size:.85rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-eq:active{background:var(--line)}
+.ed-eq-body .equip-toggles{margin-top:8px}
+.edit-box .edit-actions .del{margin-left:auto}
+.ed-more{margin-top:8px}
+#ctx-fields[hidden],.edit-box .eq-grid[hidden]{display:none}

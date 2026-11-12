@@ -36,7 +36,8 @@
     <div class="panel" id="plan-today" hidden></div>
     <div class="panel" id="repeat-today" hidden></div>
     <div class="panel" id="log-form">
-      <div class="row pair">
+      <button type="button" class="ctx-line" id="ctx-line" aria-expanded="false" aria-controls="ctx-fields"><span id="ctx-text"><b>Today</b> · All muscle groups</span><span class="chev">Change</span></button>
+      <div class="row pair" id="ctx-fields" hidden>
         <div>
           <label class="lbl" for="group-filter">Muscle group</label>
           <select id="group-filter"></select>
@@ -46,7 +47,7 @@
           <input id="date" type="date">
         </div>
       </div>
-      <div style="margin-top:12px">
+      <div style="margin-top:6px">
         <label class="lbl" for="exercise-search">Exercise or machine</label>
         <div id="ex-find">
           <input id="exercise-search" type="text" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Search by name, muscle or equipment" aria-controls="ex-results">
@@ -112,13 +113,14 @@
       <div class="steppers" id="straight-wrap">
         <div class="stepper big w">
           <div class="st-head"><label class="lbl" for="weight"><span id="w-label">Weight</span> <span class="num-unit" id="w-unit">lb</span></label><span class="last" id="w-last"></span></div>
-          <div class="spin"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><input id="weight" type="number" inputmode="decimal" min="0" step="any" value="0"><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
+          <div class="spin"><button data-step="weight" data-dir="-1" aria-label="Decrease weight">−</button><input id="weight" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="any" value="0"><button data-step="weight" data-dir="1" aria-label="Increase weight">+</button></div>
           <div class="quick" id="quick-add" role="group" aria-label="Add weight"></div>
           <p class="plates-line" id="plates" aria-live="polite" hidden></p>
+          <div class="sug" id="sug" hidden><p id="sug-text"></p><button type="button" id="sug-use">Use</button></div>
         </div>
         <div class="stepper">
           <label class="lbl" for="reps">Reps</label>
-          <div class="spin"><button data-step="reps" data-dir="-1" aria-label="Decrease reps">−</button><input id="reps" type="number" inputmode="numeric" min="1" step="1" value="10"><button data-step="reps" data-dir="1" aria-label="Increase reps">+</button></div>
+          <div class="spin"><button data-step="reps" data-dir="-1" aria-label="Decrease reps">−</button><input id="reps" type="number" inputmode="numeric" enterkeyhint="done" min="1" step="1" value="10"><button data-step="reps" data-dir="1" aria-label="Increase reps">+</button></div>
         </div>
         <div class="stepper">
           <label class="lbl" for="sets">Sets</label>
@@ -164,7 +166,9 @@
         <div class="save-wrap"><button class="primary" id="save">Log set</button><div class="save-rest" id="save-rest" hidden aria-hidden="true"><i class="rb-fill" id="rb-fill"></i><span id="rb-time"></span></div></div>
         <button class="secondary rest-btn" id="rest-start" type="button" aria-label="Start rest timer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg>Rest</button>
       </div>
+      <button type="button" class="secondary again" id="repeat-last" hidden></button>
       <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <div class="kb-bar" id="kb-bar" hidden><button type="button" class="secondary" id="kb-next">Next</button><button type="button" class="primary" id="kb-log">Log set</button></div>
     </div>
 
     <div class="panel">

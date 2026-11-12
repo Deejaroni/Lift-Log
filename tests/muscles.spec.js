@@ -45,6 +45,7 @@ test("search follows the change: main group first, and listed under its also-wor
   const data = oldData();
   data.settings.exercises = { "romanian deadlift": { muscle: "Glutes", also: ["Hamstrings"] } };
   const errors = await openApp(page, data);
+  await page.click("#ctx-line");
   await page.selectOption("#group-filter", "Hamstrings");
   await page.fill("#exercise-search", "romanian deadlift");
   const row = page.locator('#ex-results [data-name="Romanian deadlift"]');

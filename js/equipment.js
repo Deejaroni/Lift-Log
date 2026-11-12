@@ -3,7 +3,7 @@
 
 import { $, soon } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, prefs, recordBW, savePrefs, saveSettings, store } from "./state.js";
-import { LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
+import { renderCtx, LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, failN, failSets, flash, fmt, loadModeOf, mode, readDropRows, renderDropRows, renderRir, renderSuperset, rirPick, setDropPicked, setDropRows, setFailN, setFailSets, setMode, setRirPick, showLast, sorted, supersetFields, supersetLogged, toUnit, today, uid, updateVolPreview, variantField, weightLabel } from "./log.js";
 import { cap, editCardioHTML, editing } from "./entries.js";
 import { BW_NAMES, CARDIO_TYPE, muscleTouched, setMuscleTouched } from "./catalog.js";
 import { exShowAll, renderPicker, setExShowAll, showPicker } from "./search.js";
@@ -38,14 +38,16 @@ function suggestEquip(name){
   return eq;
 }
 let equipState = {};
-function renderEquipToggles(){
-  $("#equip-toggles").innerHTML = EQUIP.map(q=>`<label class="tog"><input type="checkbox" role="switch" data-eq="${q.key}" ${equipState[q.key]?.on?"checked":""}><span class="sw" aria-hidden="true"></span>${q.label}</label>`).join("");
-}
-function renderEquipFields(){
-  $("#equip-fields").innerHTML = EQUIP.filter(q=>equipState[q.key]?.on).map(q=>{
-    const v = equipState[q.key].vals||{};
+// The toggles and fields work on a state object ({key: {on, vals}}): the Log form's, or a set editor's.
+// ns keeps the field ids apart.
+const togglesHTML = state => EQUIP.map(q=>`<label class="tog"><input type="checkbox" role="switch" data-eq="${q.key}" ${state[q.key]?.on?"checked":""}><span class="sw" aria-hidden="true"></span>${q.label}</label>`).join("");
+function renderEquipToggles(){ $("#equip-toggles").innerHTML = togglesHTML(equipState); }
+function renderEquipFields(){ $("#equip-fields").innerHTML = fieldsHTML(equipState, "eq"); }
+function fieldsHTML(state, ns){
+  return EQUIP.filter(q=>state[q.key]?.on).map(q=>{
+    const v = state[q.key].vals||{};
     const f = q.fields.map(fd=>{
-      const id = `eq-${q.key}-${fd.k}`;
+      const id = `${ns}-${q.key}-${fd.k}`;
       if(fd.check) return `<label class="check"><input type="checkbox" id="${id}" data-eqk="${q.key}" data-eqf="${fd.k}" ${v[fd.k]?"checked":""}> ${fd.label}</label>`;
       if(fd.options){
         const opts = fd.options.slice(); if(v[fd.k] && !opts.includes(v[fd.k])) opts.push(v[fd.k]);
@@ -58,10 +60,11 @@ function renderEquipFields(){
     return `<div class="eq-fields"><h4>${q.label}</h4><div class="eq-grid">${f}</div></div>`;
   }).join("");
 }
-function equipField(){
+function equipField(){ const o = equipFrom(equipState); return o ? {equip:o} : {}; }
+function equipFrom(state){
   const out = {};
   EQUIP.forEach(q=>{
-    const st = equipState[q.key]; if(!st || !st.on) return;
+    const st = state[q.key]; if(!st || !st.on) return;
     const o = {};
     q.fields.forEach(fd=>{
       const v = st.vals[fd.k];
@@ -71,16 +74,28 @@ function equipField(){
     });
     out[q.key]=o;
   });
-  return Object.keys(out).length ? {equip:out} : {};
+  return Object.keys(out).length ? out : null;
 }
-function applyEquip(eq, unit){
-  equipState = {};
+// A saved set's equipment as toggle state, with the bar weight in the display unit.
+function stateFrom(eq, unit){
+  const st = {};
   Object.entries(eq||{}).forEach(([k,o])=>{
     const vals = Object.assign({}, o);
     if(typeof vals.bar==="number") vals.bar = fmt(toUnit(vals.bar, unit));
     if((k==="smith"||k==="barbell") && !vals.load) vals.load = loadModeOf(k, null);
-    equipState[k] = {on:true, vals};
+    st[k] = {on:true, vals};
   });
+  return st;
+}
+// Turning a piece of equipment on or off, and typing into its fields, for either state object.
+function toggleEquip(state, k, on){
+  state[k] = state[k] || {vals:{}};
+  state[k].on = on;
+  if((k==="smith"||k==="barbell") && !state[k].vals.load) state[k].vals.load = loadModeOf(k, null);
+}
+const setEquipVal = (state, t) => { const k=t.dataset.eqk, f=t.dataset.eqf; if(k && state[k]) state[k].vals[f] = t.type==="checkbox" ? t.checked : t.value; };
+function applyEquip(eq, unit){
+  equipState = stateFrom(eq, unit);
   renderEquipToggles(); renderEquipFields();
   if(typeof updateBWForm==="function") updateBWForm();
 }
@@ -239,7 +254,7 @@ function paceText(e){
   return `${mmss(e.minutes*60/d)} /${du}`;
 }
 const distText = e => e.distance>0 ? `${fmt(e.distance)} ${e.distUnit}` : "";
-function cardioRow(e){
+function cardioRow(e, tap){
   if(editing===e.id) return editCardioHTML(e);
   const x=e.extra||{}, bits=[];
   if(x.speed>0) bits.push(`${fmt(x.speed)} ${x.speedUnit==="kmh"?"km/h":"mph"}`);
@@ -256,13 +271,13 @@ function cardioRow(e){
   const kcText = kc!=null ? `<span class="cardio-kcal">≈ ${Math.round(kc).toLocaleString()} cal</span>` : "";
   const machine = e.machineKcal>0 ? `Machine: ${Math.round(e.machineKcal)} cal${e.useMachine?" (counted)":""}${est?` · App estimate: ${Math.round(est.kcal)} (${est.method})`:""}` : (est ? `Estimate ${est.method}` : "");
   const main = [fmtMin(e.minutes), distText(e), paceText(e), cap(e.effort||"moderate")].filter(Boolean).join(" · ");
-  return `<div class="set cardio-row"><span class="note" style="color:var(--ink);font-size:1rem"><span class="num">${esc(main)}</span> ${kcText}
+  return `<div class="set cardio-row"${tap?` data-tap="${esc(e.id)}" role="button" tabindex="0" aria-label="Edit ${esc(e.exercise)}, ${esc(main)}"`:""}><span class="note" style="color:var(--ink);font-size:1rem"><span class="num">${esc(main)}</span> ${kcText}
     ${bits.length?`<span class="cardio-meta">${esc(bits.join(" · "))}</span>`:""}${machine?`<span class="cardio-meta">${esc(machine)}</span>`:""}${e.note?`<span class="cardio-meta">${esc(e.note)}</span>`:""}</span>
-    <button class="edit" data-edit="${esc(e.id)}" aria-label="Edit cardio entry">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
+    ${tap?`<span class="tap-chev" aria-hidden="true">›</span>`:""}<button class="edit" data-edit="${esc(e.id)}" aria-label="Edit cardio entry">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete cardio entry">Delete</button></div>`;
 }
 // After a successful log: back to "All muscle groups" with a blank form (date is kept for backfilling).
 function resetForm(){
-  $("#group-filter").value = ""; prefs.group = ""; savePrefs();
+  $("#group-filter").value = ""; prefs.group = ""; savePrefs(); renderCtx(false);
   $("#exercise-search").value = "";
   $("#exercise").value = "";
   showPicker(true);
@@ -342,16 +357,11 @@ export function init(){
   ];
   $("#equip-toggles").addEventListener("change", e=>{
     const k = e.target.dataset.eq; if(!k) return;
-    equipState[k] = equipState[k] || {vals:{}};
-    equipState[k].on = e.target.checked;
-    if((k==="smith"||k==="barbell") && !equipState[k].vals.load) equipState[k].vals.load = loadModeOf(k, null);
+    toggleEquip(equipState, k, e.target.checked);
     renderEquipFields(); updateBWForm();
     if(e.target.checked){ const f=document.querySelector(`#equip-fields [data-eqk="${k}"]`); if(f) f.focus(); }
   });
-  $("#equip-fields").addEventListener("input", e=>{
-    const k=e.target.dataset.eqk, f=e.target.dataset.eqf; if(!k) return;
-    equipState[k].vals[f] = e.target.type==="checkbox" ? e.target.checked : e.target.value;
-  });
+  $("#equip-fields").addEventListener("input", e=>setEquipVal(equipState, e.target));
   renderEquipToggles();
   document.querySelectorAll("#effort-seg button").forEach(b=>b.onclick=()=>setEffort(b.dataset.effort));
   $("#cardio-wrap").addEventListener("click", e=>{
@@ -362,4 +372,4 @@ export function init(){
   });
 }
 
-export { suggestEquip, EQUIP, equipState, renderEquipToggles, renderEquipFields, equipField, applyEquip, equipText, renderBrandList, isCardio, isMob, CARDIO_MET, CARDIO_FIELDS, spdU, guessCardioType, cardioTypeOf, distUnitFor, toMeters, distStep, fmtMin, mmss, parseSplit, effort, isCardioForm, isMobForm, isBWForm, updateBWForm, rememberBodyWeight, bwFields, applyFormKind, setEffort, renderCardioDetails, readCardioVals, prefillCardio, cardioKcal, countedKcal, paceText, distText, cardioRow, resetForm, saveCardio, saveDrop };
+export { togglesHTML, fieldsHTML, equipFrom, stateFrom, toggleEquip, setEquipVal, suggestEquip, EQUIP, equipState, renderEquipToggles, renderEquipFields, equipField, applyEquip, equipText, renderBrandList, isCardio, isMob, CARDIO_MET, CARDIO_FIELDS, spdU, guessCardioType, cardioTypeOf, distUnitFor, toMeters, distStep, fmtMin, mmss, parseSplit, effort, isCardioForm, isMobForm, isBWForm, updateBWForm, rememberBodyWeight, bwFields, applyFormKind, setEffort, renderCardioDetails, readCardioVals, prefillCardio, cardioKcal, countedKcal, paceText, distText, cardioRow, resetForm, saveCardio, saveDrop };

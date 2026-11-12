@@ -52,6 +52,7 @@ test("log a drop set", async ({ page }) => {
 
 test("log a cardio entry", async ({ page }) => {
   const errors = await openApp(page);
+  await page.click("#ctx-line");
   await page.selectOption("#group-filter", "Cardio");
   await pickExercise(page, "Treadmill");
   await expect(page.locator("#save")).toHaveText("Log cardio");
@@ -66,11 +67,12 @@ test("edit and delete an entry", async ({ page }) => {
   const errors = await openApp(page, { entries: [set({ id: "e1", exercise: "Seated cable row", muscle: "Back", weight: 100, reps: 10 })] });
   await expect(page.locator(`${day} .set .num`)).toHaveText("100 lb × 10");
 
-  await page.click(`${day} [data-edit="e1"]`);
+  await page.click(`${day} [data-tap="e1"]`);
   await page.fill(`${day} .edit-box [data-ef="reps"]`, "12");
   await page.click(`${day} [data-edit-save="e1"]`);
   await expect(page.locator(`${day} .set .num`)).toHaveText("100 lb × 12");
 
+  await page.click(`${day} [data-tap="e1"]`);
   await page.click(`${day} [data-del="e1"]`);
   await expect(page.locator(`${day} .empty`)).toHaveText("Nothing logged for this day yet.");
   expect(errors).toEqual([]);

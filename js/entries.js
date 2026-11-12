@@ -3,8 +3,8 @@
 
 import { $, notify } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, settings, store } from "./state.js";
-import { barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
-import { CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
+import { renderRepeat, barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
+import { equipFrom, fieldsHTML, setEquipVal, stateFrom, toggleEquip, togglesHTML, CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
 import { badgeHTML, exBadges, whyHTML } from "./badges.js";
 import { renderHistory } from "./search.js";
@@ -15,16 +15,32 @@ import { renderAll } from "./main.js";
 // ---------- renderers ----------
 // ---------- editing logged entries ----------
 let editing = null; // entry id, or chain id for drop sets
+let edEq = {};      // the open set editor's equipment, as toggle state
 const fld = (label, key, val, attrs) => `<div><label class="lbl">${label}</label><input data-ef="${key}" ${attrs||'type="text"'} value="${esc(val??"")}"></div>`;
-const editActions = id => `<div class="edit-actions"><button class="primary" data-edit-save="${esc(id)}">Save changes</button><button class="secondary" data-edit-cancel>Cancel</button></div>`;
+const editActions = (id, del) => `<div class="edit-actions"><button class="primary" data-edit-save="${esc(id)}">Save changes</button><button class="secondary" data-edit-cancel>Cancel</button>${del?`<button class="del" ${del}="${esc(id)}">Delete</button>`:""}</div>`;
+const eqSummary = () => { const eq = equipFrom(edEq); return eq ? equipText({equip:eq, unit:prefs.unit}) : "None"; };
+// Edit a set in place: weight and reps, failure, reps left, equipment and note. Exercise and date are under More.
 function editSetHTML(e){
-  return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}"><h4>Edit set</h4><div class="eq-grid">
-    ${fld("Exercise","exercise",e.exercise)}
-    ${fld("Date","date",e.date,'type="date"')}
-    ${fld(`${e.equip&&e.equip.bw?"Added weight":barAddRaw(e.equip)>0?"Plates":"Weight"} (${prefs.unit})`,"weight",fmt(toUnit(e.weight,e.unit)),'type="number" inputmode="decimal" min="0" step="any"')}
-    ${fld("Reps","reps",e.reps,'type="number" inputmode="numeric" min="1" step="1"')}
-    ${fld("Note","note",e.note)}
-  </div><label class="check"><input type="checkbox" data-ef="failure" ${e.failure?"checked":""}> Taken to failure</label>${editActions(e.id)}</div>`;
+  const step = (label, key, val, attrs) => `<div class="stepper"><label class="lbl">${label}</label><div class="spin"><button type="button" data-estep="${key}" data-dir="-1" aria-label="Decrease ${key}">−</button><input data-ef="${key}" type="number" ${attrs} value="${val}" aria-label="${label}"><button type="button" data-estep="${key}" data-dir="1" aria-label="Increase ${key}">+</button></div></div>`;
+  const wl = `${e.equip&&e.equip.bw?"Added weight":barAddRaw(e.equip)>0?"Plates":"Weight"} ${prefs.unit}`;
+  return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}" data-rir="${e.rir??""}">
+    <div class="ed-two">${step(wl,"weight",fmt(toUnit(e.weight,e.unit)),'inputmode="decimal" min="0" step="any"')}${step("Reps","reps",e.reps,'inputmode="numeric" min="1" step="1"')}</div>
+    <label class="tog"><input type="checkbox" role="switch" data-ef="failure" ${e.failure?"checked":""}><span class="sw" aria-hidden="true"></span>To failure</label>
+    <p class="lbl ed-lbl">Reps left in the tank</p>
+    <div class="fail-chips" role="group" aria-label="Reps left in the tank">${[0,1,2,3,4].map(r=>`<button type="button" class="fchip rchip" data-erir="${r}" aria-pressed="${e.rir===r}">${r>=4?"4+":r}</button>`).join("")}</div>
+    <p class="lbl ed-lbl">Equipment</p>
+    <button type="button" class="ed-eq" data-ed-eq aria-expanded="false"><span class="ed-eq-sum">${esc(eqSummary())}</span>›</button>
+    <div class="ed-eq-body" hidden><div class="equip-toggles">${togglesHTML(edEq)}</div><div class="ed-eq-fields">${fieldsHTML(edEq,"ede")}</div></div>
+    <label class="lbl ed-lbl">Note</label><input data-ef="note" type="text" value="${esc(e.note||"")}" placeholder="Seat 4, felt easy">
+    <button type="button" class="ctx-line ed-more" data-ed-more aria-expanded="false"><span>More: exercise and date</span><span class="chev">Show</span></button>
+    <div class="eq-grid" data-ed-more-body hidden>${fld("Exercise","exercise",e.exercise)}${fld("Date","date",e.date,'type="date"')}</div>
+    ${editActions(e.id, "data-del")}</div>`;
+}
+function openEdit(id){
+  editing = id;
+  const en = entries.find(x=>x.id===id && !x.chain);
+  edEq = en && !isCardio(en) ? stateFrom(en.equip, en.unit) : {};
+  renderDay(); renderHistory();
 }
 function editChainHTML(c){
   const steps = c.map((e,i)=>`<div class="edit-step" data-step-id="${esc(e.id)}"><button type="button" class="idx" data-step-fail aria-pressed="${!!e.failure}" aria-label="Step ${i+1}. Tap to toggle failure">${i+1}</button>
@@ -39,7 +55,7 @@ function editChainHTML(c){
   <div class="drop-head" style="margin-top:10px;grid-template-columns:30px 1fr 1fr 34px"><span>#</span><span>${barAddRaw(c[0].equip)>0?"Plates":"Weight"} (${prefs.unit})</span><span>Reps</span><span></span></div>
   <div class="edit-steps">${steps}</div>
   <p class="cal-sub">Tap a step number to mark it taken to failure.</p>
-  ${editActions(c[0].chain)}</div>`;
+  ${editActions(c[0].chain, "data-del-chain")}</div>`;
 }
 function editCardioHTML(e){
   const T = cardioTypeOf(e.exercise), x = e.extra||{};
@@ -60,7 +76,7 @@ function editCardioHTML(e){
     ${fld("Machine / watch calories","mk",e.machineKcal||"",'type="number" inputmode="numeric" min="0" step="1"')}
     ${fld("Note","note",e.note)}
   </div><label class="check"><input type="checkbox" data-ef="use" ${e.useMachine?"checked":""}> Count the machine's calories in my totals</label>
-  ${editActions(e.id)}</div>`;
+  ${editActions(e.id, "data-del")}</div>`;
 }
 const canonName = name => { const n=name.trim().replace(/\s+/g," "); return exercisesByRecent().find(x=>x.toLowerCase()===n.toLowerCase()) || n; };
 async function saveEdit(box){
@@ -78,7 +94,10 @@ async function saveEdit(box){
     const weight = parseFloat(val("weight")), reps = parseInt(val("reps"),10);
     if(!(weight>=0)) return bad("Weight must be 0 or more.");
     if(!(reps>=1)) return bad("Reps must be at least 1.");
-    updates = [Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), failure: !!val("failure"), muscle:newMuscle(old)})];
+    const u = Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), failure: !!val("failure"), muscle:newMuscle(old)});
+    const rir = box.dataset.rir; if(rir!=="") u.rir = +rir; else delete u.rir;
+    const eq = equipFrom(edEq); if(eq) u.equip = eq; else delete u.equip;
+    updates = [u];
   } else if(kind==="chain"){
     const olds = entries.filter(e=>e.chain===id).sort((a,b)=>a.step-b.step); if(!olds.length) return;
     const rows = [...box.querySelectorAll("[data-step-id]")];
@@ -119,22 +138,23 @@ async function saveEdit(box){
   }catch(err){ notify("Couldn't save those changes. Try again."); }
 }
 
-function setRow(e){
+function setRow(e, tap){
   if(editing===e.id) return editSetHTML(e);
   const w = loadOf(e), plates = toUnit(e.weight, e.unit), barA = barAddRaw(e.equip);
   const isBW = e.equip && e.equip.bw;
   const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
   const vt = [rirText(e.rir), variantText(e), barA>0 ? `${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : ""].filter(Boolean).join(" · ");
-  return `<div class="set${e.failure?" failed":""}"><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}<button class="more" type="button" data-more aria-expanded="false" aria-label="Set actions">···</button><button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
+  const tapA = tap ? ` data-tap="${esc(e.id)}" role="button" tabindex="0" aria-label="Edit set: ${esc(e.exercise)}, ${fmt(w)} ${prefs.unit} × ${e.reps}"` : "";
+  return `<div class="set${e.failure?" failed":""}"${tapA}><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}${tap?`<span class="tap-chev" aria-hidden="true">›</span>`:""}<button class="more" type="button" data-more aria-expanded="false" aria-label="Set actions">···</button><button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
 }
-function chainRow(c){
+function chainRow(c, tap){
   if(editing===c[0].chain) return editChainHTML(c);
   const ws = c.map(e=>loadOf(e)), peak = Math.max(...ws);
   const up = ws.some((w,i)=>i>0 && w>ws[i-1]);
   const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${[ws[i]===peak&&c.length>1?"peak":"", e.failure?"failed":""].filter(Boolean).join(" ")}">${e.equip&&e.equip.bw ? (ws[i]>0?`BW+${fmt(ws[i])}`:"BW") : fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
   const eqt = [equipText(c[0]) + (loadMult(c[0].equip)>1 ? ` · volume ×2 (${multReason(c[0].equip)})` : ""), variantText(c[0])].filter(Boolean).join(" · ");
   const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
-  return `<div class="chain"><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span><button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
+  return `<div class="chain"${tap?` data-tap="${esc(c[0].chain)}" role="button" tabindex="0" aria-label="Edit drop set: ${esc(c[0].exercise)}"`:""}><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span>${tap?`<span class="tap-chev" aria-hidden="true">›</span>`:""}<button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
 }
 // ---------- calorie estimate (MET method) ----------
 // Approximate published activity ratings for weight training.
@@ -220,14 +240,14 @@ function groupHTML(list, hist){
     if(isCardio(g[0])){
       const mins = g.reduce((s,e)=>s+(e.minutes||0),0);
       const b = exBadges(g), why = hist ? whyHTML(b) : [];
-      return `<div class="ex-group"><div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length>1?g.length+" sessions · ":""}${fmtMin(mins)}</span></div>${why.length ? `<p class="ex-foot">${why.join(" · ")}</p>` : ""}${g.map(cardioRow).join("")}</div>`;
+      return `<div class="ex-group"><div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length>1?g.length+" sessions · ":""}${fmtMin(mins)}</span></div>${why.length ? `<p class="ex-foot">${why.join(" · ")}</p>` : ""}${g.map(e=>cardioRow(e, !hist)).join("")}</div>`;
     }
     const vol = g.reduce((s,e)=>s+volOf(e),0);
     const parts=[], seen=new Set();
     g.forEach(e=>{
-      if(!e.chain){ parts.push(setRow(e)); return; }
+      if(!e.chain){ parts.push(setRow(e, !hist)); return; }
       if(seen.has(e.chain)) return; seen.add(e.chain);
-      parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step)));
+      parts.push(chainRow(g.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step), !hist));
     });
     const b = exBadges(g);
     const head = `<div class="ex-head"><h3>${hist ? `<button type="button" class="ex-name-btn" data-exinfo="${esc(g[0].exercise)}">${esc(g[0].exercise)}</button>` : esc(g[0].exercise)}${badgeHTML(b)}</h3><span class="vol">${g.length} set${g.length>1?"s":""} · ${fmtBig(vol)} ${prefs.unit}</span></div>`;
@@ -259,11 +279,25 @@ function renderDay(){
   $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
   const list = sorted().filter(e=>e.date===d);
   $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
+  renderRepeat();
 }
 export function init(){
   document.addEventListener("click", e=>{
+    if(e.target.closest(".edit-box [data-del], .edit-box [data-del-chain]")) editing = null;   // Undo brings it back closed
+    const tap = e.target.closest("#day-list [data-tap]");
+    if(tap){ openEdit(tap.dataset.tap); return; }
     const ed = e.target.closest("[data-edit]");
-    if(ed){ editing = ed.dataset.edit; renderDay(); renderHistory(); return; }
+    if(ed){ openEdit(ed.dataset.edit); return; }
+    const st = e.target.closest("[data-estep]");
+    if(st){ const i = st.parentElement.querySelector("input"), w = st.dataset.estep==="weight";
+      i.value = fmt(Math.max(w?0:1, (parseFloat(i.value)||0) + (+st.dataset.dir)*(w ? (prefs.unit==="kg"?2.5:5) : 1))); return; }
+    const rr = e.target.closest("[data-erir]");
+    if(rr){ const box = rr.closest(".edit-box"), v = box.dataset.rir===rr.dataset.erir ? "" : rr.dataset.erir; box.dataset.rir = v;
+      box.querySelectorAll("[data-erir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.erir===v))); return; }
+    const eqb = e.target.closest("[data-ed-eq]");
+    if(eqb){ const body = eqb.nextElementSibling; body.hidden = !body.hidden; eqb.setAttribute("aria-expanded", String(!body.hidden)); return; }
+    const mb = e.target.closest("[data-ed-more]");
+    if(mb){ const body = mb.nextElementSibling; body.hidden = !body.hidden; mb.setAttribute("aria-expanded", String(!body.hidden)); mb.querySelector(".chev").textContent = body.hidden ? "Show" : "Hide"; return; }
     if(e.target.closest("[data-edit-cancel]")){ editing = null; renderDay(); renderHistory(); return; }
     const sv = e.target.closest("[data-edit-save]");
     if(sv){ saveEdit(sv.closest(".edit-box")); return; }
@@ -272,6 +306,18 @@ export function init(){
     const rm = e.target.closest("[data-step-rm]");
     if(rm){ const box = rm.closest(".edit-box"); rm.closest(".edit-step").remove();
       box.querySelectorAll(".edit-step .idx").forEach((s,i)=>s.textContent=i+1); }
+  });
+  // The set editor's equipment: switches redraw its fields, typing updates its state.
+  document.addEventListener("change", e=>{
+    const t = e.target, box = t.closest(".ed-eq-body"); if(!box) return;
+    if(t.dataset.eq){ toggleEquip(edEq, t.dataset.eq, t.checked); box.querySelector(".ed-eq-fields").innerHTML = fieldsHTML(edEq,"ede"); }
+    else setEquipVal(edEq, t);
+    box.closest(".edit-box").querySelector(".ed-eq-sum").textContent = eqSummary();
+  });
+  document.addEventListener("input", e=>{ if(e.target.closest(".ed-eq-body") && e.target.dataset.eqk) setEquipVal(edEq, e.target); });
+  document.addEventListener("keydown", e=>{
+    const t = e.target.closest && e.target.closest("#day-list [data-tap]");
+    if(t && e.target===t && (e.key==="Enter" || e.key===" ")){ e.preventDefault(); openEdit(t.dataset.tap); }
   });
   document.addEventListener("change", e=>{
     const t = e.target, date = $("#date").value || today();
@@ -283,4 +329,4 @@ export function init(){
   $("#date").addEventListener("change", ()=>{ renderDay(); updateBWForm(); renderPlanToday(); renderHead(); });
 }
 
-export { editing, fld, editActions, editSetHTML, editChainHTML, editCardioHTML, canonName, saveEdit, setRow, chainRow, MET, cap, calOpen, dayCalc, dayTotalCalories, calHTML, dayTotalHTML, groupHTML, rankable, bestE1rm, setBars, renderDay };
+export { openEdit, editing, fld, editActions, editSetHTML, editChainHTML, editCardioHTML, canonName, saveEdit, setRow, chainRow, MET, cap, calOpen, dayCalc, dayTotalCalories, calHTML, dayTotalHTML, groupHTML, rankable, bestE1rm, setBars, renderDay };

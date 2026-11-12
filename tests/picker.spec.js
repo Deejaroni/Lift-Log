@@ -52,6 +52,7 @@ test("exact names come first and each name shows once", async ({ page }) => {
 
 test("with a muscle group set, matches in other groups still show", async ({ page }) => {
   const errors = await openApp(page);
+  await page.click("#ctx-line");
   await page.selectOption("#group-filter", "Chest");
   await search(page, "hip thrust");
   await expect(page.locator("#ex-results .ex-sec")).toContainText(["In other groups"]);
@@ -103,6 +104,7 @@ test("recently used goes by the Log form's date", async ({ page }) => {
   ] });
   expect(await names(page)).toEqual(["Bench press", "Squat"]);
   // Back-dating to Mar 3 makes bench "yesterday" and squat 4 days back.
+  await page.click("#ctx-line");
   await page.fill("#date", "2026-03-03");
   await page.click("#exercise-search");
   expect(await names(page)).toEqual(["Squat", "Bench press"]);

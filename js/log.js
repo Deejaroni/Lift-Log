@@ -8,6 +8,7 @@ import { renderProgress } from "./progress.js";
 import { renderHead } from "./plan.js";
 import { renderPlan } from "./plan-editor.js";
 import { finishRest, renderAll, restEnd, startRest, unlockAudio, updateEquipSummary } from "./main.js";
+import { lastText, nextSet } from "./suggest.js";
 
 // ---------- helpers ----------
 const today = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -37,9 +38,56 @@ function applyUnit(){
 // Quick-add chips: common plate jumps for the current unit.
 const quickSteps = () => prefs.unit==="kg" ? [1.25,5,20] : [2.5,10,45];
 function renderQuick(){ $("#quick-add").innerHTML = quickSteps().map(s=>`<button type="button" data-quick="${s}" aria-label="Add ${s} ${prefs.unit}">+${s}</button>`).join(""); }
-function showLast(name){
-  const last = name && lastFor(name);
-  $("#w-last").textContent = last ? `Last ${fmt(toUnit(last.weight, last.unit))} × ${last.reps}` : "";
+function showLast(name){ $("#w-last").textContent = lastText(name, $("#date").value || today()); }
+
+// ---------- date and muscle group: one line that opens the two fields ----------
+function renderCtx(open){
+  if(open!=null){ $("#ctx-fields").hidden = !open; $("#ctx-line").setAttribute("aria-expanded", String(open)); }
+  const d = $("#date").value || today(), g = $("#group-filter").value;
+  $("#ctx-text").innerHTML = `<b>${d===today() ? "Today" : esc(niceDate(d))}</b> · ${g ? esc(g) : "All muscle groups"}`;
+  $("#ctx-line .chev").textContent = $("#ctx-fields").hidden ? "Change" : "Hide";
+}
+
+// ---------- next-set suggestion ----------
+let sugNow = null;
+function renderSuggest(){
+  const name = $("#exercise").value.trim(), box = $("#sug");
+  sugNow = (!isCardioForm() && mode==="straight" && name) ? nextSet(name, $("#date").value || today()) : null;
+  const same = sugNow && Math.abs((parseFloat($("#weight").value)||0) - sugNow.weight)<0.01 && (parseInt($("#reps").value,10)||0)===sugNow.reps;
+  box.hidden = !sugNow || same;
+  if(!box.hidden) $("#sug-text").innerHTML = `<b>${esc(sugNow.title)}</b>${esc(sugNow.why)}`;
+}
+
+// ---------- repeat the day's last set ----------
+const lastSetOfDay = () => { const d = $("#date").value || today(); return sorted().filter(e=>e.date===d && e.kind!=="cardio" && e.kind!=="mobility" && !e.chain).pop() || null; };
+function renderRepeat(){
+  const e = lastSetOfDay(), b = $("#repeat-last"), name = $("#exercise").value.trim();
+  b.hidden = !e || isCardioForm() || mode!=="straight" || (!!name && name.toLowerCase()!==e.exercise.toLowerCase());
+  if(b.hidden) return;
+  const w = toUnit(e.weight, e.unit), bw = e.equip && e.equip.bw;
+  b.innerHTML = `<b>Repeat last set · ${bw ? (w>0 ? `BW + ${fmt(w)}` : "BW") : fmt(w)} × ${e.reps}</b><span>${esc(e.exercise)}</span>`;
+}
+async function repeatLast(){
+  unlockAudio();
+  const e = lastSetOfDay(); if(!e) return;
+  const copy = Object.assign({}, e, {id:uid(), ts:Date.now()});
+  ["failure","ss","ssLead"].forEach(k=>delete copy[k]);
+  try{
+    await store.add([copy]);
+    flash(`Logged 1 × ${e.reps} @ ${fmt(toUnit(e.weight, e.unit))} ${prefs.unit} — ${e.exercise}`);
+    if(e.date===today()) startRest();
+  }catch(err){ flash("Couldn't save that set. Try again.", true); }
+}
+
+// ---------- keyboard bar: Next and Log set stay above the on-screen keyboard ----------
+const KB_FIELDS = ["weight","reps","sets"];
+const kbOpen = () => { const v = window.visualViewport; return !!v && innerHeight - v.height > 120; };
+function renderKbBar(){
+  const bar = $("#kb-bar"), a = document.activeElement, on = !!a && KB_FIELDS.includes(a.id) && kbOpen();
+  bar.hidden = !on; if(!on) return;
+  $("#kb-next").textContent = a.id==="sets" ? "Done" : "Next";
+  $("#kb-log").textContent = `Log set · ${fmt(parseFloat($("#weight").value)||0)} × ${parseInt($("#reps").value,10)||0}`;
+  const v = window.visualViewport; bar.style.top = `${v.offsetTop + v.height - bar.offsetHeight}px`;
 }
 function prefill(name){
   const last = lastFor(name);
@@ -241,6 +289,7 @@ function updateVolPreview(){
   const el = $("#vol-preview"); if(!el) return;
   if(!isCardioForm()){ $("#w-label").textContent = weightLabel(); const dh = document.querySelector("#drop-rows .drop-head span:nth-child(2)"); if(dh) dh.textContent = `${weightLabel().replace(" weight","")} (${prefs.unit})`; }
   renderFailChips();
+  renderSuggest(); renderRepeat();
   if(isCardioForm() || !$("#exercise").value.trim()){ el.textContent = ""; return; }
   const eq = (equipField().equip) || null, m = loadMult(eq), why = multReason(eq), u = prefs.unit, bar = barAddRaw(eq);
   const mtxt = m>1 ? ` × 2 (${why})` : "";
@@ -382,7 +431,22 @@ export function init(){
     const i = +b.dataset.fset; failSets.has(i) ? failSets.delete(i) : failSets.add(i);
     b.setAttribute("aria-pressed", String(failSets.has(i)));
   });
+  $("#ctx-line").onclick = ()=> renderCtx($("#ctx-fields").hidden);
+  ["#group-filter","#date"].forEach(s=>$(s).addEventListener("change", ()=>{ renderCtx(); showLast($("#exercise").value.trim()); }));
+  renderCtx();
+  $("#sug-use").onclick = ()=>{ if(!sugNow) return; $("#weight").value = fmt(sugNow.weight); $("#reps").value = sugNow.reps; updateVolPreview(); };
+  $("#repeat-last").onclick = repeatLast;
+  $("#weight").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("#reps").focus(); } });
+  $("#reps").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } });
+  $("#kb-bar").addEventListener("pointerdown", e=>e.preventDefault());   // keep the field focused
+  $("#kb-bar").addEventListener("mousedown", e=>e.preventDefault());
+  $("#kb-next").onclick = ()=>{ const i = KB_FIELDS.indexOf(document.activeElement.id); if(i>=0 && i<KB_FIELDS.length-1) $("#"+KB_FIELDS[i+1]).focus(); else document.activeElement.blur(); };
+  $("#kb-log").onclick = ()=>{ document.activeElement.blur(); $("#save").click(); };
+  document.addEventListener("focusin", renderKbBar);
+  document.addEventListener("focusout", ()=>setTimeout(renderKbBar, 0));
+  KB_FIELDS.forEach(f=>$("#"+f).addEventListener("input", renderKbBar));
+  if(window.visualViewport){ visualViewport.addEventListener("resize", renderKbBar); visualViewport.addEventListener("scroll", renderKbBar); }
   ["grip","path","pos"].forEach(k=>{ $("#lr-"+k).innerHTML = `<option value="">Not recorded</option>` + LR[k].map(o=>`<option>${o}</option>`).join(""); });
 }
 
-export { today, uid, toUnit, fmt, fmtBig, e1rm, niceDate, esc, sorted, exercisesByRecent, lastFor, css, flash, applyUnit, quickSteps, renderQuick, showLast, prefill, mode, dropRows, stepSize, roundStep, readDropRows, renderDropRows, dropStep, dropPicked, renderDropStep, addDropRow, ssOpen, supersetFields, supersetLogged, renderSuperset, supersetFor, loadMult, multReason, LOAD_OPTS, loadModeOf, barAddRaw, totalRaw, loadOf, failSets, failN, renderFailChips, rirPick, rirText, renderRir, PLATES, PLATE_COLOR, platesFor, renderPlates, weightLabel, volOf, EX_INFO, LR, lrEmphasis, variantText, readVariant, variantField, updateLrEmph, extrasFor, refreshExerciseExtras, updateVolPreview, setMode, setDropRows, setDropPicked, setFailSets, setFailN, setRirPick };
+export { renderCtx, renderSuggest, renderRepeat, today, uid, toUnit, fmt, fmtBig, e1rm, niceDate, esc, sorted, exercisesByRecent, lastFor, css, flash, applyUnit, quickSteps, renderQuick, showLast, prefill, mode, dropRows, stepSize, roundStep, readDropRows, renderDropRows, dropStep, dropPicked, renderDropStep, addDropRow, ssOpen, supersetFields, supersetLogged, renderSuperset, supersetFor, loadMult, multReason, LOAD_OPTS, loadModeOf, barAddRaw, totalRaw, loadOf, failSets, failN, renderFailChips, rirPick, rirText, renderRir, PLATES, PLATE_COLOR, platesFor, renderPlates, weightLabel, volOf, EX_INFO, LR, lrEmphasis, variantText, readVariant, variantField, updateLrEmph, extrasFor, refreshExerciseExtras, updateVolPreview, setMode, setDropRows, setDropPicked, setFailSets, setFailN, setRirPick };

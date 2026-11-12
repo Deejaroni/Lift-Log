@@ -74,6 +74,7 @@ test("the reminder shows when the last backup is two weeks old, not before", asy
 
 test("deleting a set is instant and can be undone", async ({ page }) => {
   const errors = await openApp(page, { entries: [set({ id: "e1", exercise: "Seated cable row", muscle: "Back", weight: 100, reps: 10 })] });
+  await page.click(`${day} [data-tap="e1"]`);
   await page.click(`${day} [data-del="e1"]`);
   await expect(page.locator("#dlg")).toBeHidden();
   await expect(page.locator(`${day} .empty`)).toBeVisible();
@@ -89,6 +90,7 @@ test("deleting a set is instant and can be undone", async ({ page }) => {
 test("undo brings back a whole drop set", async ({ page }) => {
   const chain = [300, 250, 200].map((w, i) => set({ id: `d${i}`, exercise: "Leg press", muscle: "Quadriceps", weight: w, reps: 10, chain: "c1", step: i }));
   const errors = await openApp(page, { entries: chain });
+  await page.click(`${day} [data-tap="c1"]`);
   await page.click(`${day} [data-del-chain="c1"]`);
   await expect(page.locator(`${day} .chain`)).toHaveCount(0);
   await expect(page.locator("#toast")).toContainText("Drop set deleted");

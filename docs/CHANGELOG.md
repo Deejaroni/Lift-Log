@@ -2,6 +2,14 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-11
+- Tap any set in today's list to change it: weight, reps, to failure, reps left in the tank, equipment and attachment, and the note, all in one place. Delete is in there too, with Undo. Exercise and date are under More.
+- A suggestion under the weight, like "Try 140 × 8: you got all 8 reps on every set last time". Tap Use to fill it in; the form keeps last time's numbers until you do. It follows your plan's rep range when the exercise is planned, holds the weight after missed reps, and starts lighter after a long break.
+- "Last" under the weight shows every set from last time, like "Last 135 × 8, 8, 7".
+- Repeat last set: one tap logs your last set again, with the same details.
+- While the keyboard is up, a bar above it keeps Next and Log set in reach. Next moves from weight to reps.
+- The date and muscle group fold into one line at the top of the form ("Today · All muscle groups"). Tap it to change either.
+
 ## 2026-11-07
 - "Build your own" on the Plan tab now asks six quick questions (goal, where you train, training days, experience, workout length and up to two focus areas) and opens the plan editor with a weekly plan made from your answers. Change anything you like, just as before.
 - Training at home? Choose "Home: dumbbells" or "Home: body weight" and the plan uses only exercises you can do there.
