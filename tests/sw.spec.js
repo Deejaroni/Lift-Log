@@ -63,3 +63,10 @@ test("without a cached page it falls back to the network", async () => {
   const { run } = loadWorker({ network: { "/": "network page" } });
   expect((await run("fetch", nav("/"))).page).toBe("network page");
 });
+
+test("test pages under /tools/ load from the site, not as the app", async () => {
+  const { run, log } = loadWorker({ cached: { v2: ["/index.html", "/"] } });
+  expect(await run("fetch", nav("/tools/proto3d/index.html"))).toBeNull();   // not handled: the browser loads it normally
+  expect(await run("fetch", { request: { method: "GET", mode: "cors", url: "https://app.test/models/body.glb" } })).toBeNull();
+  expect(log.opened).toEqual([]);
+});

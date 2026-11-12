@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (fourth update)
+- Behind the scenes: a test page for the coming 3D exercise figures, at /tools/proto3d/. Nothing in the app changed.
+
 ## 2026-11-12 (third update)
 - Last time: under the chosen exercise on the Log tab, a line shows when you last did it and your best set. Tap it to see every set from that day with to failure and reps left, any drop sets, the equipment and your notes. Tap a set to copy its weight and reps.
 - History has two buttons at the top. Day opens a month calendar; tap a training day to jump to it. Exercise lets you search your exercises (favorites first) and shows only that one, with a summary: sessions, best set and est. 1RM. Clear goes back to everything.

@@ -22,7 +22,10 @@ self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
+  const u = new URL(e.request.url);
+  if (e.request.method !== "GET" || u.origin !== location.origin) return;
+  // Test pages (tools/) and their 3D model aren't part of the app: leave them to the network.
+  if (u.pathname.includes("/tools/") || u.pathname.includes("/models/")) return;
   // Everything, the page included, comes from this version's own cache; the network is only a fallback.
   const page = e.request.mode === "navigate";
   e.respondWith(caches.open(VERSION).then(async c => {
