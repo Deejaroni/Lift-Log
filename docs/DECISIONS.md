@@ -184,3 +184,4 @@ The plan for the next updates is in docs/ROADMAP.md.
 - The body map and the legend in the how-to sheet use the same colors as the 3D body: red for the main muscle, yellow for helpers.
 - three.js is shipped unminified (npm no longer publishes minified builds and the app has no build step). GitHub Pages compresses it in transit; the offline cache holds it once.
 - 19 of the 561 strength exercises still have no movement picture (grip holds, hangs, slider curls and a few bodyweight moves). Mapping them to the nearest pattern would show the wrong movement, so they keep the body map until they get their own.
+- The 3D drawing has a per-frame budget (about 10 ms: the big picture first, small ones taking turns) and then stays idle at least as long as it drew, so it never takes more than half the page's time. Without it, a machine with no graphics chip (the publish workflow's test runner) spent so long drawing that taps timed out; slow phones would feel the same.

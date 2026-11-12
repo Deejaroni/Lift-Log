@@ -303,9 +303,16 @@ function draw(v, now){
   if(still) v.canvas.dataset.still = "1"; else delete v.canvas.dataset.still;
   v.dirty = false; v.last = now;
 }
+// Each frame gets a time budget, so a slow phone (or a computer without a graphics chip) stays responsive:
+// the big picture draws first, then the small ones take turns, stopping once the budget is used.
+// After drawing, the page stays idle at least as long as the drawing took, so the figures never take more
+// than half the time.
+const BUDGET = 10;   // ms per frame
+let turn = 0, idleUntil = 0;
 function loop(now){
   requestAnimationFrame(loop);
-  if(document.hidden || !model) return;
+  if(document.hidden || !model || performance.now() < idleUntil) return;
+  const due = [];
   for(const [canvas, v] of views){
     if(!canvas.isConnected){ views.delete(canvas); continue; }
     if(!v.visible || !canvas.getClientRects().length) continue;
@@ -313,9 +320,19 @@ function loop(now){
     if(still && !v.dirty) continue;
     // Small pictures move at about 30 frames a second; the big one at the screen's rate.
     if(!still && v.small && now - (v.last || 0) < 30) continue;
-    if(!still && v.yaw && !v.dragging) v.yaw *= .9;   // eases back to the three-quarter view
-    draw(v, now);
+    due.push(v);
   }
+  if(!due.length) return;
+  const big = due.filter(v => !v.small), small = due.filter(v => v.small), start = performance.now();
+  const order = [...big, ...small.slice(turn % small.length), ...small.slice(0, turn % small.length)];
+  let n = 0;
+  for(const v of order){
+    if(n && performance.now() - start > BUDGET) break;
+    if(v.yaw && !v.dragging && !(v.still || calm())) v.yaw *= .9;   // eases back to the three-quarter view
+    draw(v, now); n++;
+  }
+  turn += Math.max(1, n - big.length);
+  const end = performance.now(); idleUntil = end + (end - start);
 }
 
 // Shows a pattern in a canvas. spec: {key, kind, roles}. Options: rotate (drag to turn), arrows, offset (s),
