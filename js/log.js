@@ -10,7 +10,7 @@ import { chooseExercise } from "./search.js";
 import { groupOf } from "./catalog.js";
 import { renderPlan } from "./plan-editor.js";
 import { finishRest, renderAll, restEnd, startRest, unlockAudio, updateEquipSummary } from "./main.js";
-import { lastText, nextSet } from "./suggest.js";
+import { lastText, nextSet, renderLastTime, toggleLastTime } from "./suggest.js";
 
 // ---------- helpers ----------
 const today = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -307,7 +307,7 @@ function updateVolPreview(){
   const el = $("#vol-preview"); if(!el) return;
   if(!isCardioForm()){ $("#w-label").textContent = weightLabel(); const dh = document.querySelector("#drop-rows .drop-head span:nth-child(2)"); if(dh) dh.textContent = `${weightLabel().replace(" weight","")} (${prefs.unit})`; }
   renderFailChips();
-  renderSuggest(); renderRepeat(); renderTodayRow();
+  renderSuggest(); renderRepeat(); renderTodayRow(); renderLastTime();
   if(isCardioForm() || !$("#exercise").value.trim()){ el.textContent = ""; return; }
   const eq = (equipField().equip) || null, m = loadMult(eq), why = multReason(eq), u = prefs.unit, bar = barAddRaw(eq);
   const mtxt = m>1 ? ` × 2 (${why})` : "";
@@ -459,6 +459,11 @@ export function init(){
   renderCtx();
   $("#sug-use").onclick = ()=>{ if(!sugNow) return; $("#weight").value = fmt(sugNow.weight); $("#reps").value = sugNow.reps; updateVolPreview(); };
   $("#repeat-last").onclick = repeatLast;
+  $("#lt-sum").onclick = toggleLastTime;
+  $("#lt-body").addEventListener("click", e=>{
+    const b = e.target.closest("[data-lt-w]"); if(!b) return;
+    $("#weight").value = b.dataset.ltW; $("#reps").value = b.dataset.ltR; updateVolPreview();
+  });
   $("#today-row").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
     if(b.dataset.today) chooseExercise(b.dataset.today, groupOf(b.dataset.today));

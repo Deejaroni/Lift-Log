@@ -611,3 +611,37 @@ nav.tabs button.gliding{background:none}
 /* "✓ Logged" over the Log button for a moment after a log */
 .save-ok{position:absolute;inset:0;z-index:2;border-radius:12px;background:var(--red);color:var(--on-accent);display:grid;place-items:center;font-weight:700;font-size:1.1rem;font-family:Archivo,sans-serif;font-stretch:80%;opacity:0;pointer-events:none;transition:opacity .15s}
 .actions.logged .save-ok{opacity:1}
+
+/* ---------- History browsing (phase 4) ---------- */
+.lt{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--field)}
+.lt[hidden]{display:none}
+.lt-sum{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 12px;border:0;background:none;text-align:left;font-weight:600;font-size:.9rem}
+.lt-sum b{color:var(--ink);white-space:nowrap}
+.lt-sum span{color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-sum .chev{margin-left:auto;flex:none;transition:transform .15s}
+.lt-sum[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.lt-sum:active{opacity:.55}
+.lt-body{padding:0 12px 10px;animation:reveal .18s ease-out}
+.lt-row{display:flex;align-items:baseline;gap:8px;width:100%;min-height:40px;padding:6px 0;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:.9rem;color:var(--ink)}
+.lt-body>.lt-row:first-child{border-top:0}
+button.lt-row:active{background:var(--line)}
+.lt-row .num{font-size:1.1rem;font-weight:600}
+.lt-row .x{color:var(--muted)}
+.lt-row small{color:var(--muted);font-size:.85rem}
+.lt-note{margin:6px 0 0;color:var(--muted);font-size:.85rem}
+.hist-bar{display:flex;gap:8px}
+.hist-bar button{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--field);font-weight:600;text-align:left}
+.hist-bar button span{min-width:0;color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-bar button.on{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.hist-bar button:active{background:var(--line)}
+#hist-cal{margin-top:10px;animation:reveal .18s ease-out}
+#hist-cal[hidden],#hist-sum[hidden]{display:none}
+.ex-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ex-sum div{background:var(--field);border-radius:10px;padding:8px;text-align:center;min-width:0}
+.ex-sum b{display:block;font-family:Archivo,sans-serif;font-stretch:80%;font-size:1.3rem;white-space:nowrap}
+.ex-sum small{color:var(--muted);font-size:.75rem;font-weight:600}
+.clear{border:0;background:none;color:var(--blue-ink);font-weight:600;min-height:40px;padding:0 4px}
+.clear:active{opacity:.55}
+#hist-pick .dlg{max-height:80vh;display:flex;flex-direction:column}
+#hist-pick .ex-results{max-height:none;flex:1;min-height:0}
+#hist-q{margin-top:4px}

@@ -1,9 +1,10 @@
 // Lift Log: "Last" line and the next-set suggestion on the Log form.
 // ES module, no start-up code.
 
-import { entries, prefs } from "./state.js";
-import { fmt, roundStep, toUnit } from "./log.js";
-import { isCardio } from "./equipment.js";
+import { $ } from "./ui.js";
+import { entries, prefs, rev } from "./state.js";
+import { e1rm, esc, fmt, niceDate, rirText, roundStep, toUnit, today } from "./log.js";
+import { equipText, isCardio, isCardioForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
 import { LOWER, suggestFor, workoutById, workoutFor } from "./plan.js";
 
@@ -61,4 +62,33 @@ function nextSet(name, date){
   return mk(top + inc, target, atTop.length > 1 ? `You got all ${target} reps on every set last time.` : `You got ${target} reps last time.`);
 }
 
-export { lastSession, lastText, nextSet };
+// ---------- Last time: the previous session of the chosen exercise, folded to one line ----------
+let ltOpen = false, ltKey = "";
+const ago = n => n===1 ? "yesterday" : n<14 ? `${n} days ago` : `${Math.round(n/7)} weeks ago`;
+function renderLastTime(){
+  const box = $("#last-time"), name = $("#exercise").value.trim(), date = $("#date").value || today(), l = name.toLowerCase();
+  const before = name && !isCardioForm() ? entries.filter(e=>!isCardio(e) && e.exercise.toLowerCase()===l && e.date<date) : [];
+  const d = before.reduce((m, e) => e.date > m ? e.date : m, "");
+  box.hidden = !d; if(!d){ ltKey = ""; return; }
+  const key = [l, d, date, rev, ltOpen, prefs.unit].join("|"); if(key===ltKey) return; ltKey = key;
+  const s = before.filter(e=>e.date===d).sort(byTs), w = e => toUnit(e.weight, e.unit);
+  const ranked = s.filter(e=>e.reps>0 && e.reps<=10), score = e => ranked.length ? e1rm(w(e), e.reps) : w(e);
+  const best = (ranked.length ? ranked : s).reduce((b, e)=> !b || score(e)>score(b) ? e : b, null);
+  $("#lt-sum").setAttribute("aria-expanded", String(ltOpen));
+  $("#lt-when").textContent = ltOpen ? `${niceDate(d)} · ${ago(days(d, date))}` : `${niceDate(d)} · best ${wText(best, w(best))} × ${best.reps}`;
+  $("#lt-body").hidden = !ltOpen; if(!ltOpen) return;
+  const rows = [], seen = new Set();
+  s.forEach(e=>{
+    if(e.chain){ if(seen.has(e.chain)) return; seen.add(e.chain);
+      const steps = s.filter(x=>x.chain===e.chain).sort((a,b)=>a.step-b.step);
+      rows.push(`<div class="lt-row"><span>Drop set: ${steps.map(x=>`${wText(x, w(x))} × ${x.reps}`).join(" → ")}</span></div>`); return; }
+    const det = [e.failure ? "To failure" : "", rirText(e.rir)].filter(Boolean).join(" · ");
+    rows.push(`<button type="button" class="lt-row" data-lt-w="${fmt(w(e))}" data-lt-r="${e.reps}" aria-label="Use ${fmt(w(e))} ${prefs.unit} × ${e.reps}"><span class="num">${wText(e, w(e))}<span class="x"> ${prefs.unit} × </span>${e.reps}</span>${det ? `<small>${esc(det)}</small>` : ""}</button>`);
+  });
+  const notes = [...new Set(s.map(e=>e.note).filter(Boolean))].map(n=>`“${n}”`), eq = equipText(s[0]);
+  const foot = [eq, ...notes].filter(Boolean).join(" · ");
+  $("#lt-body").innerHTML = rows.join("") + (foot ? `<p class="lt-note">${esc(foot)}</p>` : "");
+}
+function toggleLastTime(){ ltOpen = !ltOpen; renderLastTime(); }
+
+export { renderLastTime, toggleLastTime, lastSession, lastText, nextSet };

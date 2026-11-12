@@ -2,6 +2,10 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12 (third update)
+- Last time: under the chosen exercise on the Log tab, a line shows when you last did it and your best set. Tap it to see every set from that day with to failure and reps left, any drop sets, the equipment and your notes. Tap a set to copy its weight and reps.
+- History has two buttons at the top. Day opens a month calendar; tap a training day to jump to it. Exercise lets you search your exercises (favorites first) and shows only that one, with a summary: sessions, best set and est. 1RM. Clear goes back to everything.
+
 ## 2026-11-12 (second update)
 - Quick, quiet motion: after Log set, the button reads "✓ Logged" for a moment, the new set slides into today's list, the exercise's total counts up and the header ring segment fills. A badge you just earned pops in.
 - Switching tabs, the red pill glides to the new tab and the page fades in.

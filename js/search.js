@@ -12,6 +12,7 @@ import { restNext, setRestNext } from "./main.js";
 import { visualFor, stillMarkup, patternStill, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
 import { PATTERNS } from "./movements.js";
 import { badgeHTML, dayBadges } from "./badges.js";
+import { renderHistBar } from "./history.js";
 
 let ALIAS_WORDS, EX_INDEX, EX_SQUASH;
 
@@ -282,6 +283,7 @@ function renderHistory(){
   fillSelect($("#hist-filter"), true);
   const f = $("#hist-filter").value.toLowerCase();
   const list = sorted().filter(e=>!f || e.exercise.toLowerCase()===f);
+  renderHistBar();
   if(!list.length){ $("#history").innerHTML = `<div class="panel"><p class="empty">Nothing logged yet. Your workouts will show up here by day.</p></div>`; return; }
   const days = new Map();
   list.forEach(e=>{ if(!days.has(e.date)) days.set(e.date,[]); days.get(e.date).push(e); });
