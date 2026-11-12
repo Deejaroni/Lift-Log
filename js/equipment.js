@@ -7,7 +7,7 @@ import { renderCtx, LOAD_OPTS, dropPicked, dropRows, esc, exercisesByRecent, fai
 import { cap, editCardioHTML, editing } from "./entries.js";
 import { BW_NAMES, CARDIO_TYPE, muscleTouched, setMuscleTouched } from "./catalog.js";
 import { exShowAll, renderPicker, setExShowAll, showPicker } from "./search.js";
-import { TIMED } from "./plan.js";
+import { TIMED, planAdvance } from "./plan.js";
 import { setEquipOpen, startRest } from "./main.js";
 
 let EQUIP;
@@ -315,9 +315,10 @@ async function saveCardio(exercise){
   const btn=$("#save"); btn.disabled=true;
   try{
     await store.add([e]);
-    const k = countedKcal(e);
-    flash(`Logged ${fmtMin(minutes)} — ${name}${k!=null?` (≈ ${Math.round(k)} cal)`:""}`);
+    const k = countedKcal(e), msg = `Logged ${fmtMin(minutes)} — ${name}${k!=null?` (≈ ${Math.round(k)} cal)`:""}`;
     resetForm();
+    const up = planAdvance(name, e.date);
+    flash(up ? `${msg}. ${up}` : msg);
   }catch(err){ flash("Couldn't save that entry. Try again.", true); }
   btn.disabled=false;
 }
@@ -337,9 +338,10 @@ async function saveDrop(exercise){
   const btn=$("#save"); btn.disabled=true;
   try{
     await store.add(list);
-    flash(`Logged ${rows.length}-step drop set — ${name}`);
     if(supersetLogged(ssf, date, name) && date===today()) startRest();
     resetForm();
+    const up = ssf.ssLead ? "" : planAdvance(name, date);
+    flash(`Logged ${rows.length}-step drop set — ${name}${up ? `. ${up}` : ""}`);
   }catch(e){ flash("Couldn't save that drop set. Try again.", true); }
   btn.disabled=false;
 }

@@ -50,10 +50,15 @@ test("search follows the change: main group first, and listed under its also-wor
   await page.fill("#exercise-search", "romanian deadlift");
   const row = page.locator('#ex-results [data-name="Romanian deadlift"]');
   await expect(row).toContainText("Hamstrings · Also works");
-  await expect(page.locator("#ex-results .ex-sec")).toHaveCount(0);   // in the group, not "In other groups"
+  // In the group, under Yours (it's logged), not "In other groups".
+  await expect(page.locator("#ex-results .ex-sec").first()).toHaveText("Yours");
+  await expect(page.locator("#ex-results .ex-opt[data-name]").first()).toHaveAttribute("data-name", "Romanian deadlift");
+  expect(await page.locator("#ex-results .ex-sec").allTextContents()).not.toContain("In other groups");
   await page.selectOption("#group-filter", "Lower back");
   await page.fill("#exercise-search", "romanian deadlift");
-  await expect(page.locator("#ex-results .ex-sec")).toHaveText(["In other groups"]);
+  // Not in Lower back any more: listed with the other groups, not under Yours.
+  await expect(page.locator("#ex-results .ex-sec").last()).toHaveText("In other groups");
+  expect(await page.locator("#ex-results .ex-sec").allTextContents()).not.toContain("Yours");
   await row.click();
   await expect(page.locator("#ex-chosen-meta")).toContainText("Glutes");
   expect(errors).toEqual([]);

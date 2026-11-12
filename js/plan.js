@@ -171,11 +171,47 @@ function renderPlanToday(){
     ${open ? `${body}<div style="margin-top:12px"><label class="lbl" for="plan-switch">Switch workout for this day</label><select id="plan-switch">${opts}</select></div>`
       : `<p class="cal-sub" style="margin:4px 0 0">${w ? `${doneCt} of ${w.items.length} exercises done` : "Rest day"}. Tap the title to show the plan.</p>`}`;
 }
-function startPlanned(i){
+// ----- Today's exercises row (Log tab) and moving on to the next planned exercise -----
+const target = s => s.timed ? `${fmt(s.minutes)} min` : `${s.sets} × ${s.lo===s.hi?s.lo:`${s.lo}–${s.hi}`}${s.weight>0?` at ${s.bw?"BW + ":""}${fmt(s.weight)} ${prefs.unit}`:""}`;
+// One chip per exercise logged on the form's date (in the order first done), then planned ones not started.
+function renderTodayRow(){
+  const box = $("#today-row"), date = $("#date").value || today();
+  const done = [...new Map(entries.filter(e=>e.date===date).sort((a,b)=>(a.ts||0)-(b.ts||0)).map(e=>[e.exercise.toLowerCase(), e.exercise])).values()];
+  box.hidden = !done.length; if(!done.length) return;
+  const w = hasProgram() ? workoutById(workoutFor(date)) : null, items = w ? w.items : [];
+  const planned = n => items.findIndex(it=>it.exercise.toLowerCase()===n.toLowerCase());
+  const cur = $("#exercise").value.trim().toLowerCase();
+  const chip = (n, sub, attrs, cls) => `<button type="button" class="${cls}" ${attrs} ${n.toLowerCase()===cur?'aria-current="true"':""}><b>${esc(n)}</b><span>${esc(sub)}</span></button>`;
+  const chips = done.map(n=>{
+    const i = planned(n), got = loggedFor(n, date), timed = got.some(isCardio);
+    let sub = timed ? "Logged" : `${got.length} set${got.length===1?"":"s"}`;
+    if(i>=0){ const s = suggestFor(items[i], date), need = s.timed ? 1 : s.sets; if(!s.timed) sub = `${got.length} of ${need}${got.length>=need?" ✓":""}`; }
+    return chip(n, sub, `data-today="${esc(n)}"`, "");
+  });
+  items.forEach((it,i)=>{ if(!loggedFor(it.exercise, date).length) chips.push(chip(it.exercise, `Planned · ${repText(it)}`, `data-today-plan="${i}"`, "plan")); });
+  $("#today-row .today-chips").innerHTML = chips.join("");
+}
+// After a set is logged: if that finished the planned sets for its exercise, pick the next planned one
+// that isn't done yet. Returns the "Up next" line, or "" when there's nothing to move on to.
+function planAdvance(name, date){
+  const w = hasProgram() ? workoutById(workoutFor(date)) : null; if(!w) return "";
+  const l = name.toLowerCase(), i = w.items.findIndex(it=>it.exercise.toLowerCase()===l); if(i<0) return "";
+  const complete = it => { const s = suggestFor(it, date); return loggedFor(it.exercise, date).length >= (s.timed ? 1 : s.sets); };
+  if(!complete(w.items[i])) return "";
+  const order = [...w.items.keys()].slice(i+1).concat([...w.items.keys()].slice(0, i));
+  const j = order.find(k=>!complete(w.items[k])); if(j==null) return "";
+  startPlanned(j, true);
+  $("#ex-next-tag").hidden = false;
+  const it = w.items[j], s = suggestFor(it, date);
+  if(!s.timed) s.sets = Math.max(1, s.sets - loggedFor(it.exercise, date).length);
+  return `Up next: ${it.exercise}, ${target(s)}.`;
+}
+// auto: picked for you after a log, so the muscle group stays at All and the page doesn't scroll.
+function startPlanned(i, auto){
   const date = $("#date").value || today(), w = workoutById(workoutFor(date)); if(!w) return;
   const it = w.items[i], s = suggestFor(it, date), group = groupOf(it.exercise);
-  $("#group-filter").value = MUSCLES.includes(group) ? group : "";
-  $("#group-filter").dispatchEvent(new Event("change"));
+  if(!auto){ $("#group-filter").value = MUSCLES.includes(group) ? group : "";
+    $("#group-filter").dispatchEvent(new Event("change")); }
   const l = it.exercise.toLowerCase(), known = exercisesByRecent().find(n=>n.toLowerCase()===l) || EX_INDEX.get(l)?.name;
   if(known) chooseExercise(known, group);
   else { chooseNew(it.exercise); if(TIMED.has(group)) $("#muscle").value = group; applyFormKind(); }
@@ -188,6 +224,6 @@ function startPlanned(i){
   }
   updateVolPreview();
   setRestNext(s.timed ? null : (it.rest || null));
-  $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
+  if(!auto) $("#log-form").scrollIntoView({behavior:"smooth", block:"start"});
 }
-export { DOW, dowOf, LOWER, TIMED, TEMPLATES, hasProgram, pid, blankProgram, P, parseItem, loadTemplate, workoutById, progWeek, isDeload, workoutFor, loggedFor, suggestFor, repText, todayRing, ringSVG, renderHead, renderPlanToday, startPlanned };
+export { renderTodayRow, planAdvance, DOW, dowOf, LOWER, TIMED, TEMPLATES, hasProgram, pid, blankProgram, P, parseItem, loadTemplate, workoutById, progWeek, isDeload, workoutFor, loggedFor, suggestFor, repText, todayRing, ringSVG, renderHead, renderPlanToday, startPlanned };

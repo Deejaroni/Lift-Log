@@ -9,7 +9,7 @@ import { groupOf } from "./catalog.js";
 import { badgeHTML, exBadges, whyHTML } from "./badges.js";
 import { renderHistory } from "./search.js";
 import { isoOf } from "./progress.js";
-import { renderHead, renderPlanToday } from "./plan.js";
+import { renderHead, renderPlanToday, renderTodayRow } from "./plan.js";
 import { renderAll } from "./main.js";
 
 // ---------- renderers ----------
@@ -279,7 +279,7 @@ function renderDay(){
   $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
   const list = sorted().filter(e=>e.date===d);
   $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
-  renderRepeat();
+  renderRepeat(); renderTodayRow();
 }
 export function init(){
   document.addEventListener("click", e=>{

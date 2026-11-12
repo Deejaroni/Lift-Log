@@ -2,7 +2,7 @@
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
 import { $, askConfirm } from "./ui.js";
-import { entries, prefs, renameExercise, saveLocal, savePrefs, saveSettings, settings } from "./state.js";
+import { isFav, toggleFav, entries, prefs, renameExercise, saveLocal, savePrefs, saveSettings, settings } from "./state.js";
 import { esc, exercisesByRecent, fmt, loadOf, mode, niceDate, sorted, toUnit, today, totalRaw, updateVolPreview } from "./log.js";
 import { applyEquip, isCardio } from "./equipment.js";
 import { MUSCLES, groupOf, normMuscle } from "./catalog.js";
@@ -30,6 +30,7 @@ function openExerciseInfo(name){
 function renderHowTo(name){
   const v = visualFor(name), anim = $("#exs-anim");
   $("#exs-title").textContent = name;
+  $("#exs-fav").setAttribute("aria-pressed", String(isFav(name))); $("#exs-fav").dataset.name = name;
   $("#exs-info").hidden = !!v.timed && !v.pat;   // cardio machines show just the picture
   $(".exs-cap").hidden = !!v.timed;
   anim.toggleAttribute("hidden", !v.pat);   // an SVG element has no hidden property, only the attribute
@@ -134,6 +135,11 @@ function setPlanEdit(v){ planEdit = v; }
 function setItemEdit(v){ itemEdit = v; }
 
 export function init(){
+  $("#exs-fav").onclick = ()=>{
+    const n = $("#exs-fav").dataset.name; if(!n) return;
+    toggleFav(n); $("#exs-fav").setAttribute("aria-pressed", String(isFav(n)));
+    if($("#exercise").value.toLowerCase()===n.toLowerCase()) $("#ex-chosen-fav").hidden = !isFav(n);
+  };
   $("#exs-close").addEventListener("click", closeExerciseInfo);
   $("#exs-edit").addEventListener("click", ()=>{ const open = $("#exs-edit-wrap").hidden; setEditOpen(open); if(open) $("#exs-name").focus(); });
   $("#exs-main").addEventListener("change", renderAlso);

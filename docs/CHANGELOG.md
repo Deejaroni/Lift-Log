@@ -2,6 +2,12 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-12
+- Favorites: tap the star next to any exercise in the picker, or in its how-to sheet. Favorites show first, and the chosen exercise shows a ★.
+- A row of today's exercises sits above the exercise, with how many sets you've done. Tap one to switch back to it, handy for supersets and circuits. Planned exercises you haven't started show at the end.
+- Following a plan? When you finish an exercise's planned sets, the next planned exercise is picked and filled in for you, marked "Next in your plan". Change picks something else.
+- Search lists exercises you've logged first, under Yours, then the library's best 8 matches, with Show all for the rest. Short names like "rdl" put the exact exercise on top.
+
 ## 2026-11-11
 - Tap any set in today's list to change it: weight, reps, to failure, reps left in the tank, equipment and attachment, and the note, all in one place. Delete is in there too, with Undo. Exercise and date are under More.
 - A suggestion under the weight, like "Try 140 × 8: you got all 8 reps on every set last time". Tap Use to fill it in; the form keeps last time's numbers until you do. It follows your plan's rep range when the exercise is planned, holds the weight after missed reps, and starts lighter after a long break.

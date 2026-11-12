@@ -47,14 +47,16 @@
           <input id="date" type="date">
         </div>
       </div>
+      <div id="today-row" class="today-wrap" hidden><p class="lbl" id="today-row-lbl">Today</p><div class="today-chips" role="group" aria-labelledby="today-row-lbl"></div></div>
       <div style="margin-top:6px">
         <label class="lbl" for="exercise-search">Exercise or machine</label>
         <div id="ex-find">
           <input id="exercise-search" type="text" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Search by name, muscle or equipment" aria-controls="ex-results">
           <div id="ex-results" class="ex-results" role="group" aria-label="Exercises"></div>
         </div>
+        <span class="next-tag" id="ex-next-tag" hidden>Next in your plan</span>
         <div id="ex-chosen" class="ex-chosen" hidden>
-          <button type="button" class="ex-chosen-text" id="ex-chosen-text"><svg id="ex-thumb" class="ex-thumb" aria-hidden="true" focusable="false"></svg><span class="ex-chosen-words"><span id="ex-chosen-name" class="ex-n"></span><span id="ex-chosen-meta" class="ex-m"></span></span></button>
+          <button type="button" class="ex-chosen-text" id="ex-chosen-text"><svg id="ex-thumb" class="ex-thumb" aria-hidden="true" focusable="false"></svg><span class="ex-chosen-words"><span class="ex-n"><span id="ex-chosen-name"></span><span id="ex-chosen-fav" class="fav-mark" hidden title="Favorite"> ★</span></span><span id="ex-chosen-meta" class="ex-m"></span></span></button>
           <button type="button" id="ex-change" class="secondary">Change</button>
         </div>
         <p class="cal-sub" id="ex-chosen-tip" hidden>Tap the picture or name for how to do it and the muscles worked.</p>
@@ -224,7 +226,7 @@
 
 <div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" aria-labelledby="dlg-msg" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
 <div id="exsheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="exs-title">
-  <div class="exs-head"><h3 id="exs-title"></h3><button type="button" class="rep-x" id="exs-close" aria-label="Close">×</button></div>
+  <div class="exs-head"><h3 id="exs-title"></h3><button type="button" class="star-btn" id="exs-fav" aria-pressed="false" aria-label="Favorite"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg></button><button type="button" class="rep-x" id="exs-close" aria-label="Close">×</button></div>
   <div id="exs-info">
     <svg id="exs-anim" class="exs-anim" role="img" aria-label=""></svg>
     <div class="exs-cap"><svg id="exs-map" viewBox="0 0 58 44" width="84" height="64" aria-hidden="true" focusable="false"></svg><p id="exs-muscles-text"></p></div>

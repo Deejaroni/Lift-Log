@@ -11,7 +11,13 @@ function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs))
 
 // ---------- personal settings: body weight + per-day calorie adjustments ----------
 const SET_KEY = "liftlog.settings.v1";
-let settings = {bw:null, bwUnit:"lb", days:{}, bwLog:{}};
+let settings = {bw:null, bwUnit:"lb", days:{}, bwLog:{}, favs:[]};
+const isFav = name => !!name && settings.favs.some(n=>n.toLowerCase()===name.toLowerCase());
+function toggleFav(name){
+  const l = name.toLowerCase();
+  settings.favs = isFav(name) ? settings.favs.filter(n=>n.toLowerCase()!==l) : [...settings.favs, name];
+  saveSettings();
+}
 // Body weight for a given day: that day's entry, else the latest earlier one, else the general setting.
 function bwEntryOn(date){
   const log = settings.bwLog || {};
@@ -60,6 +66,7 @@ function renameExercise(from, to){
   if(p && Array.isArray(p.workouts)) p.workouts.forEach(w=>(w.items||[]).forEach(it=>{ if((it.exercise||"").toLowerCase()===from) it.exercise = to; }));
   const ex = settings.exercises, tl = to.toLowerCase();
   if(ex[from] && from!==tl){ if(!ex[tl]) ex[tl] = ex[from]; delete ex[from]; }
+  if(Array.isArray(settings.favs)) settings.favs = [...new Set(settings.favs.map(n=>n.toLowerCase()===from ? to : n))];
   if(prefs.repeat && Array.isArray(prefs.repeat.items)) prefs.repeat.items.forEach(it=>{ if((it.exercise||"").toLowerCase()===from) it.exercise = to; });
 }
 // Migration (2026-10-31): duplicate spellings removed from the exercise library move to the name that was kept.
@@ -74,6 +81,8 @@ export function init(){
   if(!settings.bwLog || typeof settings.bwLog!=="object") settings.bwLog = {};
   // Added 2026-10-31: your own muscle groups per exercise, {"lowercase name": {muscle, also:[...]}}. Older data has none.
   if(!settings.exercises || typeof settings.exercises!=="object" || Array.isArray(settings.exercises)) settings.exercises = {};
+  // Added 2026-11-12: favorite exercises, a list of names. Older data has none.
+  if(!Array.isArray(settings.favs)) settings.favs = [];
 
   loadLocal();
   {
@@ -91,4 +100,4 @@ export function init(){
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
 
-export { rev, prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };
+export { isFav, toggleFav, rev, prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };

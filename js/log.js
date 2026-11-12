@@ -5,7 +5,9 @@ import { $, KG_PER_LB } from "./ui.js";
 import { entries, prefs, savePrefs, store } from "./state.js";
 import { applyEquip, applyFormKind, bwFields, cardioTypeOf, equipField, equipState, isBWForm, isCardioForm, readCardioVals, rememberBodyWeight, renderCardioDetails, renderEquipFields, resetForm, saveCardio, saveDrop, suggestEquip } from "./equipment.js";
 import { renderProgress } from "./progress.js";
-import { renderHead } from "./plan.js";
+import { planAdvance, renderHead, renderTodayRow, startPlanned } from "./plan.js";
+import { chooseExercise } from "./search.js";
+import { groupOf } from "./catalog.js";
 import { renderPlan } from "./plan-editor.js";
 import { finishRest, renderAll, restEnd, startRest, unlockAudio, updateEquipSummary } from "./main.js";
 import { lastText, nextSet } from "./suggest.js";
@@ -289,7 +291,7 @@ function updateVolPreview(){
   const el = $("#vol-preview"); if(!el) return;
   if(!isCardioForm()){ $("#w-label").textContent = weightLabel(); const dh = document.querySelector("#drop-rows .drop-head span:nth-child(2)"); if(dh) dh.textContent = `${weightLabel().replace(" weight","")} (${prefs.unit})`; }
   renderFailChips();
-  renderSuggest(); renderRepeat();
+  renderSuggest(); renderRepeat(); renderTodayRow();
   if(isCardioForm() || !$("#exercise").value.trim()){ el.textContent = ""; return; }
   const eq = (equipField().equip) || null, m = loadMult(eq), why = multReason(eq), u = prefs.unit, bar = barAddRaw(eq);
   const mtxt = m>1 ? ` × 2 (${why})` : "";
@@ -415,9 +417,11 @@ export function init(){
     const btn=$("#save"); btn.disabled=true;
     try{
       await store.add(list);
-      flash(`Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`);
+      const msg = `Logged ${sets} × ${reps} @ ${fmt(weight)} ${prefs.unit} — ${name}`;
       if(supersetLogged(ssf, date, name) && date===today()) startRest();
       resetForm();
+      const up = ssf.ssLead ? "" : planAdvance(name, date);
+      flash(up ? `${msg}. ${up}` : msg);
     }catch(e){ flash("Couldn't save that set. Try again.", true); }
     btn.disabled=false;
   };
@@ -436,6 +440,11 @@ export function init(){
   renderCtx();
   $("#sug-use").onclick = ()=>{ if(!sugNow) return; $("#weight").value = fmt(sugNow.weight); $("#reps").value = sugNow.reps; updateVolPreview(); };
   $("#repeat-last").onclick = repeatLast;
+  $("#today-row").addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    if(b.dataset.today) chooseExercise(b.dataset.today, groupOf(b.dataset.today));
+    else if(b.dataset.todayPlan) startPlanned(+b.dataset.todayPlan, true);
+  });
   $("#weight").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); $("#reps").focus(); } });
   $("#reps").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); e.target.blur(); } });
   $("#kb-bar").addEventListener("pointerdown", e=>e.preventDefault());   // keep the field focused

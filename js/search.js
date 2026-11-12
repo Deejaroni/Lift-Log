@@ -2,7 +2,7 @@
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
 import { $, toast } from "./ui.js";
-import { entries, prefs, savePrefs, settings, store } from "./state.js";
+import { entries, isFav, prefs, savePrefs, settings, store, toggleFav } from "./state.js";
 import { esc, exercisesByRecent, flash, niceDate, prefill, showLast, sorted, supersetFor, today } from "./log.js";
 import { applyEquip, applyFormKind, cardioTypeOf, isCardio, isCardioForm, prefillCardio, readCardioVals, renderCardioDetails } from "./equipment.js";
 import { dayTotalHTML, groupHTML } from "./entries.js";
@@ -117,6 +117,7 @@ function rankExercises(q, logged){
     const l = x.name.toLowerCase(); if(seen.has(l)) return; seen.add(l);
     let s = 0;
     if(x.squash===qsq) s = 1000;
+    else if(ALIAS_WORDS.some(g=>g.includes(qkey) && g.includes(x.key))) s = 900;   // a short name for this exact exercise: "rdl" is the Romanian deadlift
     else { for(const w of ws){ const v = wordFit(w, x); if(!v) return; s += v*10; } if(x.key.startsWith(qkey)) s += 50; }
     if(mine.has(l)) s += 15;
     out.push({x, s});
@@ -157,7 +158,8 @@ function shownIn(x, f, mine){
   if(mine){ const m = groupOf(x.name); return x.muscles.find(y=>y.m===m) || {m, sub:""}; }
   return x.muscles[0];
 }
-const EX_LIMIT = 40;
+const EX_LIMIT = 8;   // library matches shown before "Show all"
+const STAR = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>`;
 let exShowAll = false;
 let exMove = null;   // movement being browsed ("Row"), or null
 let MOVES = null;    // movement title -> library exercise names, built the first time it's needed
@@ -184,7 +186,9 @@ function renderPicker(){
   const q = $("#exercise-search").value.trim(), f = gf(), logged = exercisesByRecent();
   const mine = new Set(logged.map(n=>n.toLowerCase()));
   const row = x => { const s = shownIn(x, f, mine.has(x.name.toLowerCase()));
-    return `<button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-th">${stillMarkup(x.name)}</span><span class="ex-txt"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></span></button>`; };
+    const fav = isFav(x.name);
+    return `<div class="ex-row-w"><button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-th">${stillMarkup(x.name)}</span><span class="ex-txt"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></span></button>` +
+      `<button type="button" class="star-btn" data-fav="${esc(x.name)}" aria-pressed="${fav}" aria-label="Favorite: ${esc(x.name)}">${STAR}</button></div>`; };
   const sec = t => `<p class="ex-sec">${esc(t)}</p>`;
   let html = "";
   if(!exNorm(q) && exMove){
@@ -192,7 +196,10 @@ function renderPicker(){
     html += `<button type="button" class="ex-back" data-move-back>‹ All movements</button>` + sec(`${exMove} · ${lib.length+own.length} exercises`) +
       [...own.map(entryFor), ...lib.map(n=>EX_INDEX.get(n.toLowerCase()))].map(row).join("");
   } else if(!exNorm(q)){
-    const recent = recentPicks(logged.filter(n=>!f || groupOf(n)===f)).slice(0, 6);
+    const inF = n => !f || groupOf(n)===f;
+    const favs = settings.favs.filter(inF);
+    if(favs.length) html += sec("Favorites") + favs.map(n=>row(entryFor(n))).join("");
+    const recent = recentPicks(logged.filter(n=>inF(n) && !isFav(n))).slice(0, 6);
     if(recent.length) html += sec("Recently used") + recent.map(n=>row(entryFor(n))).join("");
     if(f){
       const listed = n => !!n && CATALOG.some(g=>g.muscle===f && g.names.includes(n));
@@ -209,26 +216,31 @@ function renderPicker(){
     const {hits, fixed, partial} = findExercises(q, logged);
     if(fixed) html += `<button type="button" class="ex-fix" data-fix="${esc(fixed)}">Showing results for <b>${esc(fixed)}</b></button>`;
     if(partial && hits.length) html += sec("No exact match. Closest matches:");
-    const inGroup = f ? hits.filter(x=>shownIn(x, f, mine.has(x.name.toLowerCase())).m===f) : hits;
+    // Yours (everything you've logged that matches) first, then the library's best few, then other groups.
+    const isMine = x => mine.has(x.name.toLowerCase());
+    const inGroup = f ? hits.filter(x=>shownIn(x, f, isMine(x)).m===f) : hits;
     const others = f ? hits.filter(x=>!inGroup.includes(x)) : [];
+    const yours = inGroup.filter(isMine), lib = inGroup.filter(x=>!isMine(x));
     let room = exShowAll ? Infinity : EX_LIMIT;
     const take = l => { const t = l.slice(0, room); room -= t.length; return t; };
-    const a = take(inGroup), b = take(others);
-    html += a.map(row).join("");
-    if(b.length) html += sec("In other groups") + b.map(row).join("");
-    if(a.length+b.length < hits.length) html += `<button type="button" class="ex-more" data-show-all>Show all ${hits.length} matches</button>`;
+    const b = take(lib), c = take(others);
+    if(yours.length) html += sec("Yours") + yours.map(row).join("");
+    if(b.length) html += (yours.length ? sec("From the library") : "") + b.map(row).join("");
+    if(c.length) html += sec("In other groups") + c.map(row).join("");
+    if(yours.length+b.length+c.length < hits.length) html += `<button type="button" class="ex-more" data-show-all>Show all ${hits.length} matches</button>`;
   }
   html += `<button type="button" class="ex-opt ex-new" data-new><span class="ex-n">＋ ${q ? `Add “${esc(q)}” as a new exercise` : "New exercise"}</span></button>`;
   $("#ex-results").innerHTML = html;
 }
 // Either the search box and results, or the chosen exercise with a Change button.
 function showPicker(open){
+  if(open) $("#ex-next-tag").hidden = true;
   $("#ex-find").hidden = !open; $("#ex-chosen").hidden = open;
   $("#ex-chosen-tip").hidden = open || $("#ex-thumb").hasAttribute("hidden") || $("#ex-thumb").hasAttribute("data-timed");
   if(open) stopAnimating($("#ex-thumb"));
 }
 function chooseExercise(name, m){
-  setRestNext(null);
+  setRestNext(null); $("#ex-next-tag").hidden = true;
   $("#exercise").value = name; $("#new-ex-wrap").hidden = true; setMuscleTouched(false);
   $("#muscle").value = !exSet(name) && MUSCLES.includes(m) ? m : groupOf(name);
   $("#ex-chosen-name").textContent = name; chosenMeta(name);
@@ -238,6 +250,7 @@ function chooseExercise(name, m){
 function chosenMeta(name){
   const m = $("#muscle").value, s = shownIn(entryFor(name), m, false);
   $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
+  $("#ex-chosen-fav").hidden = !isFav(name);
   chosenThumb(name);
 }
 // The chosen exercise's picture: the movement playing, the body map when there's no animation,
@@ -254,7 +267,7 @@ function chooseNew(name){
   applyEquip({}, prefs.unit);
   $("#muscle").value = gf() || guessMuscle(name); setMuscleTouched(!!gf());
   $("#new-muscle-wrap").hidden = !!gf();
-  $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below"; chosenThumb(null);
+  $("#ex-chosen-fav").hidden = true; $("#ex-chosen-name").textContent = "New exercise"; $("#ex-chosen-meta").textContent = "Name it below"; chosenThumb(null);
   showPicker(false); applyFormKind(); $("#exercise").focus();
 }
 function fillSelect(sel, withAll){
@@ -299,6 +312,7 @@ export function init(){
   });
   $("#ex-results").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
+    if(b.hasAttribute("data-fav")){ toggleFav(b.dataset.fav); renderPicker(); return; }
     if(b.hasAttribute("data-show-all")){ exShowAll = true; renderPicker(); }
     else if(b.hasAttribute("data-move")){ exMove = b.dataset.move; renderPicker(); $("#ex-results").scrollTop = 0; }
     else if(b.hasAttribute("data-move-back")){ exMove = null; renderPicker(); }

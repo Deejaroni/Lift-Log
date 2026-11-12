@@ -557,3 +557,28 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .edit-box .edit-actions .del{margin-left:auto}
 .ed-more{margin-top:8px}
 #ctx-fields[hidden],.edit-box .eq-grid[hidden]{display:none}
+
+/* ---------- Picking exercises (phase 2) ---------- */
+.ex-row-w{display:flex;align-items:center;border-top:1px solid var(--line)}
+.ex-results>.ex-row-w:first-child,.ex-sec+.ex-row-w,.ex-fix+.ex-row-w,.ex-back+.ex-row-w{border-top:0}
+.ex-row-w .ex-opt{flex:1;min-width:0;width:auto;border-top:0}
+.star-btn{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:10px;background:none;padding:0;color:var(--muted)}
+.ex-row-w .star-btn{margin-right:4px}
+.star-btn:active{background:var(--line)}
+.star-btn[aria-pressed="true"]{color:var(--yellow-ink)}
+.star-btn[aria-pressed="true"] svg{fill:var(--yellow)}
+.exs-head .star-btn{margin-left:auto}
+.fav-mark{color:var(--yellow-ink)}
+.fav-mark[hidden]{display:none}
+.today-wrap{margin:2px 0 4px}
+.today-wrap[hidden]{display:none}
+.today-wrap .lbl{margin:4px 0 6px}
+.today-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.today-chips button{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;max-width:170px;min-height:48px;padding:6px 12px;border:1px solid var(--line);border-radius:12px;background:var(--field);text-align:left}
+.today-chips button b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.today-chips button span{font-size:.75rem;color:var(--muted);font-weight:600;white-space:nowrap}
+.today-chips button.plan{border-style:dashed}
+.today-chips button[aria-current="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.today-chips button:active{background:var(--line)}
+.next-tag{display:inline-block;margin:0 0 6px;padding:2px 8px;border-radius:999px;border:1px solid var(--blue);color:var(--blue-ink);font-size:.75rem;font-weight:700}
+.next-tag[hidden]{display:none}
