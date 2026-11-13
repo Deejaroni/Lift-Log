@@ -4,6 +4,7 @@
 import { $, notify } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, settings, store } from "./state.js";
 import { renderRepeat, barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
+import { variantLabel } from "./parents.js";
 import { equipFrom, fieldsHTML, setEquipVal, stateFrom, toggleEquip, togglesHTML, CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
 import { badgeHTML, exBadges, whyHTML } from "./badges.js";
@@ -143,7 +144,7 @@ function setRow(e, tap){
   const w = loadOf(e), plates = toUnit(e.weight, e.unit), barA = barAddRaw(e.equip);
   const isBW = e.equip && e.equip.bw;
   const load = isBW ? (w>0 ? `BW + ${fmt(w)}<span class="x"> ${prefs.unit} × </span>` : `BW<span class="x"> × </span>`) : `${fmt(w)}<span class="x"> ${prefs.unit} × </span>`;
-  const vt = [rirText(e.rir), variantText(e), barA>0 ? `${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : ""].filter(Boolean).join(" · ");
+  const vt = [rirText(e.rir), variantLabel(e.variant), variantText(e), barA>0 ? `${fmt(plates)} ${prefs.unit} plates + ${fmt(toUnit(barA,e.unit))} ${prefs.unit} bar` : ""].filter(Boolean).join(" · ");
   const tapA = tap ? ` data-tap="${esc(e.id)}" role="button" tabindex="0" aria-label="Edit set: ${esc(e.exercise)}, ${fmt(w)} ${prefs.unit} × ${e.reps}"` : "";
   return `<div class="set${e.failure?" failed":""}"${tapA}><span class="num">${load}${e.reps}${e.failure?'<span class="fail-badge" title="Taken to failure">F</span>':""}</span>${(e.note||e.equip||vt)?`<span class="note">${e.equip?`<span class="eq-line">${esc(equipText(e))}${loadMult(e.equip)>1?` · volume ×2 (${multReason(e.equip)})`:""}</span>`:""}${vt?`<span class="eq-line">${esc(vt)}</span>`:""}${esc(e.note||"")}</span>`:""}${tap?`<span class="tap-chev" aria-hidden="true">›</span>`:""}<button class="more" type="button" data-more aria-expanded="false" aria-label="Set actions">···</button><button class="edit" data-edit="${esc(e.id)}" aria-label="Edit set">Edit</button><button class="del" data-del="${esc(e.id)}" aria-label="Delete set">Delete</button></div>`;
 }
@@ -152,7 +153,7 @@ function chainRow(c, tap){
   const ws = c.map(e=>loadOf(e)), peak = Math.max(...ws);
   const up = ws.some((w,i)=>i>0 && w>ws[i-1]);
   const steps = c.map((e,i)=>`${i?'<span class="arrow">→</span>':""}<span class="${[ws[i]===peak&&c.length>1?"peak":"", e.failure?"failed":""].filter(Boolean).join(" ")}">${e.equip&&e.equip.bw ? (ws[i]>0?`BW+${fmt(ws[i])}`:"BW") : fmt(ws[i])}×${e.reps}</span>${e.failure?'<span class="fail">F</span>':""}`).join("");
-  const eqt = [equipText(c[0]) + (loadMult(c[0].equip)>1 ? ` · volume ×2 (${multReason(c[0].equip)})` : ""), variantText(c[0])].filter(Boolean).join(" · ");
+  const eqt = [equipText(c[0]) + (loadMult(c[0].equip)>1 ? ` · volume ×2 (${multReason(c[0].equip)})` : ""), variantLabel(c[0].variant), variantText(c[0])].filter(Boolean).join(" · ");
   const note = (c[0].note||eqt) ? `<div class="set"><span class="note">${eqt?`<span class="eq-line">${esc(eqt)}</span>`:""}${esc(c[0].note||"")}</span></div>` : "";
   return `<div class="chain"${tap?` data-tap="${esc(c[0].chain)}" role="button" tabindex="0" aria-label="Edit drop set: ${esc(c[0].exercise)}"`:""}><div class="chain-top"><span class="tag">${up?"Pyramid":"Drop set"} · ${c.length}</span>${tap?`<span class="tap-chev" aria-hidden="true">›</span>`:""}<button class="edit" data-edit="${esc(c[0].chain)}" aria-label="Edit this drop set">Edit</button><button class="del" data-del-chain="${esc(c[0].chain)}" aria-label="Delete this drop set">Delete</button></div><div class="chain-steps">${steps}</div>${note}</div>`;
 }

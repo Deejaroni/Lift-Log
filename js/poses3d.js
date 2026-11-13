@@ -6,6 +6,7 @@
 // hands hold), grip (a bar path the hands follow), props and move (benches and machines), cable (the pulley).
 import * as THREE from "three";
 import { morePoses } from "./poses3d-more.js";
+import { variantPoses } from "./poses3d-variants.js";
 
 const R = Math.PI / 180;
 // A direction tilted forward from straight up (up) or straight down (dn) by a degrees; x leans it sideways.
@@ -205,7 +206,8 @@ export const POSES = {
     track: J => J.neck.clone()},
 
   // ---------- arms ----------
-  curl: {hold: {cable: "bar", none: "", default: null},
+  // Curls and lying extensions use a shorter (EZ-length) bar.
+  curl: {hold: {cable: "bar", none: "", default: null}, barLen: 1.3,
     c: {upperarm: [.1, -1, -.06], forearm: [.06, .55, .83], hand: [0, .75, .6], palm: [0, .83, -.55]},
     s: {upperarm: [.1, -1, -.02], forearm: [.06, -1, .12], hand: [0, -1, .12], palm: [0, 0, 1]}},
   pushdown: {hold: {default: "bar"}, implement: "cable", cable: [0, 1.95, .48],
@@ -214,7 +216,7 @@ export const POSES = {
   overheadExt: {hold: {barbell: "bar", default: "one"},
     c: {upperarm: [.12, 1, .06], forearm: [-.08, 1, 0], hand: [-.1, 1, 0], palm: [-.7, 0, .7]},
     s: {upperarm: [.12, 1, .06], forearm: [-.12, -.55, -.83], hand: [-.1, -.6, -.8], palm: [-.7, 0, .7]}},
-  skullCrusher: {at: {fix: "hips", pos: [0, .58, .05]}, yaw: .95,
+  skullCrusher: {barLen: 1.3, at: {fix: "hips", pos: [0, .58, .05]}, yaw: .95,
     c: {...SUPINE, thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1], upperarm: [.16, .28, .95], forearm: [.02, .28, .96], hand: [0, .28, .96], palm: [0, -.96, .28]},
     s: {...SUPINE, thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1], upperarm: [.16, .28, .95], forearm: [-.02, .95, -.3], hand: [0, .95, -.25], palm: [0, .3, 1]},
     props(B){ bench(B); }},
@@ -237,4 +239,7 @@ export const POSES = {
       upperarm: [.12, -.05, 1], forearm: [-.05, 1, -.05], hand: [-.1, 1, 0], palm: [0, 0, 1], grip: .3}},
 };
 // The rest of the patterns live in poses3d-more.js, built with the same helpers.
-Object.assign(POSES, morePoses({THREE, up, dn, inC, torso, SUPINE, PRONE, SEATED, at, path, BACK_BAR, bench, seat, STANCE, SQUAT_DOWN}));
+const KIT = {THREE, up, dn, inC, torso, SUPINE, PRONE, SEATED, at, path, BACK_BAR, bench, seat, STANCE, SQUAT_DOWN};
+Object.assign(POSES, morePoses(KIT));
+// Seated, chest-supported, machine, kneeling and other versions (picked by name in js/variants3d.js).
+Object.assign(POSES, variantPoses(KIT, POSES));

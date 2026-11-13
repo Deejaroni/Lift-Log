@@ -2,7 +2,8 @@ const { test, expect } = require("@playwright/test");
 const { set, openApp } = require("./helpers");
 
 const rows = "#ex-results [data-name]";
-const names = page => page.locator(rows).evaluateAll(els => els.map(e => e.dataset.name));
+// The library version each row stands for (a parent row names the version the search matched).
+const names = page => page.locator(rows).evaluateAll(els => els.map(e => e.dataset.src || e.dataset.name));
 const search = (page, q) => page.fill("#exercise-search", q);
 
 test("search ignores hyphens, plurals and small typos", async ({ page }) => {
@@ -10,9 +11,9 @@ test("search ignores hyphens, plurals and small typos", async ({ page }) => {
   await search(page, "pushup");
   expect((await names(page))[0]).toBe("Push-up");
   await search(page, "bech pres");
-  expect(await names(page)).toContain("Barbell bench press — flat");
+  expect(await names(page)).toContain("Bench press");   // the parent; its barbell and dumbbell versions are variants
   await search(page, "cable flys");
-  expect((await names(page)).slice(0, 3).every(n => n.startsWith("Cable fly"))).toBe(true);
+  expect((await names(page))[0]).toMatch(/^Cable fly/);   // one row for the chest fly, on its cable version
   await search(page, "tricep pushdown");
   expect((await names(page)).length).toBeGreaterThan(0);
   expect(errors).toEqual([]);
@@ -23,7 +24,7 @@ test("search knows common short names", async ({ page }) => {
   await search(page, "rdl");
   expect(await names(page)).toContain("Romanian deadlift");
   await search(page, "romanian");
-  expect(await names(page)).toContain("Smith machine RDL");
+  expect(await names(page)).toContain("Romanian deadlift");
   await search(page, "ohp");
   expect((await names(page)).some(n => /overhead press|shoulder press/i.test(n))).toBe(true);
   await search(page, "pec fly");
@@ -56,12 +57,12 @@ test("with a muscle group set, matches in other groups still show", async ({ pag
   await page.selectOption("#group-filter", "Chest");
   await search(page, "hip thrust");
   await expect(page.locator("#ex-results .ex-sec")).toContainText(["In other groups"]);
-  await page.click(`${rows}[data-name="Barbell hip thrust"]`);
-  await expect(page.locator("#ex-chosen-name")).toHaveText("Barbell hip thrust");
+  await page.click(`${rows}[data-name="Hip thrust"]`);
+  await expect(page.locator("#ex-chosen-name")).toHaveText("Hip thrust");
   await expect(page.locator("#ex-chosen-meta")).toContainText("Glutes");
   await page.click("#save");
   await page.click('nav.tabs [data-tab="history"]');
-  await expect(page.locator("#history")).toContainText("Barbell hip thrust");
+  await expect(page.locator("#history")).toContainText("Hip thrust");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")));
   expect(saved[0].muscle).toBe("Glutes");
   expect(errors).toEqual([]);
@@ -146,7 +147,8 @@ test("starting a planned exercise fills the picker", async ({ page }) => {
   await page.click('[data-tpl="ppl"]');
   await page.click('nav.tabs [data-tab="log"]');
   await page.click('#plan-today [data-plan-start="1"]');
-  await expect(page.locator("#ex-chosen-name")).toHaveText("Romanian deadlift");
+  await expect(page.locator("#ex-chosen-name")).toHaveText("Deadlift");   // the plan's Romanian deadlift, as a variant
+  await expect(page.locator("#ex-variant")).toContainText("Romanian");
   await expect(page.locator("#ex-chosen-meta")).toContainText("Hamstrings");
   await expect(page.locator("#ex-find")).toBeHidden();
   expect(errors).toEqual([]);
@@ -156,7 +158,7 @@ test("misspelled words are corrected, with a note saying so", async ({ page }) =
   const errors = await openApp(page);
   await search(page, "bnch press");
   await expect(page.locator("#ex-results .ex-fix")).toContainText("bench press");
-  expect((await names(page)).slice(0, 5)).toContain("Barbell bench press — flat");
+  expect((await names(page)).slice(0, 5)).toContain("Bench press");
   await search(page, "squt");
   expect((await names(page))[0]).toMatch(/squat/i);
   await search(page, "dumbel row");

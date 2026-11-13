@@ -7,6 +7,8 @@ import { applyEquip, applyFormKind, bwFields, cardioTypeOf, equipField, equipSta
 import { renderProgress } from "./progress.js";
 import { planAdvance, renderHead, renderTodayRow, startPlanned } from "./plan.js";
 import { chooseExercise } from "./search.js";
+import { currentVariant, hasVariants } from "./variant-ui.js";
+import { srcFor, variantKey } from "./parents.js";
 import { groupOf } from "./catalog.js";
 import { renderPlan } from "./plan-editor.js";
 import { finishRest, renderAll, restEnd, startRest, unlockAudio, updateEquipSummary } from "./main.js";
@@ -107,12 +109,16 @@ function renderKbBar(){
   $("#kb-log").textContent = `Log set · ${fmt(parseFloat($("#weight").value)||0)} × ${parseInt($("#reps").value,10)||0}`;
   const v = window.visualViewport; bar.style.top = `${v.offsetTop + v.height - bar.offsetHeight}px`;
 }
+// Fills weight, reps and equipment from the last time: the same variant if you've logged it, else any variant
+// (with the equipment the chosen variant needs).
 function prefill(name){
-  const last = lastFor(name);
+  const v = hasVariants(name) ? currentVariant() : null, l = name.toLowerCase();
+  const same = v ? sorted().reverse().find(e=>e.kind!=="cardio" && e.exercise.toLowerCase()===l && variantKey(e.variant)===variantKey(v)) : null;
+  const last = same || lastFor(name), src = srcFor(name, v);
   showLast(name);
-  if(!last){ applyEquip(suggestEquip(name), prefs.unit); return; }
+  if(!last){ applyEquip(suggestEquip(src), prefs.unit); return; }
   if(last){
-    applyEquip(last.equip, last.unit);
+    applyEquip(v && !same ? suggestEquip(src) : last.equip, last.unit);
     $("#weight").value = fmt(toUnit(last.weight, last.unit));
     $("#reps").value = last.reps;
     if(mode==="drop" && dropRows.length<=1){ dropRows=[{weight:fmt(toUnit(last.weight,last.unit)), reps:last.reps}]; renderDropRows(); }
@@ -279,9 +285,15 @@ function lrEmphasis(v){
   const max = Math.max(s.front, s.side, s.rear);
   return ["side","front","rear"].filter(k=>s[k]>0 && s[k]>=max*0.6).sort((a,b)=>s[b]-s[a]).map(k=>`${k} delts`).join(" & ");
 }
-const variantText = e => e.variant ? [e.variant.grip, e.variant.path, e.variant.pos].filter(Boolean).join(" · ") + (lrEmphasis(e.variant) ? ` → mostly ${lrEmphasis(e.variant)}` : "") : "";
+// Lateral raise details (grip, path, position) are kept in "lr"; the variant tracker's details are in "variant".
+const variantText = e => e.lr ? [e.lr.grip, e.lr.path, e.lr.pos].filter(Boolean).join(" · ") + (lrEmphasis(e.lr) ? ` → mostly ${lrEmphasis(e.lr)}` : "") : "";
 function readVariant(){ const v={}; ["grip","path","pos"].forEach(k=>{ const x=$("#lr-"+k).value; if(x) v[k]=x; }); return v; }
-const variantField = () => { if($("#variant-wrap").hidden) return {}; const v = readVariant(); return Object.keys(v).length ? {variant:v} : {}; };
+const variantField = () => {
+  const out = {}, name = $("#exercise").value.trim();
+  if(!$("#variant-wrap").hidden){ const v = readVariant(); if(Object.keys(v).length) out.lr = v; }
+  if(hasVariants(name)){ const v = currentVariant(); if(Object.keys(v).length) out.variant = v; }
+  return out;
+};
 function updateLrEmph(){
   if($("#variant-wrap").hidden) return;
   const v = readVariant(), em = lrEmphasis(v);
@@ -289,14 +301,15 @@ function updateLrEmph(){
 }
 let extrasFor = null;
 function refreshExerciseExtras(){
-  const name = $("#exercise").value.trim(), l = name.toLowerCase(), cardio = isCardioForm(), key = l+"|"+cardio;
+  const name = $("#exercise").value.trim(), l = name.toLowerCase(), cardio = isCardioForm(), key = l+"|"+cardio+"|"+variantKey(hasVariants(name) ? currentVariant() : null);
   if(key===extrasFor){ updateLrEmph(); return; }
   extrasFor = key;
-  const info = name ? (EX_INFO.find(([re])=>re.test(l))||[])[1] : null;
+  const src = name ? srcFor(name, hasVariants(name) ? currentVariant() : null).toLowerCase() : "";
+  const info = name ? (EX_INFO.find(([re])=>re.test(src) || re.test(l))||[])[1] : null;
   $("#ex-hint").hidden = !info; $("#ex-hint").textContent = info||"";
   const lr = !cardio && /lateral raise/.test(l);
   $("#variant-wrap").hidden = !lr;
-  if(lr){ const last = sorted().reverse().find(e=>e.exercise.toLowerCase()===l && e.variant), v = (last&&last.variant)||{};
+  if(lr){ const last = sorted().reverse().find(e=>e.exercise.toLowerCase()===l && e.lr), v = (last&&last.lr)||{};
     ["grip","path","pos"].forEach(k=>$("#lr-"+k).value = v[k]||""); }
   updateLrEmph();
 }

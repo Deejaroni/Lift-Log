@@ -14,8 +14,8 @@ test("the Plan tab lists training days with today's checklist", async ({ page })
   await expect(todayCard).toContainText("Wed · Legs");
   await expect(todayCard).toContainText("Today · 1 of 6");
   await expect(todayCard.locator(".ag-ex")).toHaveCount(6);
-  await expect(todayCard.locator(".ag-ex.done")).toHaveText(/High-bar back squat/);
-  await expect(todayCard.locator(".ag-ex.now")).toHaveText(/Romanian deadlift/);
+  await expect(todayCard.locator(".ag-ex.done")).toHaveText(/Squat/);
+  await expect(todayCard.locator(".ag-ex.now")).toHaveText(/Deadlift/);
   await expect(page.locator(".agenda .ag-rest")).toHaveText("Sun is a rest day");
   expect(errors).toEqual([]);
 });

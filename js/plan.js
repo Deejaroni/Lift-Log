@@ -7,6 +7,9 @@ import { esc, exercisesByRecent, fmt, mode, niceDate, roundStep, toUnit, today, 
 import { applyFormKind, isCardio, mmss } from "./equipment.js";
 import { BW_NAMES, MUSCLES, groupOf } from "./catalog.js";
 import { EX_INDEX, chooseExercise, chooseNew } from "./search.js";
+import { PARENTS, toParent } from "./parents.js";
+// A template item under its parent exercise, with the variant the template names.
+const asParent = it => { const p = toParent(it.exercise, it.variant); return p ? {...it, ...p} : it; };
 import { isoOf, weekStart } from "./progress.js";
 import { restNext, setRestNext } from "./main.js";
 
@@ -72,7 +75,7 @@ function loadTemplate(key){
   pr.name = T.name; pr.template = key; pr.mode = old ? old.mode : "fixed";
   pr.prog = {on:true, upper: prefs.unit==="kg"?2.5:T.prog[0], lower: prefs.unit==="kg"?5:T.prog[1], unit:prefs.unit};
   pr.deloadEvery = old ? old.deloadEvery : 0;
-  Object.entries(T.w).forEach(([k,[name,items]])=>{ ids[k]=pid("w"); pr.workouts.push({id:ids[k], name, items:items.map(parseItem)}); });
+  Object.entries(T.w).forEach(([k,[name,items]])=>{ ids[k]=pid("w"); pr.workouts.push({id:ids[k], name, items:items.map(parseItem).map(asParent)}); });
   pr.days = T.fixed.map(k=>k?ids[k]:null); pr.rotation = T.rot.map(k=>ids[k]);
   settings.program = pr;
 }
@@ -216,8 +219,8 @@ function startPlanned(i, auto){
   const it = w.items[i], s = suggestFor(it, date), group = groupOf(it.exercise);
   if(!auto){ $("#group-filter").value = MUSCLES.includes(group) ? group : "";
     $("#group-filter").dispatchEvent(new Event("change")); }
-  const l = it.exercise.toLowerCase(), known = exercisesByRecent().find(n=>n.toLowerCase()===l) || EX_INDEX.get(l)?.name;
-  if(known) chooseExercise(known, group);
+  const l = it.exercise.toLowerCase(), known = exercisesByRecent().find(n=>n.toLowerCase()===l) || (PARENTS.has(it.exercise) && it.exercise) || EX_INDEX.get(l)?.name;
+  if(known) chooseExercise(known, group, {variant: it.variant});
   else { chooseNew(it.exercise); if(TIMED.has(group)) $("#muscle").value = group; applyFormKind(); }
   if(s.timed){ $("#c-min").value = fmt(s.minutes); }
   else {

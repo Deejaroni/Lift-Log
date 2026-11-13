@@ -2,15 +2,16 @@
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
 import { $, dialog, notify } from "./ui.js";
-import { SET_KEY, entries, prefs, saveLocal, savePrefs, setPrefs, settings, store } from "./state.js";
+import { SET_KEY, entries, migrateParents, prefs, saveLocal, savePrefs, setPrefs, settings, store } from "./state.js";
+import { variantLabel } from "./parents.js";
 import { esc, sorted, today, uid } from "./log.js";
 import { equipText } from "./equipment.js";
 
 // ---------- CSV export / import ----------
-const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir","superset","superset_lead"];
+const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir","superset","superset_lead","variant","variant_json","lateral_raise_json"];
 function toCSV(){
   const rows=[CSV_COLS];
-  sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):"",e.rir??"",e.ss||"",e.ssLead?"yes":""]));
+  sorted().forEach(e=>rows.push([e.id,e.date,e.exercise,e.weight,e.unit,e.reps,(e.kind==="cardio"||e.kind==="mobility")?e.kind:e.chain?"drop":"straight",e.chain||"",e.chain?e.step+1:"",e.failure?"yes":"",equipText(e),e.note||"",e.equip?JSON.stringify(e.equip):"",e.muscle||"",e.kind||"strength",e.minutes||"",e.distance||"",e.distUnit||"",e.effort||"",e.hr||"",e.machineKcal||"",e.useMachine?"yes":"",e.extra?JSON.stringify(e.extra):"",e.rir??"",e.ss||"",e.ssLead?"yes":"",variantLabel(e.variant),e.variant?JSON.stringify(e.variant):"",e.lr?JSON.stringify(e.lr):""]));
   return rows.map(r=>r.map(v=>{const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(",")).join("\n");
 }
 function parseCSV(text){
@@ -121,8 +122,11 @@ export function init(){
       const mg=g("muscle_group"); if(mg) e.muscle=mg;
       const rir=parseInt(g("rir"),10); if(rir>=0 && rir<=4) e.rir=rir;
       const ss=g("superset"); if(ss){ e.ss=ss; if(g("superset_lead")==="yes") e.ssLead=true; }
+      try{ const v=g("variant_json"); if(v) e.variant=JSON.parse(v); }catch(_){}
+      try{ const v=g("lateral_raise_json"); if(v) e.lr=JSON.parse(v); }catch(_){}
       added.push(e);
     });
+    migrateParents(added.filter(e=>!e.variant));
     if(!added.length){ notify(skipped?`Nothing imported — ${skipped} row(s) weren't valid.`:"Everything in that file is already in your log."); return; }
     await store.add(added);
     notify(`Imported ${added.length} entr${added.length===1?"y":"ies"}.` + (skipped?` Skipped ${skipped} invalid row(s).`:""));

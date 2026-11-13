@@ -101,7 +101,7 @@ test("undo brings back a whole drop set", async ({ page }) => {
 
 test("a CSV export imports back with the same sets", async ({ page }) => {
   const entries = [
-    set({ exercise: "Barbell bench press — flat", muscle: "Chest", weight: 185, reps: 5, rir: 2, equip: { bb: { bar: 45 } } }),
+    set({ exercise: "Bench press", muscle: "Chest", weight: 185, reps: 5, rir: 2, equip: { bb: { bar: 45 } }, variant: { equip: "Barbell", angle: "Flat" } }),
     set({ exercise: "Dumbbell row", muscle: "Back", weight: 60, reps: 10, failure: true, note: "slow, \"strict\"" }),
     cardio({ exercise: "Treadmill", minutes: 25, distance: 2, distUnit: "mi" }),
   ];
@@ -112,7 +112,7 @@ test("a CSV export imports back with the same sets", async ({ page }) => {
   await page.setInputFiles("#import-file", { name: "lift-log.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")).length)).toBe(3);
   const back = await page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")));
-  const pick = e => ({ id: e.id, exercise: e.exercise, weight: e.weight, reps: e.reps, kind: e.kind || "", minutes: e.minutes || 0, failure: !!e.failure, note: e.note, rir: e.rir ?? null, equip: e.equip || null });
+  const pick = e => ({ id: e.id, exercise: e.exercise, weight: e.weight, reps: e.reps, kind: e.kind || "", minutes: e.minutes || 0, failure: !!e.failure, note: e.note, rir: e.rir ?? null, equip: e.equip || null, variant: e.variant || null });
   expect(back.map(pick)).toEqual(entries.map(pick));
   expect(errors).toEqual([]);
 });

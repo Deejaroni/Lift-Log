@@ -61,6 +61,8 @@
           <button type="button" class="ex-chosen-text" id="ex-chosen-text"><svg id="ex-thumb" class="ex-thumb" aria-hidden="true" focusable="false"></svg><span class="ex-chosen-words"><span class="ex-n"><span id="ex-chosen-name"></span><span id="ex-chosen-fav" class="fav-mark" hidden title="Favorite"> ★</span></span><span id="ex-chosen-meta" class="ex-m"></span></span></button>
           <button type="button" id="ex-change" class="secondary">Change</button>
         </div>
+        <div id="ex-variant" class="vchips" role="group" aria-label="Variant" hidden></div>
+        <div id="ex-vedit" class="vedit" hidden><div id="ex-vedit-body"></div><div class="edit-actions"><button type="button" class="primary" id="ex-vedit-done">Done</button></div></div>
         <p class="cal-sub" id="ex-chosen-tip" hidden>Tap the picture or name for how to do it and the muscles worked.</p>
         <div class="lt" id="last-time" hidden><button type="button" class="lt-sum" id="lt-sum" aria-expanded="false" aria-controls="lt-body"><b>Last time</b><span id="lt-when"></span><span class="chev" aria-hidden="true">›</span></button><div class="lt-body" id="lt-body" hidden></div></div>
         <p class="cal-sub" id="ex-hint" hidden></p>
@@ -202,6 +204,7 @@
     <div class="panel">
       <label class="lbl" for="prog-ex">Exercise</label>
       <select id="prog-ex"></select>
+      <div class="chips vfilter" id="prog-vfilter" role="group" aria-label="Variant" hidden></div>
       <div class="stats" id="prog-stats"></div>
       <div class="seg" role="group" aria-label="Chart metric" id="metric-seg"></div>
       <div class="chart-box"><canvas id="ex-chart" aria-label="Exercise progress chart" role="img"></canvas></div>

@@ -7,6 +7,7 @@ import { e1rm, esc, fmt, fmtBig, loadOf, niceDate, toUnit, today, totalRaw } fro
 import { isCardio } from "./equipment.js";
 import { bestE1rm, rankable } from "./entries.js";
 import { isoOf } from "./progress.js";
+import { srcFor } from "./parents.js";
 
 // ---------- strength standards ----------
 // The app's own approximate tiers (not an official standard). Load lifts: estimated 1RM ÷ body weight needed
@@ -28,7 +29,7 @@ const STD = [
 ];
 // Names match without case, spaces, hyphens or a plural "s", so "Pushups" and "push ups" count as "Push-up".
 const squash = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").map(w=>w.length>3 && /[^su]s$/.test(w) ? w.slice(0,-1) : w).join("");
-const matcher = def => { const names = new Set(def.names.map(squash)); return e => !isCardio(e) && names.has(squash(e.exercise)); };
+const matcher = def => { const names = new Set(def.names.map(squash)); return e => !isCardio(e) && (names.has(squash(srcFor(e.exercise, e.variant))) || names.has(squash(e.exercise)) && !e.variant); };
 // DOTS (published powerlifting formula): score = total × 500 / (A + B·bw + C·bw² + D·bw³ + E·bw⁴), kg.
 const DOTS_C = {men:[-307.75076,24.0900756,-0.1918759221,0.0007391293,-0.000001093], women:[-57.96288,13.6175032,-0.1126655495,0.0005158568,-0.0000010706]};
 function dotsScore(totalKg, bwKg, std){
@@ -50,7 +51,7 @@ function bestFor(def, since){
   list.filter(e=>e.weight>0 && e.reps>=1 && e.reps<=10).forEach(e=>{
     const one = e1rm(e.unit==="kg"?totalRaw(e):totalRaw(e)*KG_PER_LB, e.reps), bw = bwKgOn(e.date);
     if(!bw) return;
-    if(!best || one/bw>best.ratio) best = {ratio:one/bw, oneKg:one, date:e.date, exercise:e.exercise};
+    if(!best || one/bw>best.ratio) best = {ratio:one/bw, oneKg:one, date:e.date, exercise:srcFor(e.exercise, e.variant)};
   });
   return best;
 }
@@ -63,8 +64,8 @@ function stdRow(def, std, af, bwNowKg, since){
   const pct = hi ? Math.max(0, Math.min(100, (adj-lo)/(hi-lo)*100)) : 100;
   let detail, next = "";
   if(def.reps){
-    const added = b.weight>0 ? ` at +${fmt(toUnit(b.weight, b.unit))} ${prefs.unit}` : "", plain = squash(b.exercise)===squash(def.names[0]);
-    detail = `Best set: ${b.reps} reps${added} (${plain ? "" : esc(b.exercise)+", "}${niceDate(b.date)})`;
+    const added = b.weight>0 ? ` at +${fmt(toUnit(b.weight, b.unit))} ${prefs.unit}` : "", shown = srcFor(b.exercise, b.variant), plain = squash(shown)===squash(def.names[0]);   // the version you did, e.g. Diamond push-up
+    detail = `Best set: ${b.reps} reps${added} (${plain ? "" : esc(shown)+", "}${niceDate(b.date)})`;
     if(hi) next = `${Math.max(1, Math.ceil(hi/af) - b.reps)} more rep${Math.ceil(hi/af)-b.reps===1?"":"s"} to ${TIERS[t+1]}`;
   } else {
     detail = `Est. 1RM ${fmt(Math.round(toUnit(b.oneKg,"kg")))} ${prefs.unit} = ${b.ratio.toFixed(2)}× body weight (${esc(b.exercise)}, ${niceDate(b.date)})`;

@@ -5,6 +5,7 @@ import { KG_PER_LB } from "./ui.js";
 import { bwKgOn, entries, prefs, rev } from "./state.js";
 import { e1rm, esc, fmt, fmtBig, loadOf, toUnit, totalRaw, volOf } from "./log.js";
 import { fmtMin, isCardio, paceText, suggestEquip, toMeters } from "./equipment.js";
+import { srcFor } from "./parents.js";
 import { STD, TIERS, ageFactor, matcher, profile, tierOf } from "./standards.js";
 
 // A badge is {t: label, c: "" (green record) | "ms" (yellow milestone) | "nw" (blue new / back), why}.
@@ -31,7 +32,7 @@ const maxLoad = list => list.reduce((m,e)=>Math.max(m, loadOf(e)), 0);
 const loadText = e => e.equip?.bw ? (loadOf(e)>0 ? `BW + ${fmt(loadOf(e))} ${unit()}` : "body weight") : `${fmt(loadOf(e))} ${unit()}`;
 
 // Plates a side on a barbell: a 45 lb bar plus pairs of 45s (20 kg and 20s in kg). Not the EZ bar.
-const barbellish = e => { const eq = e.equip && Object.keys(e.equip).length ? e.equip : suggestEquip(e.exercise); return !!eq.barbell && eq.barbell.type!=="EZ bar"; };
+const barbellish = e => { const eq = e.equip && Object.keys(e.equip).length ? e.equip : suggestEquip(srcFor(e.exercise, e.variant)); return !!eq.barbell && eq.barbell.type!=="EZ bar"; };
 const plateStep = () => unit()==="kg" ? [20, 20] : [45, 45];
 const platesAt = load => { const [bar, p] = plateStep(); return Math.max(0, Math.floor((load - bar + 0.01)/(2*p))); };
 const plateLoad = n => { const [bar, p] = plateStep(); return bar + 2*p*n; };

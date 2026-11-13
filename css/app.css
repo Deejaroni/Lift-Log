@@ -499,6 +499,26 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .exs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .exs-head h3{margin:0;min-width:0;overflow-wrap:anywhere}
 .exs-anim{display:block;width:100%;height:auto;aspect-ratio:200/176;background:var(--field);border-radius:12px}
+/* Variant tracker: chips under the chosen exercise, the details editor, the Progress filter. */
+.vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vchip{min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:.9rem;font-weight:600;color:var(--ink)}
+.vchip[aria-pressed="false"]{color:var(--muted);border-style:dashed;font-weight:500}
+.vcaret{color:var(--muted)}
+.vchip:active,.vopt:active{background:var(--line)}
+.vedit{margin-top:8px;padding:12px;background:var(--field);border:1px solid var(--line);border-radius:10px}
+.vedit[hidden]{display:none}
+.vrow{margin:10px 0 4px;font-size:.75rem;font-weight:700;color:var(--muted)}
+.vrow:first-child{margin-top:0}
+.vopts{display:flex;flex-wrap:wrap;gap:6px}
+.vopt{min-height:40px;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:.9rem;color:var(--ink)}
+.vopt[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+.vopt[aria-pressed="true"]:active{background:var(--ink);opacity:.8}
+.vedit .edit-actions{margin-top:12px}
+.vfilter{margin-top:8px}
+.vfilter[hidden]{display:none}
+.vfilter button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.vfilter button:active{background:var(--line)}
+.ex-vn{font-size:.75rem;color:var(--muted)}
 /* 3D figures: the canvas takes the 2D picture's place once it's ready (js/visuals.js). */
 .fig3d-main[hidden],svg[data-three]{display:none}
 canvas.exs-anim{touch-action:pan-y;cursor:grab}

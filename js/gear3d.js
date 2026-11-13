@@ -25,8 +25,9 @@ const palmNormal = (J, s) => new THREE.Vector3(0, -1, 0).applyQuaternion(J[`hand
 // ---------- held weights ----------
 function barbell(M, len = 1.9){
   const g = new THREE.Group(), b = mesh(G.bar, M.metal); b.scale.x = len; g.add(b);
-  const e = len / 2 - .23;
-  for(const x of [-e, e]){ const p = mesh(G.plate, M.plate); p.position.x = x; g.add(p); const q = mesh(G.plate, M.plate); q.scale.set(1, .78, .78); q.position.x = x + Math.sign(x) * .05; g.add(q); }
+  // A short (curl) bar carries smaller plates.
+  const e = len / 2 - .23, k = len < 1.5 ? .62 : 1;
+  for(const x of [-e, e]){ const p = mesh(G.plate, M.plate); p.position.x = x; p.scale.set(1, k, k); g.add(p); const q = mesh(G.plate, M.plate); q.scale.set(1, .78 * k, .78 * k); q.position.x = x + Math.sign(x) * .05; g.add(q); }
   return g;
 }
 function dumbbell(M){

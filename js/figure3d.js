@@ -280,6 +280,8 @@ function draw(v, now){
   const g = gearFor(gearRoot, P, v.kind, M);
   for(const c of gearRoot.children) c.visible = c === g;
   paintMuscles(v.roles);
+  // Framing first: working it out poses the body at several points, so the real pose has to come after.
+  const f = frame(P, v.kind, v.tight);
   // Direction arrow: while lifting, beside the moving weight, pointing where it's going (a moment ahead).
   const track = P.track || g.userData.track;
   const ahead = v.arrows && ph.name === "con" && track ? track(placeAt(P, Math.max(0, ph.s - .04), v.kind)) : null;
@@ -289,7 +291,6 @@ function draw(v, now){
   if(arrow.visible){ dir.normalize(); arrow.position.copy(p0).add(_arrowOff); arrow.quaternion.setFromUnitVectors(_up, dir);
     M.arrow.opacity = Math.sin(Math.PI * Math.min(1, ph.k || 0)) * .95; }
   // Camera: three-quarter view (or the pattern's own angle), turned by dragging.
-  const f = frame(P, v.kind, v.tight);
   shadow.position.set(f.center.x, .002, f.center.z); shadow.scale.setScalar(f.floor);
   const yaw = (P.yaw ?? .62) + v.yaw, dist = f.radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * (w / h < 1 ? 1.15 : 1) * (v.tight ? .82 : 1);
   camera.aspect = w / h; camera.position.set(f.center.x + Math.sin(yaw) * dist, f.center.y + dist * (P.lift ?? .28), f.center.z + Math.cos(yaw) * dist);
@@ -327,12 +328,12 @@ function loop(now){
   const order = [...big, ...small.slice(turn % small.length), ...small.slice(0, turn % small.length)];
   let n = 0;
   for(const v of order){
-    if(n && performance.now() - start > BUDGET) break;
+    if(n && performance.now() - start > (globalThis.__fig3dBudget ?? BUDGET)) break;   // the review page lifts the budget
     if(v.yaw && !v.dragging && !(v.still || calm())) v.yaw *= .9;   // eases back to the three-quarter view
     draw(v, now); n++;
   }
   turn += Math.max(1, n - big.length);
-  const end = performance.now(); idleUntil = end + (end - start);
+  const end = performance.now(); idleUntil = globalThis.__fig3dBudget ? 0 : end + (end - start);
 }
 
 // Shows a pattern in a canvas. spec: {key, kind, roles}. Options: rotate (drag to turn), arrows, offset (s),

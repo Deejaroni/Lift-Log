@@ -12,9 +12,13 @@ import { restNext, setRestNext } from "./main.js";
 import { visualFor, stillMarkup, patternStill, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
 import { PATTERNS } from "./movements.js";
 import { badgeHTML, dayBadges } from "./badges.js";
+import { LIB, PARENTS, parentOf, variantLabel, srcFor as srcForName } from "./parents.js";
+import { defaultVariant, hasVariants, lastVariantOf, onVariantChange, setVariant, currentVariant } from "./variant-ui.js";
+import { suggestEquip } from "./equipment.js";
+import { updateVolPreview } from "./log.js";
 import { renderHistBar } from "./history.js";
 
-let ALIAS_WORDS, EX_INDEX, EX_SQUASH;
+let ALIAS_WORDS, EX_INDEX, EX_SQUASH, PARENT_INDEX;
 
 // ---------- exercise search (Log tab) ----------
 // Phrases that mean the same exercise. A name containing one is also found by the others.
@@ -47,7 +51,11 @@ function exEntry(name, muscles){
   const ctx = muscles.flatMap(x=>exWords(`${x.m} ${x.sub} ${MUSCLE_WORDS[x.m]||""}`));
   return {name, muscles, words, key:words.join(" "), squash:words.join(""), tokens:[...new Set([...words, ...extra])], ctx:[...new Set(ctx)]};
 }
-const entryFor = name => EX_INDEX.get(name.toLowerCase()) || {...exEntry(name, [{m:groupOf(name), sub:"My exercises"}]), order:-1};
+const entryFor = name => EX_INDEX.get(name.toLowerCase()) || PARENT_INDEX.get(name.toLowerCase()) || {...exEntry(name, [{m:groupOf(name), sub:"My exercises"}]), order:-1};
+// True when every word of the search is part of the parent's own name ("lat pulldown"), so no one version is meant.
+const meansParent = (q, parent) => { const p = exWords(parent); return exWords(q).every(w=>p.some(t=>t.startsWith(w))); };
+// Library names -> their parents, once each, in order.
+const parentsOf = names => [...new Set(names.map(parentOf))];
 // Optimal string alignment distance, giving up once it passes k.
 function osa(a, b, k){
   if(Math.abs(a.length-b.length)>k) return k+1;
@@ -141,8 +149,9 @@ const SECONDARY = [
   ["Hamstrings", /deadlift|\brdl\b|good morning/, ["Glutes","Lower back"]],
   ["Biceps", /hammer|reverse/, ["Forearms"]],
 ];
-function alsoOf(name){
-  const o = exSet(name), m = groupOf(name), l = name.toLowerCase();
+// For a parent exercise, the muscles of its variant (the library version it stands for).
+function alsoOf(name, variant){
+  const o = exSet(name), m = groupOf(name), l = (o || !PARENTS.has(name) ? name : srcForName(name, variant || {})).toLowerCase();
   if(o && Array.isArray(o.also)) return o.also.filter(x=>MUSCLES.includes(x) && x!==m);
   const lib = ((EX_INDEX.get(l)||{}).muscles||[]).map(y=>y.m), rules = SECONDARY.filter(([g,re])=>g===m && re.test(l)).flatMap(r=>r[2]);
   return MUSCLES.filter(x=>x!==m && !TIMED.has(x) && (lib.includes(x) || rules.includes(x)));
@@ -186,16 +195,18 @@ function recentPicks(names){
 function renderPicker(){
   const q = $("#exercise-search").value.trim(), f = gf(), logged = exercisesByRecent();
   const mine = new Set(logged.map(n=>n.toLowerCase()));
-  const row = x => { const s = shownIn(x, f, mine.has(x.name.toLowerCase()));
-    const fav = isFav(x.name);
-    return `<div class="ex-row-w"><button type="button" class="ex-opt" data-name="${esc(x.name)}" data-m="${esc(s.m)}"><span class="ex-th">${stillMarkup(x.name)}</span><span class="ex-txt"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc([s.m, s.sub].filter(Boolean).join(" · "))}</span></span></button>` +
+  // One row per parent exercise. src: the library version the search matched, which choosing the row picks.
+  const row = (x, src) => { const s = shownIn(x, f, mine.has(x.name.toLowerCase()));
+    const fav = isFav(x.name), multi = hasVariants(x.name), sv = src && LIB.get(src.toLowerCase())?.v, last = multi && lastVariantOf(x.name);
+    const also = s.sub==="Also works", meta = [s.m, also && s.sub, sv ? variantLabel(sv) : last ? `Last: ${variantLabel(last)}` : !also && s.sub].filter(Boolean).join(" · ");
+    return `<div class="ex-row-w"><button type="button" class="ex-opt" data-name="${esc(x.name)}"${src ? ` data-src="${esc(src)}"` : ""} data-m="${esc(s.m)}"><span class="ex-th">${stillMarkup(x.name, undefined, sv || undefined)}</span><span class="ex-txt"><span class="ex-n">${esc(x.name)}</span><span class="ex-m">${esc(meta)}</span>${multi ? `<span class="ex-vn">${PARENTS.get(x.name).variants.length} variants</span>` : ""}</span></button>` +
       `<button type="button" class="star-btn" data-fav="${esc(x.name)}" aria-pressed="${fav}" aria-label="Favorite: ${esc(x.name)}">${STAR}</button></div>`; };
   const sec = t => `<p class="ex-sec">${esc(t)}</p>`;
   let html = "";
   if(!exNorm(q) && exMove){
     const lib = movesIndex().get(exMove) || [], own = logged.filter(n=>!EX_INDEX.has(n.toLowerCase()) && visualFor(n).pat?.title===exMove);
-    html += `<button type="button" class="ex-back" data-move-back>‹ All movements</button>` + sec(`${exMove} · ${lib.length+own.length} exercises`) +
-      [...own.map(entryFor), ...lib.map(n=>EX_INDEX.get(n.toLowerCase()))].map(row).join("");
+    html += `<button type="button" class="ex-back" data-move-back>‹ All movements</button>` + sec(`${exMove} · ${parentsOf(lib).length+own.length} exercises`) +
+      [...own, ...parentsOf(lib)].map(n=>row(entryFor(n))).join("");
   } else if(!exNorm(q)){
     const inF = n => !f || groupOf(n)===f;
     const favs = settings.favs.filter(inF);
@@ -208,13 +219,19 @@ function renderPicker(){
       const own = [...new Set([...logged.filter(n=>!EX_INDEX.has(n.toLowerCase())), ...moved])]
         .filter(n=>worksIn(n, f) && !listed(EX_INDEX.get(n.toLowerCase())?.name)).sort((a,b)=>a.localeCompare(b));
       if(own.length) html += sec("My exercises") + own.map(n=>row(entryFor(n))).join("");
+      const shown = new Set(own.map(n=>n.toLowerCase()));
       CATALOG.filter(g=>g.muscle===f && g.names.length).forEach(g=>{
-        const names = g.names.filter(n=>!exSet(n) || worksIn(n, f));
-        if(names.length) html += sec(g.sub) + names.map(n=>row(EX_INDEX.get(n.toLowerCase()))).join("");
+        const names = parentsOf(g.names).filter(n=>!shown.has(n.toLowerCase()) && shown.add(n.toLowerCase()) && (!exSet(n) || worksIn(n, f)));
+        if(names.length) html += sec(g.sub) + names.map(n=>row(entryFor(n))).join("");
       });
     } else html += `<p class="ex-tip">Search by name, muscle or equipment, like “seated cable” or “rdl”, or pick a movement below.</p>` + sec("Browse by movement") + moveTiles();
   } else {
-    const {hits, fixed, partial} = findExercises(q, logged);
+    const found = findExercises(q, logged), {fixed, partial} = found;
+    // Versions of one movement collapse into their parent; a search for one version remembers which.
+    const srcOf = new Map(), hits = [];
+    for(const x of found.hits){ const p = parentOf(x.name), l = p.toLowerCase(); if(srcOf.has(l)) continue;
+      srcOf.set(l, x.name.toLowerCase()!==l && !meansParent(fixed || q, p) ? x.name : null); hits.push(entryFor(p)); }
+    const prow = x => row(x, srcOf.get(x.name.toLowerCase()));
     if(fixed) html += `<button type="button" class="ex-fix" data-fix="${esc(fixed)}">Showing results for <b>${esc(fixed)}</b></button>`;
     if(partial && hits.length) html += sec("No exact match. Closest matches:");
     // Yours (everything you've logged that matches) first, then the library's best few, then other groups.
@@ -225,9 +242,9 @@ function renderPicker(){
     let room = exShowAll ? Infinity : EX_LIMIT;
     const take = l => { const t = l.slice(0, room); room -= t.length; return t; };
     const b = take(lib), c = take(others);
-    if(yours.length) html += sec("Yours") + yours.map(row).join("");
-    if(b.length) html += (yours.length ? sec("From the library") : "") + b.map(row).join("");
-    if(c.length) html += sec("In other groups") + c.map(row).join("");
+    if(yours.length) html += sec("Yours") + yours.map(prow).join("");
+    if(b.length) html += (yours.length ? sec("From the library") : "") + b.map(prow).join("");
+    if(c.length) html += sec("In other groups") + c.map(prow).join("");
     if(yours.length+b.length+c.length < hits.length) html += `<button type="button" class="ex-more" data-show-all>Show all ${hits.length} matches</button>`;
   }
   html += `<button type="button" class="ex-opt ex-new" data-new><span class="ex-n">＋ ${q ? `Add “${esc(q)}” as a new exercise` : "New exercise"}</span></button>`;
@@ -240,8 +257,11 @@ function showPicker(open){
   $("#ex-chosen-tip").hidden = open || $("#ex-thumb").hasAttribute("hidden") || $("#ex-thumb").hasAttribute("data-timed");
   if(open) stopAnimating($("#ex-thumb"));
 }
-function chooseExercise(name, m){
+// opts.src: a library version to pick; opts.variant: a variant to pick (a plan's). Else the one used last.
+function chooseExercise(name, m, opts = {}){
   setRestNext(null); $("#ex-next-tag").hidden = true;
+  const sv = opts.src && LIB.get(opts.src.toLowerCase());
+  setVariant(name, opts.variant || (sv && sv.v) || defaultVariant(name));
   $("#exercise").value = name; $("#new-ex-wrap").hidden = true; setMuscleTouched(false);
   $("#muscle").value = !exSet(name) && MUSCLES.includes(m) ? m : groupOf(name);
   $("#ex-chosen-name").textContent = name; chosenMeta(name);
@@ -249,21 +269,22 @@ function chooseExercise(name, m){
   if(isCardioForm()) prefillCardio(name); else prefill(name);
 }
 function chosenMeta(name){
-  const m = $("#muscle").value, s = shownIn(entryFor(name), m, false);
-  $("#ex-chosen-meta").textContent = [m, s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
+  // A parent's subgroup follows its variant (a cable pulldown isn't "machine pulldown").
+  const m = $("#muscle").value, s = shownIn(entryFor(name), m, false), vs = hasVariants(name) && !exSet(name) && LIB.get(srcForName(name, currentVariant()).toLowerCase());
+  $("#ex-chosen-meta").textContent = [m, vs && vs.m===m ? vs.sub : s.m===m ? s.sub : ""].filter(Boolean).join(" · ");
   $("#ex-chosen-fav").hidden = !isFav(name);
   chosenThumb(name);
 }
 // The chosen exercise's picture: the movement playing, the body map when there's no animation,
 // and for cardio the machine looping (nothing if there's no machine picture).
 function chosenThumb(name){
-  const v = name ? visualFor(name) : {timed:true}, th = $("#ex-thumb");
+  const v = name ? visualFor(name, currentVariant()) : {timed:true}, th = $("#ex-thumb");
   th.toggleAttribute("hidden", !!v.timed && !v.pat); th.toggleAttribute("data-timed", !!v.timed); $("#ex-chosen-tip").hidden = !!v.timed || $("#ex-chosen").hidden;
   if(v.pat) animate(th, v, true);
   else { stopAnimating(th); th.setAttribute("viewBox", "0 0 58 44"); th.innerHTML = v.timed ? "" : bodyMapMarkup(v.roles); }
 }
 function chooseNew(name){
-  setRestNext(null);
+  setRestNext(null); setVariant("", {});
   $("#exercise").value = name; $("#new-ex-wrap").hidden = false;
   applyEquip({}, prefs.unit);
   $("#muscle").value = gf() || guessMuscle(name); setMuscleTouched(!!gf());
@@ -307,6 +328,15 @@ export function init(){
   EX_INDEX.forEach(x=>x.words.forEach(t=>EX_VOCAB.set(t, (EX_VOCAB.get(t)||0)+1)));
   EX_INDEX.forEach(x=>[...x.tokens, ...x.ctx].forEach(t=>{ if(!EX_VOCAB.has(t)) EX_VOCAB.set(t, 1); }));
   EX_SQUASH = [...EX_INDEX.values()].map(x=>x.squash).join("|");
+  // Parent exercises that aren't library names themselves ("Lat pulldown"), for rows and muscle groups.
+  PARENT_INDEX = new Map([...PARENTS.values()].filter(p=>!EX_INDEX.has(p.name.toLowerCase()))
+    .map(p=>[p.name.toLowerCase(), {...exEntry(p.name, [...new Map(p.variants.map(x=>[x.m, {m:x.m, sub:x.sub}])).values()]), order: EX_INDEX.get(p.variants[0].src.toLowerCase())?.order ?? 0}]));
+  // A new variant: the picture, equipment, hints and last time follow it.
+  onVariantChange((v, dim)=>{
+    const name = $("#exercise").value.trim(); if(!name) return;
+    if(dim==="equip" || dim==="attach" || dim==="side") applyEquip(suggestEquip(srcForName(name, v)), prefs.unit);
+    chosenMeta(name); updateVolPreview();
+  });
   $("#exercise-search").addEventListener("input", ()=>{ exShowAll = false; exMove = null; renderPicker(); });
   $("#exercise-search").addEventListener("keydown", e=>{
     if(e.key!=="Enter" || !$("#exercise-search").value.trim()) return;
@@ -320,12 +350,12 @@ export function init(){
     else if(b.hasAttribute("data-move-back")){ exMove = null; renderPicker(); }
     else if(b.hasAttribute("data-fix")){ $("#exercise-search").value = b.dataset.fix; exShowAll = false; renderPicker(); $("#exercise-search").focus(); }
     else if(b.hasAttribute("data-new")) chooseNew($("#exercise-search").value.trim().replace(/\s+/g," "));
-    else chooseExercise(b.dataset.name, b.dataset.m);
+    else chooseExercise(b.dataset.name, b.dataset.m, {src: b.dataset.src});
   });
   $("#date").addEventListener("change", ()=>{ if(!$("#ex-results").hidden) renderPicker(); });
   $("#ex-change").addEventListener("click", ()=>{
     $("#exercise").value = ""; $("#new-ex-wrap").hidden = true; $("#new-muscle-wrap").hidden = !!gf();
-    $("#muscle").value = gf() || "Other"; setMuscleTouched(false); showLast("");
+    $("#muscle").value = gf() || "Other"; setMuscleTouched(false); showLast(""); setVariant("", {});
     showPicker(true); renderPicker(); applyFormKind();
     $("#exercise-search").focus();
   });

@@ -17,7 +17,7 @@ test("a record and a milestone can both show, with the reason under the bars", a
     ...ex("High-bar back squat", [[185, 5], [205, 5]], "2026-02-25"),
     ...ex("High-bar back squat", [[205, 5], [225, 3]]),
   ] });
-  const g = group(page, "High-bar back squat");
+  const g = group(page, "Squat");
   await expect(g.locator(".pr")).toHaveText(["2 plates", "PR"]);
   await expect(g.locator(".pr.ms")).toHaveText("2 plates");
   await expect(g.locator(".ex-foot")).toHaveText("2 plates: first time at 225 lb · PR: est. 1RM 248 lb, up from 239 lb");
@@ -33,10 +33,10 @@ test("rep PR, heaviest and volume PR", async ({ page }) => {
   ] });
   await expect(group(page, "Lat pulldown").locator(".pr")).toHaveText(["Rep PR"]);
   await expect(group(page, "Lat pulldown").locator(".ex-foot")).toHaveText("Rep PR: 10 reps at 140 lb, up from 8 · est. 1RM 187 lb");
-  await expect(group(page, "Seated cable row").locator(".pr")).toHaveText(["Heaviest"]);
-  await expect(group(page, "Seated cable row").locator(".ex-foot")).toContainText("Heaviest: 190 lb, up from 175 lb");
-  await expect(group(page, "Romanian deadlift").locator(".pr")).toHaveText(["Volume PR"]);
-  await expect(group(page, "Romanian deadlift").locator(".ex-foot")).toContainText("Volume PR: 7,400 lb, up from 5,550 lb");
+  await expect(group(page, "Seated row").locator(".pr")).toHaveText(["Heaviest"]);
+  await expect(group(page, "Seated row").locator(".ex-foot")).toContainText("Heaviest: 190 lb, up from 175 lb");
+  await expect(group(page, "Deadlift").locator(".pr")).toHaveText(["Volume PR"]);
+  await expect(group(page, "Deadlift").locator(".ex-foot")).toContainText("Volume PR: 7,400 lb, up from 5,550 lb");
   expect(errors).toEqual([]);
 });
 
@@ -58,8 +58,8 @@ test("tier up needs chosen standards; body-weight multiples don't", async ({ pag
     ...ex("Barbell bench press — flat", [[145, 5]], prev), ...ex("Barbell bench press — flat", [[165, 5]]),
   ];
   let errors = await openHistory(page, { entries, settings: bw180({ profile: { std: "men" } }) });
-  await expect(group(page, "Conventional deadlift").locator(".pr")).toHaveText(["Tier up", "PR"]);
-  await expect(group(page, "Conventional deadlift").locator(".ex-foot")).toContainText("Tier up: Intermediate → Advanced (app's estimate)");
+  await expect(group(page, "Deadlift").locator(".pr")).toHaveText(["Tier up", "PR"]);
+  await expect(group(page, "Deadlift").locator(".ex-foot")).toContainText("Tier up: Intermediate → Advanced (app's estimate)");
   expect(errors).toEqual([]);
 });
 
@@ -67,8 +67,8 @@ test("body weight multiple without standards chosen", async ({ page }) => {
   const errors = await openHistory(page, { entries: [
     ...ex("Barbell bench press — flat", [[145, 5]], "2026-02-25"), ...ex("Barbell bench press — flat", [[165, 5]]),
   ], settings: bw180() });
-  await expect(group(page, "Barbell bench press").locator(".pr")).toHaveText(["1× BW", "PR"]);
-  await expect(group(page, "Barbell bench press").locator(".ex-foot")).toContainText("1× body weight: est. 1RM 193 lb at 180 lb body weight");
+  await expect(group(page, "Bench press").locator(".pr")).toHaveText(["1× BW", "PR"]);
+  await expect(group(page, "Bench press").locator(".ex-foot")).toContainText("1× body weight: est. 1RM 193 lb at 180 lb body weight");
   expect(errors).toEqual([]);
 });
 

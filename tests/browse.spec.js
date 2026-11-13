@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { set, openApp, pickExercise } = require("./helpers");
 
-const bench = "Barbell bench press — flat", row = "Seated cable row";
+const bench = "Bench press", row = "Seated row";   // parent exercises
 const openHistory = page => page.click('nav.tabs [data-tab="history"]');
 
 test("Last time folds to one line and opens to every set with its details", async ({ page }) => {

@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { TODAY, set, openApp, pickExercise } = require("./helpers");
 
-const bench = "Barbell bench press — flat", pull = "Lat pulldown — wide overhand", row = "Seated cable row";
+const bench = "Bench press", pull = "Lat pulldown", row = "Seated row";   // parent exercises
 const day = "#day-list";
 const settingsNow = page => page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.settings.v1")) || {});
 const sections = page => page.locator("#ex-results .ex-sec").allTextContents();
@@ -100,7 +100,7 @@ test("planned exercises show in the row, and the last planned set picks the next
   await expect(page.locator("#weight")).toHaveValue("120");
   await expect(page.locator("#sets")).toHaveValue("3");
   await expect(page.locator("#ctx-line")).toContainText("All muscle groups");
-  await expect(page.locator("#msg")).toContainText("Up next: Lat pulldown — wide overhand, 3 × 8–12 at 120 lb");
+  await expect(page.locator("#msg")).toContainText("Up next: Lat pulldown, 3 × 8–12 at 120 lb");
   await expect(chips.locator("span")).toHaveText(["2 of 2 ✓", "Planned · 3 × 8–12"]);
   // Nothing was logged for it yet; Change drops the tag.
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")))).filter(e => e.date === "2026-03-04").length).toBe(2);
@@ -121,18 +121,18 @@ test("logging an unplanned set doesn't switch exercises", async ({ page }) => {
 
 test("search lists your exercises first, then the library's best 8", async ({ page }) => {
   const errors = await openApp(page, { entries: [
-    set({ date: "2026-02-20", exercise: "Pendlay row", muscle: "Back", weight: 135, reps: 8 }),
+    set({ date: "2026-02-20", exercise: "Bent-over row", muscle: "Back", weight: 135, reps: 8 }),
     set({ date: "2026-02-21", exercise: row, muscle: "Back", weight: 120, reps: 10 }),
   ] });
   await page.fill("#exercise-search", "row");
   expect(await sections(page)).toEqual(["Yours", "From the library"]);
   const names = await listed(page);
-  expect(names.slice(0, 2).sort()).toEqual(["Pendlay row", row].sort());
+  expect(names.slice(0, 2).sort()).toEqual(["Bent-over row", row].sort());
   expect(names.length).toBe(2 + 8);
-  await expect(page.locator("#ex-results [data-show-all]")).toBeVisible();
+  // (With versions grouped under parents, "row" has exactly 8 more, so no "Show all" here.)
   // Enter takes the top match, which is one of yours.
   await page.press("#exercise-search", "Enter");
-  expect([row, "Pendlay row"]).toContain(await page.locator("#ex-chosen-name").textContent());
+  expect([row, "Bent-over row"]).toContain(await page.locator("#ex-chosen-name").textContent());
   expect(errors).toEqual([]);
 });
 

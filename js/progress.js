@@ -11,6 +11,9 @@ import { alsoOf, fillSelect, renderHistory } from "./search.js";
 import { TIMED } from "./plan.js";
 import { renderStandards } from "./standards.js";
 import { badgeHTML, streakMilestone } from "./badges.js";
+import { variantLabel } from "./parents.js";
+// The variant the chart is narrowed to (its label), or null for every variant together.
+let progVariant = null, progFor = "";
 
 // ---------- charts ----------
 let exChart=null, wkChart=null, metric="top", range="week", tot="vol";
@@ -63,7 +66,7 @@ function muscleSets(from, to){
     if(e.date<from || e.date>to || isCardio(e)) return;
     if(e.chain){ if(chains.has(e.chain)) return; chains.add(e.chain); }
     const add = (m, n) => out.set(m, (out.get(m)||0) + n);
-    add(groupOf(e.exercise), 1); alsoOf(e.exercise).forEach(m=>add(m, .5));
+    add(groupOf(e.exercise), 1); alsoOf(e.exercise, e.variant).forEach(m=>add(m, .5));
   });
   return out;
 }
@@ -90,7 +93,15 @@ function renderProgress(){
   chartDefaults();
   fillSelect($("#prog-ex"), false);
   const name = ($("#prog-ex").value||"").toLowerCase();
-  const list = sorted().filter(e=>e.exercise.toLowerCase()===name);
+  const every = sorted().filter(e=>e.exercise.toLowerCase()===name);
+  // Every variant together by default; a chip narrows the chart and stats to one.
+  if(progFor!==name){ progFor = name; progVariant = null; }
+  const labels = [...new Set(every.map(e=>variantLabel(e.variant)).filter(Boolean))], vf = $("#prog-vfilter");
+  if(!labels.includes(progVariant)) progVariant = null;
+  vf.hidden = labels.length<2;
+  vf.innerHTML = vf.hidden ? "" : `<button type="button" data-pv="" aria-pressed="${!progVariant}">All variants</button>` +
+    labels.map(l=>`<button type="button" data-pv="${esc(l)}" aria-pressed="${progVariant===l}">${esc(l)}</button>`).join("");
+  const list = progVariant ? every.filter(e=>variantLabel(e.variant)===progVariant) : every;
   const cardio = list.length>0 && list.every(isCardio);
   const dayLabel = d=>new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
   let metrics, days, series, color, isBar, unitLabel, reverse=false, digits=1;
@@ -231,6 +242,7 @@ export function init(){
   });
 
   $("#prog-ex").addEventListener("change", renderProgress);
+  $("#prog-vfilter").addEventListener("click", e=>{ const b = e.target.closest("[data-pv]"); if(!b) return; progVariant = b.dataset.pv || null; renderProgress(); });
   $("#metric-seg").addEventListener("click", e=>{
     const b=e.target.closest("[data-metric]"); if(!b) return;
     metric=b.dataset.metric; renderProgress();

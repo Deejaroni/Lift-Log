@@ -5,6 +5,7 @@ import { $ } from "./ui.js";
 import { entries, prefs, rev } from "./state.js";
 import { e1rm, esc, fmt, niceDate, rirText, roundStep, toUnit, today } from "./log.js";
 import { equipText, isCardio, isCardioForm } from "./equipment.js";
+import { variantLabel } from "./parents.js";
 import { groupOf } from "./catalog.js";
 import { LOWER, suggestFor, workoutById, workoutFor } from "./plan.js";
 
@@ -85,7 +86,7 @@ function renderLastTime(){
     const det = [e.failure ? "To failure" : "", rirText(e.rir)].filter(Boolean).join(" · ");
     rows.push(`<button type="button" class="lt-row" data-lt-w="${fmt(w(e))}" data-lt-r="${e.reps}" aria-label="Use ${fmt(w(e))} ${prefs.unit} × ${e.reps}"><span class="num">${wText(e, w(e))}<span class="x"> ${prefs.unit} × </span>${e.reps}</span>${det ? `<small>${esc(det)}</small>` : ""}</button>`);
   });
-  const notes = [...new Set(s.map(e=>e.note).filter(Boolean))].map(n=>`“${n}”`), eq = equipText(s[0]);
+  const notes = [...new Set(s.map(e=>e.note).filter(Boolean))].map(n=>`“${n}”`), eq = [variantLabel(s[0].variant), equipText(s[0])].filter(Boolean).join(" · ");
   const foot = [eq, ...notes].filter(Boolean).join(" · ");
   $("#lt-body").innerHTML = rows.join("") + (foot ? `<p class="lt-note">${esc(foot)}</p>` : "");
 }

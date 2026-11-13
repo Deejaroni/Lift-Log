@@ -7,6 +7,7 @@ import { esc, exercisesByRecent, fmt, loadOf, mode, niceDate, sorted, toUnit, to
 import { applyEquip, isCardio } from "./equipment.js";
 import { MUSCLES, groupOf, normMuscle } from "./catalog.js";
 import { EX_INDEX, alsoOf, chooseExercise, chosenMeta, exWords, osa } from "./search.js";
+import { currentVariant } from "./variant-ui.js";
 import { P, TIMED, loggedFor, startPlanned } from "./plan.js";
 import { visualFor, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
 
@@ -22,13 +23,13 @@ function openExerciseInfo(name){
   $("#exs-muscles").hidden = timed;   // cardio and mobility have no muscle groups to set
   if(!timed){
     $("#exs-main").innerHTML = MUSCLES.filter(m=>!TIMED.has(m)).map(m=>`<option ${m===main?"selected":""}>${m}</option>`).join("");
-    exsAlso = new Set(alsoOf(name)); renderAlso();
+    exsAlso = new Set(alsoOf(name, $("#exercise").value===name ? currentVariant() : undefined)); renderAlso();
   }
   $("#exsheet").hidden = false; (timed ? $("#exs-name") : $("#exs-close")).focus();
 }
 // The how-to part: animation, body map with the muscles worked, and three steps.
 function renderHowTo(name){
-  const v = visualFor(name), anim = $("#exs-anim");
+  const v = visualFor(name, $("#exercise").value===name ? currentVariant() : undefined), anim = $("#exs-anim");
   $("#exs-title").textContent = name;
   $("#exs-fav").setAttribute("aria-pressed", String(isFav(name))); $("#exs-fav").dataset.name = name;
   $("#exs-info").hidden = !!v.timed && !v.pat;   // cardio machines show just the picture

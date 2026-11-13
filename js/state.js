@@ -4,6 +4,7 @@
 import { KG_PER_LB, LS_KEY, PREF_KEY } from "./ui.js";
 import { flash } from "./log.js";
 import { renderAll } from "./main.js";
+import { toParent } from "./parents.js";
 
 // ---------- prefs (per-device convenience) ----------
 let prefs = {unit:"lb"};
@@ -71,6 +72,25 @@ function renameExercise(from, to){
 }
 // Migration (2026-10-31): duplicate spellings removed from the exercise library move to the name that was kept.
 const RETIRED = {"high-to-low cable fly":"Cable fly — high-to-low", "high row machine":"High-row machine", "cable high row":"High cable row", "reverse ez-bar curl":"EZ-bar reverse curl", "hip abduction machine":"Seated hip abduction machine"};
+// Migration (2026-11-13): library versions of a movement ("Lat pulldown — wide overhand") become one parent exercise
+// with a variant ({equip, attach, width, grip, ...}) everywhere they're stored: sets, the plan, a repeated workout,
+// favorites and muscle settings. Older sets kept lateral-raise details in "variant"; those move to "lr". Your own
+// exercise names stay as they are. Returns true if anything changed. Safe to run again (parents are left alone).
+function migrateParents(list = entries){
+  let changed = false;
+  list.forEach(e => { const t = toParent(e.exercise); if(!t) return;
+    if(e.variant && typeof e.variant === "object") e.lr = e.variant;
+    e.exercise = t.exercise; e.variant = t.variant; changed = true; });
+  const items = [...((settings.program && settings.program.workouts) || []).flatMap(w => w.items || []), ...((prefs.repeat && prefs.repeat.items) || [])];
+  items.forEach(it => { const t = toParent(it.exercise); if(!t) return; it.exercise = t.exercise; it.variant = t.variant; changed = true; });
+  const ex = settings.exercises || {};
+  for(const k of Object.keys(ex)){ const t = toParent(k); if(!t) continue; const to = t.exercise.toLowerCase(); if(!ex[to]) ex[to] = ex[k]; delete ex[k]; changed = true; }
+  if(Array.isArray(settings.favs)){
+    const favs = [...new Set(settings.favs.map(n => (toParent(n) || {}).exercise || n))];
+    if(favs.join("|") !== settings.favs.join("|")){ settings.favs = favs; changed = true; }
+  }
+  return changed;
+}
 // Setters for values other files change.
 function setPrefs(v){ prefs = v; }
 
@@ -96,8 +116,10 @@ export function init(){
     }
   }
 
+  if(migrateParents()){ saveLocal(); savePrefs(); try{ localStorage.setItem(SET_KEY, JSON.stringify(settings)); }catch(e){} }
+
   // Ask the browser not to evict this app's storage
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
 
-export { isFav, toggleFav, rev, prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };
+export { migrateParents, isFav, toggleFav, rev, prefs, savePrefs, SET_KEY, settings, bwEntryOn, bwKgOn, hasBW, recordBW, saveSettings, entries, loadLocal, saveLocal, store, renameExercise, RETIRED, setPrefs };

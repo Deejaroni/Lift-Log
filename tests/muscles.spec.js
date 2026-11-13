@@ -19,8 +19,8 @@ const oldData = () => ({
 test("old data loads, and an exercise's muscle groups can be changed from History", async ({ page }) => {
   const errors = await openApp(page, oldData());
   await page.click('nav.tabs [data-tab="history"]');
-  expect(await groupsInFilter(page, "#hist-filter")).toEqual({ Hamstrings: ["Romanian deadlift"] });
-  await page.locator('#history [data-exinfo="Romanian deadlift"]').first().click();
+  expect(await groupsInFilter(page, "#hist-filter")).toEqual({ Hamstrings: ["Deadlift"] });
+  await page.locator('#history [data-exinfo="Deadlift"]').first().click();
   await openEdit(page);
   const sheet = page.locator("#exsheet");
   await expect(sheet).toBeVisible();
@@ -32,12 +32,12 @@ test("old data loads, and an exercise's muscle groups can be changed from Histor
   await sheet.locator('[data-also="Hamstrings"]').click();
   await sheet.locator("#exs-save").click();
   await expect(sheet).toBeHidden();
-  expect(await groupsInFilter(page, "#hist-filter")).toEqual({ Glutes: ["Romanian deadlift"] });
+  expect(await groupsInFilter(page, "#hist-filter")).toEqual({ Glutes: ["Deadlift"] });
   const s = await stored(page);
   expect(s.entries.map(e => e.muscle)).toEqual(["Glutes", "Glutes"]);
-  expect(s.settings.exercises["romanian deadlift"]).toEqual({ muscle: "Glutes", also: ["Hamstrings"] });
+  expect(s.settings.exercises["deadlift"]).toEqual({ muscle: "Glutes", also: ["Hamstrings"] });
   await page.click('nav.tabs [data-tab="progress"]');
-  expect(await groupsInFilter(page, "#prog-ex")).toEqual({ Glutes: ["Romanian deadlift"] });
+  expect(await groupsInFilter(page, "#prog-ex")).toEqual({ Glutes: ["Deadlift"] });
   expect(errors).toEqual([]);
 });
 
@@ -48,11 +48,11 @@ test("search follows the change: main group first, and listed under its also-wor
   await page.click("#ctx-line");
   await page.selectOption("#group-filter", "Hamstrings");
   await page.fill("#exercise-search", "romanian deadlift");
-  const row = page.locator('#ex-results [data-name="Romanian deadlift"]');
+  const row = page.locator('#ex-results [data-name="Deadlift"]');
   await expect(row).toContainText("Hamstrings · Also works");
   // In the group, under Yours (it's logged), not "In other groups".
   await expect(page.locator("#ex-results .ex-sec").first()).toHaveText("Yours");
-  await expect(page.locator("#ex-results .ex-opt[data-name]").first()).toHaveAttribute("data-name", "Romanian deadlift");
+  await expect(page.locator("#ex-results .ex-opt[data-name]").first()).toHaveAttribute("data-name", "Deadlift");
   expect(await page.locator("#ex-results .ex-sec").allTextContents()).not.toContain("In other groups");
   await page.selectOption("#group-filter", "Lower back");
   await page.fill("#exercise-search", "romanian deadlift");
@@ -80,7 +80,7 @@ test("the chosen exercise card opens the same details, and new sets use the new 
 test("Cancel leaves everything as it was", async ({ page }) => {
   const errors = await openApp(page, oldData());
   await page.click('nav.tabs [data-tab="history"]');
-  await page.locator('#history [data-exinfo="Romanian deadlift"]').first().click();
+  await page.locator('#history [data-exinfo="Deadlift"]').first().click();
   await openEdit(page);
   await page.locator("#exs-main").selectOption("Back");
   await page.click("#exs-cancel");

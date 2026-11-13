@@ -53,7 +53,7 @@ test("the chosen exercise shows a moving 3D picture that opens the how-to sheet"
   await page.click("#ex-chosen-text");
   const sheet = page.locator("#exsheet");
   await expect(sheet).toBeVisible();
-  await expect(page.locator("#exs-title")).toHaveText("Romanian deadlift");
+  await expect(page.locator("#exs-title")).toHaveText("Deadlift");
   await expect(page.locator("#exs-anim-3d")).toBeVisible();
   await expect(page.locator("#exs-steps li")).toHaveCount(3);
   await expect(page.locator("#exs-muscles-text")).toContainText("Hamstrings");
@@ -100,8 +100,8 @@ test("with reduced motion the pictures hold still", async ({ page }) => {
 test("search results show a picture, and you can browse by movement", async ({ page }) => {
   const errors = await openApp(page, { entries: [set({ date: "2026-03-01", exercise: "Leg press", muscle: "Quadriceps", weight: 300, reps: 10 })] });
   await page.fill("#exercise-search", "seated cable row");
-  await expect(page.locator('#ex-results [data-name="Seated cable row"] .ex-th canvas.fig3d')).toBeAttached();
-  await expect.poll(() => page.locator('#ex-results [data-name="Seated cable row"] .ex-th canvas').getAttribute("data-drawn"), { timeout: 10000 }).not.toBeNull();
+  await expect(page.locator('#ex-results [data-name="Seated row"] .ex-th canvas.fig3d')).toBeAttached();
+  await expect.poll(() => page.locator('#ex-results [data-name="Seated row"] .ex-th canvas').getAttribute("data-drawn"), { timeout: 10000 }).not.toBeNull();
   await page.fill("#exercise-search", "");
   const tile = page.locator('#ex-results [data-move="Row"]');
   await expect(tile).toBeVisible();
@@ -109,12 +109,12 @@ test("search results show a picture, and you can browse by movement", async ({ p
   expect(tb.height).toBeGreaterThanOrEqual(40);
   await tile.click();
   await expect(page.locator("#ex-results .ex-sec").first()).toContainText("Row");
-  await expect(page.locator('#ex-results [data-name="Seated cable row"]')).toBeVisible();
+  await expect(page.locator('#ex-results [data-name="Seated row"]')).toBeVisible();
   await page.click("#ex-results [data-move-back]");
   await expect(page.locator('#ex-results [data-move="Row"]')).toBeVisible();
   await page.click('#ex-results [data-move="Row"]');
-  await page.click('#ex-results [data-name="Seated cable row"]');
-  await expect(page.locator("#ex-chosen-name")).toHaveText("Seated cable row");
+  await page.click('#ex-results [data-name="Seated row"]');
+  await expect(page.locator("#ex-chosen-name")).toHaveText("Seated row");
   expect(errors).toEqual([]);
 });
 
@@ -246,5 +246,39 @@ test("without WebGL the 2D pictures show instead", async ({ page }) => {
   await pickExercise(page, "Romanian deadlift");
   await expect(page.locator("#ex-thumb")).toBeVisible();
   await expect(page.locator("#ex-thumb-3d")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("seated, machine, lying and kneeling exercises show that posture in 3D", async ({ page }) => {
+  const errors = await openApp(page);
+  const r = await page.evaluate(async () => {
+    const { visualFor } = await import("/js/visuals.js"), { VARIANT_KEYS } = await import("/js/variants3d.js"), m = await import("/js/figure3d.js");
+    await m.load("/models/body.glb");
+    const missing = VARIANT_KEYS.filter(k => !m.POSES[k]), broken = [];
+    for (const k of VARIANT_KEYS) for (const kind of ["barbell", "dumbbell", "kettlebell", "cable", "none", "machine"]) for (const s of [0, .5, 1]) {
+      const J = m.check(k, kind, s);
+      if (Object.values(J).flat().some(n => !Number.isFinite(n)) || J.head[1] < -.05) broken.push(`${k}/${kind}/${s}`);
+    }
+    const want = {
+      "Seated dumbbell shoulder press": "ohpSeated", "Machine shoulder press": "ohpSeated", "Dumbbell lateral raise — seated": "lateralSeated",
+      "Lateral raise machine": "lateralSeated", "Seated dumbbell curl": "curlSeated", "Preacher curl machine": "curlPreacher", "Incline dumbbell curl": "curlIncline",
+      "Concentration curl": "curlConcentration", "Spider curl": "curlSpider", "Seated calf raise": "calfSeated", "Leg press calf raise": "calfLegPress",
+      "Chest-supported dumbbell row": "rowChest", "One-arm dumbbell row — bench supported": "rowOneArm", "Seated row machine": "rowMachine",
+      "Reverse pec deck": "reverseFlyMachine", "Seated dumbbell reverse fly": "reverseFlySeated", "Ab crunch machine": "crunchMachine",
+      "Cable crunch — kneeling": "cableCrunchKneel", "Lying leg raise": "legRaiseLying", "Hack squat": "hackSquat", "Decline barbell press": "benchDecline",
+      "Bulgarian split squat": "bulgarian", "Glute bridge": "gluteBridge", "Kettlebell bench press": "benchPress", "Seated dumbbell shrug": "shrugSeated",
+      "Dumbbell overhead triceps extension — seated": "overheadExtSeated", "Triceps extension machine": "tricepsMachine", "Recumbent bike": "bikeRecumbent",
+      "Bench dips": "benchDip", "Knee push-up": "pushUpKnee", "Side plank": "sidePlank", "Toes-to-bar": "legRaise", "V-up": "vUp",
+      "Romanian deadlift": "hinge", "Cable fly — high pulley": "fly",
+    };
+    const wrong = Object.entries(want).filter(([n, k]) => visualFor(n).key3d !== k).map(([n, k]) => `${n}: ${visualFor(n).key3d} (want ${k})`);
+    // Machines hold no free weight; Smith machines keep their bar.
+    const kinds = ["Hack squat", "Leg press calf raise", "Smith machine squat"].map(n => visualFor(n).kind3d);
+    return { missing, broken, wrong, kinds };
+  });
+  expect(r.missing).toEqual([]);
+  expect(r.broken).toEqual([]);
+  expect(r.wrong).toEqual([]);
+  expect(r.kinds).toEqual(["machine", "none", "barbell"]);
   expect(errors).toEqual([]);
 });

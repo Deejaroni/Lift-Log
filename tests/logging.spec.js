@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { TODAY, set, openApp, pickExercise } = require("./helpers");
 
-const bench = "Barbell bench press — flat";
+const bench = "Bench press";   // a parent exercise
 const day = "#day-list";
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem("liftlog.entries.v1")));
 const session = (date, reps, weight = 135, extra = {}) => reps.map(r => set({ date, exercise: bench, muscle: "Chest", weight, reps: r, ...extra }));
@@ -50,7 +50,7 @@ test("a suggestion chip proposes the next set, and Use fills it in", async ({ pa
 
 test("suggestions follow missed reps, long breaks, the plan, and need two sessions", async ({ page }) => {
   const program = { name: "P", template: "x", mode: "fixed", days: [null, null, "w1", null, null, null, null], rotation: [], start: "2026-03-02", done: {}, override: null, deloadEvery: 0,
-    prog: { on: true, upper: 5, lower: 10, unit: "lb" }, workouts: [{ id: "w1", name: "Upper", items: [{ exercise: "Seated cable row", sets: 3, lo: 8, hi: 12 }] }] };
+    prog: { on: true, upper: 5, lower: 10, unit: "lb" }, workouts: [{ id: "w1", name: "Upper", items: [{ exercise: "Seated row", sets: 3, lo: 8, hi: 12 }] }] };
   const errors = await openApp(page, { settings: { program }, entries: [
     ...session("2026-02-20", [8, 8, 8]), ...session("2026-02-25", [8, 8, 7]),
     ...["2025-12-01", "2026-01-10"].flatMap(d => [6, 6].map(r => set({ date: d, exercise: "Barbell overhead press", muscle: "Shoulders", weight: 95, reps: r }))),
@@ -59,7 +59,8 @@ test("suggestions follow missed reps, long breaks, the plan, and need two sessio
   ] });
   const r = await page.evaluate(async () => {
     const { nextSet } = await import("/js/suggest.js");
-    const t = n => { const s = nextSet(n, "2026-03-04"); return s && { title: s.title, why: s.why }; };
+    const { parentOf } = await import("/js/parents.js");   // old names are now parents with variants
+    const t = n => { const s = nextSet(parentOf(n), "2026-03-04"); return s && { title: s.title, why: s.why }; };
     return { missed: t("Barbell bench press — flat"), back: t("Barbell overhead press"), plan: t("Seated cable row"), once: t("Leg press"), never: t("Hack squat") };
   });
   expect(r.missed).toEqual({ title: "Stay at 135 × 8", why: "Last time: 8, 8, 7. Get all 8, then add weight." });

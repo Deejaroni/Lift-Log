@@ -42,8 +42,8 @@ test("sets logged under a retired duplicate name load under the kept name", asyn
     settings: { bw: null, bwUnit: "lb", days: {}, bwLog: {}, exercises: { "high row machine": { muscle: "Back", also: ["Biceps"] } } },
   });
   const s = await page.evaluate(() => ({ e: JSON.parse(localStorage.getItem("liftlog.entries.v1")), st: JSON.parse(localStorage.getItem("liftlog.settings.v1")) }));
-  expect(s.e.map(e => e.exercise)).toEqual(["High-row machine", "EZ-bar reverse curl", "Seated hip abduction machine"]);
-  expect(Object.keys(s.st.exercises)).toEqual(["high-row machine"]);
+  expect(s.e.map(e => e.exercise)).toEqual(["High row", "Biceps curl", "Hip abduction"]);   // and from there under their parent exercise
+  expect(Object.keys(s.st.exercises)).toEqual(["high row"]);
   expect(errors).toEqual([]);
 });
 

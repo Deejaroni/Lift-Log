@@ -13,21 +13,21 @@ const openInfo = async (page, name) => {
 
 test("a misspelled exercise is offered and merged into the matching one", async ({ page }) => {
   const errors = await openApp(page, { entries: [
-    set({ date: "2026-03-01", exercise: "Pec dec", muscle: "Chest", weight: 80, reps: 12 }),
-    set({ date: "2026-03-01", exercise: "Pec dec", muscle: "Chest", weight: 80, reps: 12 }),
-    set({ date: "2026-03-02", exercise: "Pec deck", muscle: "Chest", weight: 90, reps: 12 }),
+    set({ date: "2026-03-01", exercise: "Chest fli", muscle: "Chest", weight: 80, reps: 12 }),
+    set({ date: "2026-03-01", exercise: "Chest fli", muscle: "Chest", weight: 80, reps: 12 }),
+    set({ date: "2026-03-02", exercise: "Chest fly", muscle: "Chest", weight: 90, reps: 12 }),
   ] });
-  await openInfo(page, "Pec dec");
-  await expect(page.locator("#exs-name")).toHaveValue("Pec dec");
-  await page.locator('#exs-same [data-same="Pec deck"]').click();
-  await expect(page.locator("#exs-name")).toHaveValue("Pec deck");
+  await openInfo(page, "Chest fli");
+  await expect(page.locator("#exs-name")).toHaveValue("Chest fli");
+  await page.locator('#exs-same [data-same="Chest fly"]').click();
+  await expect(page.locator("#exs-name")).toHaveValue("Chest fly");
   await page.click("#exs-save");
-  await expect(page.locator("#dlg-msg")).toHaveText("Merge Pec dec into Pec deck? Its 2 sets will be listed as Pec deck.");
+  await expect(page.locator("#dlg-msg")).toHaveText("Merge Chest fli into Chest fly? Its 2 sets will be listed as Chest fly.");
   await page.click("#dlg-ok");
   const s = await stored(page);
-  expect(s.e.map(e => e.exercise)).toEqual(["Pec deck", "Pec deck", "Pec deck"]);
+  expect(s.e.map(e => e.exercise)).toEqual(["Chest fly", "Chest fly", "Chest fly"]);
   const options = await page.locator("#hist-filter option").allTextContents();
-  expect(options.filter(o => /pec/i.test(o))).toEqual(["Pec deck"]);
+  expect(options.filter(o => /chest/i.test(o))).toEqual(["Chest fly"]);
   expect(errors).toEqual([]);
 });
 
@@ -53,14 +53,14 @@ test("renaming updates every set, the plan and the muscle settings", async ({ pa
 
 test("cancelling the merge question changes nothing", async ({ page }) => {
   const errors = await openApp(page, { entries: [
-    set({ date: "2026-03-01", exercise: "Pec dec", muscle: "Chest", weight: 80, reps: 12 }),
-    set({ date: "2026-03-02", exercise: "Pec deck", muscle: "Chest", weight: 90, reps: 12 }),
+    set({ date: "2026-03-01", exercise: "Chest fli", muscle: "Chest", weight: 80, reps: 12 }),
+    set({ date: "2026-03-02", exercise: "Chest fly", muscle: "Chest", weight: 90, reps: 12 }),
   ] });
-  await openInfo(page, "Pec dec");
-  await page.fill("#exs-name", "pec deck");
+  await openInfo(page, "Chest fli");
+  await page.fill("#exs-name", "chest fly");
   await page.click("#exs-save");
   await page.click("#dlg-cancel");
-  expect((await stored(page)).e.map(e => e.exercise)).toEqual(["Pec dec", "Pec deck"]);
+  expect((await stored(page)).e.map(e => e.exercise)).toEqual(["Chest fli", "Chest fly"]);
   expect(errors).toEqual([]);
 });
 

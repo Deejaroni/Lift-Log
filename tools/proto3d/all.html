@@ -18,6 +18,7 @@
 <body>
 <p>Each pattern at the contracted end (left) and stretched end (right). Add ?kind=dumbbell (barbell, kettlebell, cable, none) and ?only=key1,key2.</p>
 <div class="g" id="g"></div>
+<script>window.__fig3dBudget = 1e9;   // draw every view each frame on this review page</script>
 <script type="module">
   import { load, show, POSES } from "../../js/figure3d.js";
   const q = new URLSearchParams(location.search), only = q.get("only");
@@ -25,7 +26,12 @@
   const TYPICAL = {gobletSquat: "dumbbell", lateralRaise: "dumbbell", frontRaise: "dumbbell", reverseFly: "dumbbell", facePull: "cable", pushdown: "cable", curl: "dumbbell",
     overheadExt: "dumbbell", carry: "dumbbell", sideBend: "dumbbell", chop: "cable", chopUp: "cable", rotation: "cable", kbSwing: "kettlebell", kbClean: "kettlebell", kbSnatch: "kettlebell",
     halo: "kettlebell", highPull: "kettlebell", getUp: "kettlebell", windmill: "kettlebell", thruster: "kettlebell", russianTwist: "kettlebell", yRaise: "dumbbell", renegadeRow: "dumbbell",
-    wristCurl: "dumbbell", reverseWristCurl: "dumbbell", straightArm: "cable", flyCable: "cable", flyBench: "dumbbell", cablePress: "cable", cableRow: "cable", shrug: "dumbbell"};
+    wristCurl: "dumbbell", reverseWristCurl: "dumbbell", straightArm: "cable", flyCable: "cable", flyBench: "dumbbell", cablePress: "cable", cableRow: "cable", shrug: "dumbbell",
+    lateralSeated: "dumbbell", reverseFlySeated: "dumbbell", curlSeated: "dumbbell", curlIncline: "dumbbell", overheadExtSeated: "dumbbell", shrugSeated: "dumbbell", shrugChest: "dumbbell",
+    rowChest: "dumbbell", rowStanding: "cable", rowKneel: "cable", rotationSeated: "cable", carrySuitcase: "kettlebell", kbSwingOne: "kettlebell", kbSwingAmerican: "kettlebell",
+    kbCleanDouble: "kettlebell", ohpSeated: "dumbbell", flyFloor: "dumbbell", flyIncline: "dumbbell", hackSquat: "machine", beltSquat: "machine", rowMachine: "machine",
+    tricepsMachine: "machine", dipMachine: "machine", crunchMachine: "machine", reverseFlyMachine: "machine", pulloverMachine: "machine", cableCrunchKneel: "cable",
+    cableCrunchStand: "cable", pulldownKneel: "cable", straightArmKneel: "cable", flyBenchCable: "cable", curlConcentration: "dumbbell", rowOneArm: "dumbbell", floorPress: "kettlebell"};
   const kindOf = k => q.get("kind") || TYPICAL[k] || "barbell";
   await load("../../models/body.glb");
   const keys = Object.keys(POSES).filter(k => !only || only.split(",").includes(k));

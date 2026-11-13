@@ -3,10 +3,10 @@ const { TODAY, set, cardio, openApp } = require("./helpers");
 
 const PAST = "2026-03-02";
 const pastDay = () => [
-  set({ date: PAST, exercise: "Barbell bench press — flat", muscle: "Chest", weight: 135, reps: 10, equip: { barbell: { type: "Straight bar" } } }),
-  set({ date: PAST, exercise: "Barbell bench press — flat", muscle: "Chest", weight: 155, reps: 8, equip: { barbell: { type: "Straight bar" } } }),
-  set({ date: PAST, exercise: "Barbell bench press — flat", muscle: "Chest", weight: 155, reps: 8, equip: { barbell: { type: "Straight bar" } } }),
-  set({ date: PAST, exercise: "Pec deck", muscle: "Chest", weight: 90, reps: 12 }),
+  set({ date: PAST, exercise: "Bench press", muscle: "Chest", weight: 135, reps: 10, equip: { barbell: { type: "Straight bar" } } }),
+  set({ date: PAST, exercise: "Bench press", muscle: "Chest", weight: 155, reps: 8, equip: { barbell: { type: "Straight bar" } } }),
+  set({ date: PAST, exercise: "Bench press", muscle: "Chest", weight: 155, reps: 8, equip: { barbell: { type: "Straight bar" } } }),
+  set({ date: PAST, exercise: "Chest fly", muscle: "Chest", weight: 90, reps: 12 }),
   cardio({ date: PAST, exercise: "Treadmill", minutes: 20 }),
 ];
 
@@ -24,7 +24,7 @@ test("Repeat on a past day lists its exercises on the Log tab", async ({ page })
   await expect(page.locator("#tab-log")).toBeVisible();
   const card = page.locator("#repeat-today");
   await expect(card).toContainText("Repeat Mon, Mar 2");
-  await expect(card.locator(".pi-name")).toHaveText(["Barbell bench press — flat", "Pec deck", "Treadmill"]);
+  await expect(card.locator(".pi-name")).toHaveText(["Bench press", "Chest fly", "Treadmill"]);
   await expect(card.locator(".tag")).toHaveText(["0/3", "0/1", "—"]);
   expect(errors).toEqual([]);
 });
@@ -33,7 +33,7 @@ test("Start fills in the exercise, top weight, reps and sets left, and logging c
   const errors = await openApp(page, { entries: pastDay() });
   await repeatPast(page);
   await page.click('#repeat-today [data-repeat-start="0"]');
-  await expect(page.locator("#ex-chosen-name")).toHaveText("Barbell bench press — flat");
+  await expect(page.locator("#ex-chosen-name")).toHaveText("Bench press");
   await expect(page.locator("#weight")).toHaveValue("155");
   await expect(page.locator("#reps")).toHaveValue("8");
   await expect(page.locator("#sets")).toHaveValue("3");
@@ -56,7 +56,7 @@ test("the Repeat card can be closed, and isn't shown on a later day", async ({ p
   await page.reload();
   await expect(page.locator("#repeat-today")).toBeHidden();
   // A repeat started yesterday doesn't carry over.
-  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem("liftlog.prefs.v1")); p.repeat = { on: "2026-03-03", from: "2026-03-02", items: [{ exercise: "Pec deck", weight: 90, unit: "lb", reps: 12, sets: 1 }] }; localStorage.setItem("liftlog.prefs.v1", JSON.stringify(p)); });
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem("liftlog.prefs.v1")); p.repeat = { on: "2026-03-03", from: "2026-03-02", items: [{ exercise: "Chest fly", weight: 90, unit: "lb", reps: 12, sets: 1 }] }; localStorage.setItem("liftlog.prefs.v1", JSON.stringify(p)); });
   await page.reload();
   await expect(page.locator("#repeat-today")).toBeHidden();
   expect(errors).toEqual([]);

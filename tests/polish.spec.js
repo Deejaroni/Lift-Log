@@ -114,7 +114,7 @@ test("after Log set, the exercise list and History catch up a moment later", asy
   await pickExercise(page, "EZ-bar curl");
   await page.fill("#weight", "77.5"); await page.fill("#reps", "9");
   await page.click("#save");
-  await expect(page.locator("#ex-results .ex-opt").first()).toHaveAttribute("data-name", "EZ-bar curl");
+  await expect(page.locator("#ex-results .ex-opt").first()).toHaveAttribute("data-name", "Biceps curl");
   await page.click('nav.tabs [data-tab="history"]');
   await expect(page.locator("#history")).toContainText("77.5");
   expect(errors).toEqual([]);

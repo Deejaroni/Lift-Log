@@ -4,14 +4,14 @@ const { set, openApp, pickExercise } = require("./helpers");
 const day = "#day-list";
 
 test("every tab opens", async ({ page }) => {
-  const errors = await openApp(page, { entries: [set({ exercise: "Seated cable row", muscle: "Back", weight: 100, reps: 10 })] });
+  const errors = await openApp(page, { entries: [set({ exercise: "Seated row", muscle: "Back", weight: 100, reps: 10 })] });
   for (const tab of ["plan", "history", "progress", "log"]) {
     await page.click(`nav.tabs [data-tab="${tab}"]`);
     await expect(page.locator(`#tab-${tab}`)).toBeVisible();
     await expect(page.locator(`nav.tabs [data-tab="${tab}"]`)).toHaveAttribute("aria-selected", "true");
   }
   await page.click('nav.tabs [data-tab="history"]');
-  await expect(page.locator("#history")).toContainText("Seated cable row");
+  await expect(page.locator("#history")).toContainText("Seated row");
   await page.click('nav.tabs [data-tab="progress"]');
   await expect(page.locator("#ex-chart")).toBeVisible();
   expect(errors).toEqual([]);
@@ -19,7 +19,7 @@ test("every tab opens", async ({ page }) => {
 
 test("log a straight set with a failure mark", async ({ page }) => {
   const errors = await openApp(page);
-  await pickExercise(page, "Barbell bench press — flat");
+  await pickExercise(page, "Bench press");
   await page.fill("#weight", "135");
   await page.fill("#reps", "8");
   await page.fill("#sets", "2");
@@ -64,7 +64,7 @@ test("log a cardio entry", async ({ page }) => {
 });
 
 test("edit and delete an entry", async ({ page }) => {
-  const errors = await openApp(page, { entries: [set({ id: "e1", exercise: "Seated cable row", muscle: "Back", weight: 100, reps: 10 })] });
+  const errors = await openApp(page, { entries: [set({ id: "e1", exercise: "Seated row", muscle: "Back", weight: 100, reps: 10 })] });
   await expect(page.locator(`${day} .set .num`)).toHaveText("100 lb × 10");
 
   await page.click(`${day} [data-tap="e1"]`);

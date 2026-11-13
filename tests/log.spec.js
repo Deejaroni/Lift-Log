@@ -23,7 +23,7 @@ test("the Today ring shows one segment per planned exercise", async ({ page }) =
   await expect(ring.locator(".seg.now")).toHaveCount(1);
   await expect(ring).toContainText("1/6");
   await expect(page.locator("#head-kicker")).toContainText("Legs");
-  await expect(page.locator("#head-next")).toHaveText("Next: Romanian deadlift");
+  await expect(page.locator("#head-next")).toHaveText("Next: Deadlift");   // the template's Romanian deadlift, under its parent
   await page.click('nav.tabs [data-tab="history"]');
   await expect(page.locator("#head-title")).toHaveText("History");
   await expect(ring).toBeHidden();

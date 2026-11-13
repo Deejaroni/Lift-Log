@@ -6,6 +6,7 @@ import { prefs, settings } from "./state.js";
 import { esc, sorted } from "./log.js";
 import { applyFormKind, cardioTypeOf, isCardioForm, readCardioVals, renderCardioDetails } from "./equipment.js";
 import { CATALOG_TEXT } from "./exercise-library.js";
+import { PARENTS } from "./parents.js";
 
 // ---------- muscle groups & exercise dropdown ----------
 const MUSCLES = ["Cardio","Mobility","Chest","Back","Shoulders","Biceps","Triceps","Quadriceps","Hamstrings","Glutes","Calves","Abdominals","Lower back","Forearms","Full body","Other"];
@@ -32,9 +33,11 @@ const GUESS = [
   [/\brows?\b|rowing|pull.?down|pull.?up|\bchin|\blats?\b|shrug|pullover|\btraps?\b|y.?raise|rack pull/, "Back"],
 ];
 const guessMuscle = name => { const n=(name||"").toLowerCase(); for(const [re,g] of GUESS){ if(re.test(n)) return g; } return "Other"; };
-// Older entries used "Legs" and "Core"
+// Older entries used "Legs" and "Core". For "Legs", the library's leg group for the name (a Romanian deadlift now
+// logged as "Deadlift" is still hamstrings), else a guess from the name.
+const LEG_GROUPS = ["Quadriceps","Hamstrings","Glutes","Calves"];
 const normMuscle = (m, name) => MUSCLES.includes(m) ? m : m==="Core" ? "Abdominals" :
-  m==="Legs" ? (/curl|hamstring|rdl|romanian|stiff|nordic|good ?morning/.test((name||"").toLowerCase()) ? "Hamstrings" : "Quadriceps") : (CAT_MUSCLE.get((name||"").toLowerCase()) || guessMuscle(name));
+  m==="Legs" ? (LEG_GROUPS.includes(CAT_MUSCLE.get((name||"").toLowerCase())) ? CAT_MUSCLE.get((name||"").toLowerCase()) : /curl|hamstring|rdl|romanian|stiff|nordic|good ?morning/.test((name||"").toLowerCase()) ? "Hamstrings" : "Quadriceps") : (CAT_MUSCLE.get((name||"").toLowerCase()) || guessMuscle(name));
 const exSet = name => settings.exercises[(name||"").toLowerCase()];
 const groupOf = name => {
   const o = exSet(name); if(o && MUSCLES.includes(o.muscle)) return o.muscle;
@@ -73,6 +76,7 @@ export function init(){
       }
     });
   })();
+  PARENTS.forEach(p=>{ const k = p.name.toLowerCase(); if(!CAT_MUSCLE.has(k)) CAT_MUSCLE.set(k, p.m); if(p.variants[0].v.equip==="Bodyweight") BW_NAMES.add(k); });
   $("#muscle").innerHTML = MUSCLES.map(m=>`<option>${m}</option>`).join("");
   $("#group-filter").innerHTML = `<option value="">All muscle groups</option>` + MUSCLES.map(m=>`<option>${m}</option>`).join("");
   if(prefs.group && MUSCLES.includes(prefs.group)) $("#group-filter").value = prefs.group;

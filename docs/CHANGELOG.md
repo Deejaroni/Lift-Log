@@ -2,6 +2,16 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-13
+- Exercises are grouped: one "Lat pulldown" instead of 16 versions, with chips under it for equipment, attachment, width, grip and position. It starts with the version you did last; tap a chip to change it.
+- Search shows one row per exercise with how many variants it has; searching a specific version, like "neutral grip pulldown", fills in those details.
+- Your logged sets, favorites and plan moved to the grouped names automatically, keeping their details. Exercises you named yourself are unchanged.
+- Progress, records and Last time count every variant together; on Progress, chips show just one variant.
+- History and Last time show each set’s variant, like "Cable · Lat bar · Wide overhand".
+- 3D pictures match the exercise better: seated, lying, kneeling, chest-supported and machine exercises no longer show the body standing, and machines don’t show a free weight.
+- A few pictures showed the wrong movement (some deadlifts, V-ups, toes-to-bar, high-pulley flies); they’re fixed.
+- CSV exports include the variant.
+
 ## 2026-11-12 (seventh update)
 - Exercise pictures are now a realistic 3D body doing the movement, with the weight moving in its hands, on the Log card, in the exercise list and in Browse by movement.
 - In an exercise's how-to sheet, drag the picture to turn it; a blue arrow shows which way to push or pull while lifting.

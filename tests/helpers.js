@@ -30,7 +30,8 @@ const bodyWeight = (w, unit, extra = {}) => ({ bw: w, bwUnit: unit, days: {}, bw
 // Chooses an exercise on the Log tab by searching for its exact name and tapping the result.
 async function pickExercise(page, name) {
   await page.fill("#exercise-search", name);
-  await page.click(`#ex-results [data-name="${name}"]`);
+  // A library version ("Romanian deadlift") is a variant row of its parent ("Deadlift").
+  await page.locator(`#ex-results [data-name="${name}"], #ex-results [data-src="${name}"]`).first().click();
 }
 
 // The exercise sheet opens on how to do it; name and muscles are under Edit (already open for cardio).

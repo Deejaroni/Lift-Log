@@ -288,7 +288,7 @@ const RULES = [
   [/russian twist/, "russianTwist"],
   [/windmill/, "windmill"],
   [/halo/, "halo"],
-  [/high pull/, "highPull"],
+  [/high pull(?!ey)/, "highPull"],   // not "high pulley"
   [/get-up/, "getUp"],
   [/renegade/, "renegadeRow"],
   [/kettlebell snatch/, "kbSnatch"],
@@ -301,10 +301,13 @@ const RULES = [
   [/farmer|suitcase/, "carry"],
   [/dip/, "dips"],
   [/push-up|pushup/, "pushUp"],
+  [/toes-to-bar|flutter kick/, "legRaise"],
+  [/v-up|bicycle crunch/, "crunch"],
   [/plank/, "plank"],
   [/hanging|leg raise|knee raise/, "legRaise"],
   [/crunch|sit-up/, "crunch"],
   [/face pull|rear-delt emphasis/, "facePull"],
+  [/(deadlift|rdl)[^|]*$/, "hinge"],   // deadlifts listed under lower back are still deadlifts
   [/good morning/, "goodMorning"],
   [/back extension|hyperextension/, "backExt"],
   [/hip thrust|glute bridge|glute drive|bridge machine/, "hipThrust"],

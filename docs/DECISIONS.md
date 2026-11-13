@@ -185,3 +185,19 @@ The plan for the next updates is in docs/ROADMAP.md.
 - three.js is shipped unminified (npm no longer publishes minified builds and the app has no build step). GitHub Pages compresses it in transit; the offline cache holds it once.
 - 19 of the 561 strength exercises still have no movement picture (grip holds, hangs, slider curls and a few bodyweight moves). Mapping them to the nearest pattern would show the wrong movement, so they keep the body map until they get their own.
 - The 3D drawing has a per-frame budget (about 10 ms: the big picture first, small ones taking turns) and then stays idle at least as long as it drew, so it never takes more than half the page's time. Without it, a machine with no graphics chip (the publish workflow's test runner) spent so long drawing that taps timed out; slow phones would feel the same.
+- The 2D pattern picks the movement; the exercise's name then picks the 3D posture (js/variants3d.js): seated, chest-supported, preacher, kneeling, lying, decline, on a machine, one-sided and so on, 68 variants in js/poses3d-variants.js. Machines (anything named machine, pec deck, plate-loaded, hack squat and the like, but not Smith or cable) hold no free weight, so a hack squat doesn't show a barbell on the back.
+- A few name matches were wrong in the shared rules and are fixed for 2D too: deadlifts listed under lower back showed a good morning, V-ups and toes-to-bar showed a plank, and "high pulley" cable flies matched the kettlebell high pull.
+- Curls, skull crushers and wrist curls use a shorter bar with smaller plates.
+- Each pattern's camera framing is worked out before the figure is posed for the frame (working it out poses the body at several points), so the very first picture of a movement isn't stuck at its end position.
+
+## Exercises with variants (2026-11-13)
+- The library's 600-odd names are grouped into 139 parent exercises in js/parents.js (51 of them with more than one version), worked out from the names by rules: a family pattern picks the parent ("Lat pulldown"), word patterns pick the details (equipment, attachment, width, grip, angle, position, one side, path, style). The library text itself is unchanged, so search still finds every name and the pictures, hints and standards still look up the specific version.
+- A set stores the parent as `exercise` and the details as `variant`. The equipment block (`equip`) is untouched: it carries the bar weight and per-hand math, and the variant is only a label for it.
+- Lateral raises already used `variant` for their grip and path; that moved to `lr` so the name could mean the same thing everywhere.
+- Old sets, favorites, plan items, Repeat items and per-exercise muscle settings move to the parent once, at start-up (and for imported CSV rows without a variant). Your own exercise names aren't touched. The storage keys stay the same.
+- Progress, PRs, Last time and suggestions count every variant together, as asked; Progress has chips to look at one variant. So a heavier machine pulldown is a PR for Lat pulldown.
+- Choosing a parent fills in the variant you used last (else the library's plainest one). A search for a specific version ("neutral grip pulldown") fills in that version's details instead.
+- The details editor offers only what goes with the chosen equipment (no lat bar on a plate-loaded machine), except width and grip, which always offer close/medium/wide and overhand/underhand/neutral. Choices you've used come first.
+- The chosen exercise's subgroup and the muscles it also works follow the variant: a cable pulldown isn't "machine pulldown", a hammer curl also works forearms.
+- For old sets saved under "Legs", a parent's own leg group wins over guessing from the name, so a Romanian deadlift now logged as Deadlift stays under hamstrings.
+- CSV exports gain three columns: the variant in words, and the variant and lateral-raise details as JSON so an import gives them back exactly.

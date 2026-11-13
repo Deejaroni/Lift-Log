@@ -4,26 +4,33 @@ import { PATTERNS, patternKey, kindOf, deltHead } from "./movements.js";
 import { figureMarkup, bodyMapMarkup, poseBox, FIGURE_VIEWBOX } from "./figure.js";
 import { groupOf } from "./catalog.js";
 import { EX_INDEX, alsoOf } from "./search.js";
+import { pose3dFor } from "./variants3d.js";
+import { srcFor } from "./parents.js";
+import { exSet } from "./catalog.js";
+import { defaultVariant } from "./variant-ui.js";
 
 const TIMED = new Set(["Cardio","Mobility"]);
 const headLabel = h => `${h[0].toUpperCase()}${h.slice(1)} delts`;
 
 // Everything the visuals need for one exercise. Muscles follow your own choices (groupOf / alsoOf).
-function visualFor(name){
-  const main = groupOf(name), e = EX_INDEX.get(name.toLowerCase());
+// For a parent exercise, the picture is its variant's (by default the one you used last).
+function visualFor(name, variant){
+  const src = srcFor(name, variant || defaultVariant(name)), own = !!exSet(name);
+  const main = groupOf(name), e = EX_INDEX.get(src.toLowerCase());
   const lib = e && (e.muscles.find(x=>x.m===main) || e.muscles[0]);
-  const key = patternKey(name, lib ? lib.m : main, lib ? lib.sub : ""), pat = key ? PATTERNS[key] : null;
+  const key = patternKey(src, lib ? lib.m : main, lib ? lib.sub : ""), pat = key ? PATTERNS[key] : null;
   // Cardio machines have a picture but no muscles; other cardio and mobility have neither.
-  if(TIMED.has(main)) return {timed:true, key, pat, kind:"none", main, also:[], roles:{}};
+  if(TIMED.has(main)) return {timed:true, key, key3d: pose3dFor(key, src, "none").key, pat, kind:"none", main, also:[], roles:{}};
   const head = main==="Shoulders" ? deltHead(lib && lib.m==="Shoulders" ? lib.sub : "", key) : null;
-  const also = alsoOf(name).filter(m=>!TIMED.has(m));
+  const also = alsoOf(own ? name : src).filter(m=>!TIMED.has(m));
   const tag = (m, h) => m==="Shoulders" && h ? `Shoulders:${h}` : m;
   const roles = {[tag(main, head)]: 1};
   also.forEach(m=>{ const t = tag(m, m==="Shoulders" ? (pat && pat.head) : null); if(!roles[t]) roles[t] = .38; });
   // "Full body" isn't a muscle the figure can show, so light up every muscle the movement itself shows.
   if(main==="Full body" && pat) [...(pat.bands||[]).map(b=>b.m), ...(pat.regions||[]).map(x=>x[1])].forEach(m=>{ roles[m] = 1; });
   const label = (m, h) => m==="Shoulders" && h ? headLabel(h) : m;
-  return {key, pat, kind: kindOf(name), roles, main: label(main, head), also: also.map(m=>label(m, m==="Shoulders" && pat ? pat.head : null))};
+  const kind = kindOf(src), p3 = pose3dFor(key, src, kind);
+  return {src, key, pat, kind, key3d: p3.key, kind3d: p3.kind, roles, main: label(main, head), also: also.map(m=>label(m, m==="Shoulders" && pat ? pat.head : null))};
 }
 
 // ---------- 3D figures (js/figure3d.js), loaded on demand; the 2D drawings stay as the fallback ----------
@@ -65,14 +72,14 @@ if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
 
 // A small picture for lists: the movement in 3D (or its end position in 2D), or the body map when there's no animation.
 const stills = new Map();
-function stillMarkup(name, size=[40,36]){
-  const v = visualFor(name);
+function stillMarkup(name, size=[40,36], variant){
+  const v = visualFor(name, variant);
   if(v.timed && !v.pat) return "";
   const id = `${v.key}|${v.kind}|${JSON.stringify(v.roles)}|${size}`;
   if(!stills.has(id)) stills.set(id, v.pat
     ? `<svg viewBox="${poseBox(v.pat)}" width="${size[0]}" height="${size[1]}" aria-hidden="true" focusable="false">${figureMarkup(v.pat, 1, v.roles, v.kind, {noShadow:true})}</svg>`
     : `<svg viewBox="0 0 58 44" width="${size[0]}" height="${size[1]}" aria-hidden="true" focusable="false">${bodyMapMarkup(v.roles)}</svg>`);
-  return v.pat && use3d() ? fig3d(v.key, v.kind, v.roles, size[0], size[1], stills.get(id)) : stills.get(id);
+  return v.pat && use3d() ? fig3d(v.key3d || v.key, v.kind3d || v.kind, v.roles, size[0], size[1], stills.get(id)) : stills.get(id);
 }
 
 // A still for a movement on its own (browse tiles), with every muscle it shows.
@@ -116,7 +123,7 @@ function animate(svg, v, tight=false){
     // The 2D figure shows until the 3D one is ready; then the canvas takes its place.
     const c = canvasFor(svg), big = !tight, token = c._t = (c._t || 0) + 1;
     load3d().then(m => { if(!m || c._t !== token) return;
-      m.show(c, {key: v.key, kind: v.kind, roles: v.roles}, {tight, rotate: big, arrows: big});
+      m.show(c, {key: v.key3d || v.key, kind: v.kind3d || v.kind, roles: v.roles}, {tight, rotate: big, arrows: big});
       c.setAttribute("aria-label", svg.getAttribute("aria-label") || ""); c.hidden = false; svg.setAttribute("data-three", "1"); live.delete(svg); });
   }
   svg.setAttribute("viewBox", tight ? poseBox(v.pat, v.pat.loop ? [0,.25,.5,.75] : v.pat.pose ? [0,.33,.67,1] : [0,.5,1]) : FIGURE_VIEWBOX);
