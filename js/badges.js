@@ -7,6 +7,7 @@ import { e1rm, esc, fmt, fmtBig, loadOf, toUnit, totalRaw, volOf } from "./log.j
 import { fmtMin, isCardio, paceText, suggestEquip, toMeters } from "./equipment.js";
 import { srcFor } from "./parents.js";
 import { STD, TIERS, ageFactor, matcher, profile, tierOf } from "./standards.js";
+import { goalFor, goalText, reachedOn } from "./goals.js";
 
 // A badge is {t: label, c: "" (green record) | "ms" (yellow milestone) | "nw" (blue new / back), why}.
 // An exercise shows at most two: its top milestone, then its top record.
@@ -88,6 +89,12 @@ function liftBadges(g, prev){
   if(gap>=30) ms.push({t:"Back", c:"nw", why:`Back: first time in ${gap} days`});
   return [ms[0], rec[0]].filter(Boolean);
 }
+// The day a lift goal was first met: a milestone that comes before the others.
+function withGoal(g, list){
+  const gl = goalFor(g[0].exercise);
+  if(!gl || reachedOn(gl)!==g[0].date) return list;
+  return [{t:"Goal", c:"ms", why:`Goal reached: ${goalText(gl)}`}, ...list.filter(b=>b.c!=="ms")].slice(0, 2);
+}
 
 const meters = e => e.distance>0 ? toMeters(e.distance, e.distUnit) : 0;
 const speed = e => meters(e)>0 && e.minutes>0 ? meters(e)/e.minutes : 0;
@@ -115,7 +122,7 @@ function cardioBadges(g, prev){
 // Badges for one exercise's sets on one day.
 function exBadges(g){
   const day = g[0].date, prev = (index().byEx.get(g[0].exercise.toLowerCase()) || []).filter(e=>e.date<day);
-  return isCardio(g[0]) ? cardioBadges(g, prev) : liftBadges(g, prev);
+  return isCardio(g[0]) ? cardioBadges(g, prev) : withGoal(g, liftBadges(g, prev));
 }
 const ordinal = n => n + (n%100>=11 && n%100<=13 ? "th" : ({1:"st", 2:"nd", 3:"rd"}[n%10] || "th"));
 // Badges for a whole day: most volume ever, and the 10th, 25th, 50th, 100th, 150th… training day.

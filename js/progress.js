@@ -12,6 +12,8 @@ import { TIMED } from "./plan.js";
 import { renderStandards } from "./standards.js";
 import { badgeHTML, streakMilestone } from "./badges.js";
 import { variantLabel } from "./parents.js";
+import { renderBody } from "./body.js";
+import { goalHTML } from "./goals.js";
 // The variant the chart is narrowed to (its label), or null for every variant together.
 let progVariant = null, progFor = "";
 
@@ -89,8 +91,8 @@ function renderMuscleSets(){
 }
 function renderProgress(){
   renderConsistency(); renderStandards(); renderMuscleSets();
-  if(!window.Chart){ $("#prog-empty").hidden=false; $("#prog-empty").textContent="Charts couldn't load. Check your connection and reopen this page."; return; }
-  chartDefaults();
+  if(!window.Chart){ renderBody(); $("#prog-empty").hidden=false; $("#prog-empty").textContent="Charts couldn't load. Check your connection and reopen this page."; return; }
+  chartDefaults(); renderBody();
   fillSelect($("#prog-ex"), false);
   const name = ($("#prog-ex").value||"").toLowerCase();
   const every = sorted().filter(e=>e.exercise.toLowerCase()===name);
@@ -105,6 +107,7 @@ function renderProgress(){
   const cardio = list.length>0 && list.every(isCardio);
   const dayLabel = d=>new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
   let metrics, days, series, color, isBar, unitLabel, reverse=false, digits=1;
+  if(cardio || !list.length) $("#prog-goal").innerHTML = "";
   if(cardio){
     const T = cardioTypeOf(list[0].exercise), du = prefs.unit==="kg"?"km":"mi";
     const distU = (T==="rower"||T==="skierg") ? "m" : T==="swim" ? (prefs.unit==="kg"?"m":"yd") : du;
@@ -150,6 +153,8 @@ function renderProgress(){
     days = [...byDay.keys()];
     const pts = days.map(d=>byDay.get(d));
     const bwEx = list.length>0 && list.every(e=>e.equip && e.equip.bw);
+    // A lift goal (weight × reps by a date) for weighted lifts; your variant filter doesn't change it.
+    $("#prog-goal").innerHTML = every.length && !bwEx ? goalHTML($("#prog-ex").value) : "";
     metrics = bwEx ? [["best","Best set (reps)"],["reps","Total reps"],["top","Added weight"]] : STR_METRICS;
     if(!metrics.some(m=>m[0]===metric)) metric = bwEx ? "best" : "top";
     series = pts.map(p=>p[metric]);

@@ -201,3 +201,12 @@ The plan for the next updates is in docs/ROADMAP.md.
 - The chosen exercise's subgroup and the muscles it also works follow the variant: a cable pulldown isn't "machine pulldown", a hammer curl also works forearms.
 - For old sets saved under "Legs", a parent's own leg group wins over guessing from the name, so a Romanian deadlift now logged as Deadlift stays under hamstrings.
 - CSV exports gain three columns: the variant in words, and the variant and lateral-raise details as JSON so an import gives them back exactly.
+
+## Body and goals (roadmap phase 6, 2026-11-13)
+- The Body section sits at the top of Progress with three views: Weight, Measurements and Photos. Weigh-ins are the same ones as under Day total on the Log tab (settings.bwLog), so nothing new is stored for weight.
+- The weight trend pulls 10% of the way to each weigh-in per day since the last one, so a single salty or dehydrated day barely moves it. The weekly rate is a straight-line fit through the last 4 weeks of weigh-ins (it needs at least a week), not the trend's change, which lags. The rate is shown in blue, not green or red, because losing isn't everyone's goal.
+- Measurements are stored per day in settings.meas, {waist, chest, hips, arms, thighs, fat, unit}, in inches or cm to match lb or kg, and converted for display. Saving again on the same day replaces that day's numbers. Waist and body fat going down show in green; the others stay neutral.
+- Photos are stored in IndexedDB (the "liftlog-photos" database), since localStorage holds only a few MB. They're shrunk to at most 1280 px as JPEG (about 150–300 KB each). The usual backup stays small; "Back up photos" writes a file of their own, and Restore recognizes either file and adds the photos that are missing.
+- A lift goal is a weight × reps by a date, one per exercise, in settings.goals under the exercise's lowercase name. The bar compares your best est. 1RM (sets of 10 reps or fewer) with the goal's; a goal of 1 rep counts the weight itself (Epley gives the same number at 1 rep). The goal is reached by a real set at that weight for that many reps, on or after the day it was set, and that day gets a Goal badge in History. Changing the weight or reps restarts that count; moving the date doesn't.
+- The projected date is a straight-line fit of each day's best est. 1RM over the last 8 weeks, shown only with 3 days over 2 weeks or more and a rising trend.
+- Older settings have no measurements or goals; start-up adds empty ones (tests/body.spec.js loads settings saved before this change).

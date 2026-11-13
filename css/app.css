@@ -499,6 +499,55 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .exs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .exs-head h3{margin:0;min-width:0;overflow-wrap:anywhere}
 .exs-anim{display:block;width:100%;height:auto;aspect-ratio:200/176;background:var(--field);border-radius:12px}
+/* Body section on Progress: weight trend, measurements, photos; lift goals; their sheets. */
+.bd-now{margin-top:14px;font-weight:600;color:var(--muted)}
+.bd-big{font-size:2.2rem;font-weight:700;font-stretch:80%;line-height:1;color:var(--ink)}
+.bd-unit{font-size:1rem;color:var(--muted);font-weight:600;margin-left:4px}
+.bd-rate{margin:6px 0 0;font-size:.9rem;font-weight:600;color:var(--blue-ink)}
+.bd-rate[hidden]{display:none}
+.bd-chart{height:180px}
+.bd-add{width:100%;margin-top:12px}
+.bd-cap{margin:12px 0 0}
+.bd-rows{margin-top:8px}
+.bd-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 4px;border:0;border-top:1px solid var(--line);border-radius:0;background:none;color:var(--ink);font:inherit;text-align:left}
+.bd-row:first-child{border-top:0}
+.bd-row[aria-pressed="true"] .bd-name{color:var(--blue-ink)}
+.bd-row:active{background:var(--field)}
+.bd-name{flex:1;font-weight:600}
+.bd-val{font-weight:700;font-stretch:85%;font-size:1.1rem}
+.bd-chg{font-size:.85rem;color:var(--muted);min-width:56px;text-align:right}
+.bd-chg.good{color:var(--green-ink)}
+.bd-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.bd-empty{grid-column:1/-1;margin:0}
+.bd-ph{position:relative;aspect-ratio:3/4;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--field);overflow:hidden}
+.bd-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bd-ph b{position:absolute;left:4px;right:4px;bottom:4px;padding:2px 4px;border-radius:4px;background:var(--surface);color:var(--ink);font-size:.75rem;font-weight:600;text-align:center}
+.bd-ph[aria-pressed="true"]{outline:3px solid var(--blue);outline-offset:-3px}
+.bd-ph:active{opacity:.8}
+#photo-tip{margin-top:8px}
+#photo-tip[hidden],#photo-compare[hidden]{display:none}
+#photo-compare[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bd-cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bd-cmp figure{margin:0}
+.bd-cmp img,.bd-view-img img{display:block;width:100%;border-radius:10px;background:var(--field)}
+.bd-cmp figcaption{margin-top:6px;font-size:.85rem;color:var(--muted)}
+.bd-cmp figcaption b{color:var(--ink)}
+.bd-apart{color:var(--ink)}
+.bd-view-img img{max-height:60vh;object-fit:contain}
+.bd-field{display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center;margin-top:8px}
+.bd-field .lbl{margin:0}
+.bd-field input{min-height:44px}
+.bd-date{grid-template-columns:1fr 170px}
+#exs-goalrow[hidden]{display:none}
+.goal-set{width:100%;margin-top:10px}
+.bd-goal{display:block;width:100%;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font:inherit;text-align:left}
+.bd-goal:active{background:var(--line)}
+.bd-goal-t{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.bd-goal small{display:block;color:var(--muted);font-size:.85rem;font-weight:500}
+.bd-goal-t small{display:inline}
+.bd-bar{display:block;height:10px;border-radius:999px;background:var(--surface);overflow:hidden;margin:8px 0 6px}
+.bd-bar i{display:block;height:100%;background:var(--green);border-radius:999px}
+.bd-goal.hit small{color:var(--green-ink);font-weight:600}
 /* Variant tracker: chips under the chosen exercise, the details editor, the Progress filter. */
 .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .vchip{min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:.9rem;font-weight:600;color:var(--ink)}

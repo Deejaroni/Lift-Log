@@ -6,6 +6,8 @@ import { SET_KEY, entries, migrateParents, prefs, saveLocal, savePrefs, setPrefs
 import { variantLabel } from "./parents.js";
 import { esc, sorted, today, uid } from "./log.js";
 import { equipText } from "./equipment.js";
+import { photoBackupText, photoSummary, restorePhotos } from "./photos.js";
+import { renderBody } from "./body.js";
 
 // ---------- CSV export / import ----------
 const CSV_COLS = ["id","date","exercise","weight","unit","reps","set_type","chain_id","step","to_failure","equipment","note","equipment_json","muscle_group","kind","minutes","distance","dist_unit","effort","avg_hr","machine_kcal","use_machine","cardio_json","rir","superset","superset_lead","variant","variant_json","lateral_raise_json"];
@@ -54,7 +56,8 @@ function backupDue(){
 function renderBackup(){
   const d = prefs.lastBackup ? daysSince(prefs.lastBackup) : null;
   $("#backup-info").textContent = (d==null ? "Not backed up yet." : `Last backup: ${d<=0?"today":d===1?"yesterday":`${d} days ago`}.`) +
-    " A backup holds your sets, plan, body weight and settings. Keep it in Files or email it to yourself.";
+    " A backup holds your sets, plan, body weight, measurements, goals and settings. Keep it in Files or email it to yourself.";
+  photoSummary().then(t => { $("#photo-info").textContent = t + (t.startsWith("No") ? "" : " Photos have a backup file of their own; Restore takes either file."); $("#backup-photos").hidden = t.startsWith("No"); });
   const due = backupDue(), n = $("#backup-nudge");
   n.hidden = !due;
   if(due) n.innerHTML = `<p><b>Back up your log.</b> ${esc(due)} A backup keeps your sets, plan and settings safe if you change or lose your phone.</p>
@@ -63,6 +66,12 @@ function renderBackup(){
 // Sets are merged by id (never duplicated); the plan, body weight and settings are replaced only if you say so.
 async function restoreBackup(text){
   let b; try{ b = JSON.parse(text); }catch(e){ notify("Couldn't read that file."); return; }
+  if(b && b.app==="Lift Log" && b.photos===1){
+    let n = 0; try{ n = await restorePhotos(b.items); }catch(e){ notify("Couldn't save the photos on this phone."); return; }
+    renderBody(); renderBackup();
+    await notify(n ? `Restored ${n} photo${n===1?"":"s"}.` : "Every photo in that backup is already on this phone.");
+    return;
+  }
   if(!b || b.app!=="Lift Log" || !Array.isArray(b.entries)){ notify("That doesn't look like a Lift Log backup."); return; }
   const have = new Set(entries.map(e=>e.id));
   const added = b.entries.filter(e=>e && e.id && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && e.exercise && !have.has(e.id) && have.add(e.id));
@@ -80,6 +89,10 @@ async function restoreBackup(text){
 export function init(){
   $("#export").onclick = ()=> shareOrSave(new File([toCSV()], `lift-log-${today()}.csv`, {type:"text/csv"}), "Lift Log sets");
   $("#backup").onclick = backUp;
+  $("#backup-photos").onclick = async ()=>{
+    let text; try{ text = await photoBackupText(); }catch(e){ notify("Couldn't read the photos on this phone."); return; }
+    shareOrSave(new File([text], `lift-log-photos-${today()}.json`, {type:"application/json"}), "Lift Log photos");
+  };
   $("#backup-nudge").addEventListener("click", e=>{
     if(e.target.closest("[data-backup]")) backUp();
     else if(e.target.closest("[data-later]")){

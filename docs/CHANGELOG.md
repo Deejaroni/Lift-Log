@@ -2,6 +2,13 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-13 (second update)
+- Progress has a new Body section at the top: your body weight with a smoothed trend line and how much it changes a week, from the weigh-ins you already log.
+- Track measurements (waist, chest, hips, arms, thighs and body fat), each with its change and its own chart.
+- Add progress photos, kept only on your phone, and compare any two side by side with that week’s weight and waist.
+- Set a lift goal, like Bench press 225 lb × 1 by June 1, on the lift’s progress card or its how-to sheet. A bar shows how close you are and when you’re on pace to get there; the day you hit it gets a Goal badge in History.
+- Settings has a separate Back up photos button, so the usual backup stays small. Restore takes either file.
+
 ## 2026-11-13
 - Exercises are grouped: one "Lat pulldown" instead of 16 versions, with chips under it for equipment, attachment, width, grip and position. It starts with the version you did last; tap a chip to change it.
 - Search shows one row per exercise with how many variants it has; searching a specific version, like "neutral grip pulldown", fills in those details.

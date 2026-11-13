@@ -10,6 +10,7 @@ import { EX_INDEX, alsoOf, chooseExercise, chosenMeta, exWords, osa } from "./se
 import { currentVariant } from "./variant-ui.js";
 import { P, TIMED, loggedFor, startPlanned } from "./plan.js";
 import { visualFor, animate, stopAnimating, bodyMapMarkup } from "./visuals.js";
+import { goalFor, goalText, openGoal } from "./goals.js";
 
 // ---------- exercise details: main muscle group and what else it works ----------
 let exsName = null, exsAlso = new Set();
@@ -39,6 +40,11 @@ function renderHowTo(name){
   $("#exs-map").innerHTML = v.timed ? "" : bodyMapMarkup(v.roles);
   $("#exs-muscles-text").innerHTML = v.timed ? "" : `<span class="mus-dot"></span>${esc(v.main)}` + (v.also.length ? `<br><span class="mus-dot also"></span>${esc(v.also.join(" · "))}` : "");
   $("#exs-steps").innerHTML = v.pat && v.pat.steps ? v.pat.steps.map(s=>`<li>${esc(s)}</li>`).join("") : "";
+  // A lift goal for weighted lifts (cardio and mobility have none).
+  const g = goalFor(name);
+  $("#exs-goalrow").hidden = !!v.timed;
+  $("#exs-goal-text").textContent = g ? `Goal: ${goalText(g)}` : "No goal yet";
+  $("#exs-goal").textContent = g ? "Change" : "Set a goal";
 }
 function setEditOpen(open){ $("#exs-edit-wrap").hidden = !open; $("#exs-edit").setAttribute("aria-expanded", String(open)); }
 // Names that look like the same exercise (a typo or different spacing): yours first, then the library's.
@@ -142,6 +148,7 @@ export function init(){
     if($("#exercise").value.toLowerCase()===n.toLowerCase()) $("#ex-chosen-fav").hidden = !isFav(n);
   };
   $("#exs-close").addEventListener("click", closeExerciseInfo);
+  $("#exs-goal").addEventListener("click", ()=>{ const n = $("#exs-title").textContent; $("#exsheet").hidden = true; openGoal(n); });
   $("#exs-edit").addEventListener("click", ()=>{ const open = $("#exs-edit-wrap").hidden; setEditOpen(open); if(open) $("#exs-name").focus(); });
   $("#exs-main").addEventListener("change", renderAlso);
   $("#exs-same").addEventListener("click", e=>{ const b = e.target.closest("[data-same]"); if(b) $("#exs-name").value = b.dataset.same; });

@@ -199,12 +199,14 @@
 
   <!-- PROGRESS -->
   <section id="tab-progress" hidden>
+    <div class="panel" id="body"></div>
     <div class="panel" id="consistency"></div>
     <div class="panel" id="std-panel"></div>
     <div class="panel">
       <label class="lbl" for="prog-ex">Exercise</label>
       <select id="prog-ex"></select>
       <div class="chips vfilter" id="prog-vfilter" role="group" aria-label="Variant" hidden></div>
+      <div id="prog-goal"></div>
       <div class="stats" id="prog-stats"></div>
       <div class="seg" role="group" aria-label="Chart metric" id="metric-seg"></div>
       <div class="chart-box"><canvas id="ex-chart" aria-label="Exercise progress chart" role="img"></canvas></div>
@@ -229,10 +231,31 @@
     </div>
   </section>
 
+  <input type="file" id="photo-file" accept="image/*" aria-label="Progress photo to add" hidden>
   <input type="file" id="import-file" accept=".json,application/json,.csv,text/csv" aria-label="Backup or CSV file to restore" hidden>
 </div>
 
 <div id="dlg" class="dlg-back" hidden><div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-msg"><p id="dlg-msg"></p><input id="dlg-input" type="text" aria-labelledby="dlg-msg" hidden><div class="dlg-actions"><button type="button" class="secondary" id="dlg-cancel">Cancel</button><button type="button" class="primary" id="dlg-ok">OK</button></div></div></div>
+<div id="meas-sheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="meas-title">
+  <h3 id="meas-title" style="margin:0">Measurements</h3><p class="cal-sub" id="meas-date"></p>
+  <div id="meas-fields"></div>
+  <p class="cal-sub">Fill in any of them; blanks are skipped.</p>
+  <div class="dlg-actions"><button type="button" class="secondary" id="meas-cancel">Cancel</button><button type="button" class="primary" id="meas-save">Save</button></div></div></div>
+<div id="goal-sheet" class="dlg-back" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="goal-title">
+  <h3 id="goal-title" style="margin:0 0 6px">Goal</h3>
+  <label class="bd-field"><span class="lbl">Weight (<span id="g-unit">lb</span>)</span><input id="g-weight" type="text" inputmode="decimal" autocomplete="off"></label>
+  <label class="bd-field"><span class="lbl">Reps</span><input id="g-reps" type="text" inputmode="numeric" autocomplete="off"></label>
+  <label class="bd-field bd-date"><span class="lbl">By</span><input id="g-by" type="date"></label>
+  <p class="cal-sub" id="g-hint" aria-live="polite"></p>
+  <div class="dlg-actions"><button type="button" class="secondary" id="goal-cancel">Cancel</button><button type="button" class="primary" id="goal-save">Save goal</button></div>
+  <p class="foot" style="margin:6px 0 0;text-align:center"><button type="button" class="danger" id="goal-remove" hidden>Remove goal</button></p></div></div>
+<div id="cmp-sheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="cmp-title">
+  <div class="exs-head"><h3 id="cmp-title" style="margin:0">Compare</h3><button type="button" class="rep-x" id="cmp-close" aria-label="Close">×</button></div>
+  <div id="cmp-body"></div></div></div>
+<div id="photo-sheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="photo-title">
+  <div class="exs-head"><h3 id="photo-title" style="margin:0">Photo</h3><button type="button" class="rep-x" id="photo-close" aria-label="Close">×</button></div>
+  <div id="photo-view" class="bd-view-img"></div>
+  <div class="dlg-actions"><button type="button" class="secondary danger" id="photo-del">Delete photo</button></div></div></div>
 <div id="hist-pick" class="dlg-back" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="hist-pick-title"><div class="exs-head"><h3 id="hist-pick-title">Show one exercise</h3><button type="button" class="rep-x" id="hist-pick-close" aria-label="Close">×</button></div><input id="hist-q" type="text" placeholder="Search your exercises" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search your exercises"><div class="ex-results" id="hist-list" role="group" aria-label="Your exercises"></div></div></div>
 <div id="exsheet" class="dlg-back" hidden><div class="dlg exdlg" role="dialog" aria-modal="true" aria-labelledby="exs-title">
   <div class="exs-head"><h3 id="exs-title"></h3><button type="button" class="star-btn" id="exs-fav" aria-pressed="false" aria-label="Favorite"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg></button><button type="button" class="rep-x" id="exs-close" aria-label="Close">×</button></div>
@@ -240,6 +263,7 @@
     <svg id="exs-anim" class="exs-anim" role="img" aria-label=""></svg>
     <div class="exs-cap"><svg id="exs-map" viewBox="0 0 58 44" width="84" height="64" aria-hidden="true" focusable="false"></svg><p id="exs-muscles-text"></p></div>
     <ol id="exs-steps" class="exs-steps"></ol>
+    <div class="exs-editrow" id="exs-goalrow"><span id="exs-goal-text">No goal yet</span><button type="button" class="edit" id="exs-goal">Set a goal</button></div>
     <div class="exs-editrow"><span>Name and muscles</span><button type="button" class="edit" id="exs-edit" aria-expanded="false" aria-controls="exs-edit-wrap">Edit</button></div>
   </div>
   <div id="exs-edit-wrap">
@@ -288,6 +312,8 @@
       <p class="cal-sub" id="backup-info"></p>
       <div class="data-actions"><button class="primary" id="backup" type="button">Back up everything</button><button class="secondary" id="import" type="button">Restore</button></div>
       <p class="foot" style="margin-top:10px"><button id="export" type="button">Export sets as CSV</button> to open in a spreadsheet.</p>
+      <div class="data-actions" style="margin-top:10px"><button class="secondary" id="backup-photos" type="button">Back up photos</button></div>
+      <p class="cal-sub" id="photo-info"></p>
     </section>
     <p class="foot" id="app-version"></p>
   </div>

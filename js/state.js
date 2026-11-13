@@ -68,6 +68,8 @@ function renameExercise(from, to){
   const ex = settings.exercises, tl = to.toLowerCase();
   if(ex[from] && from!==tl){ if(!ex[tl]) ex[tl] = ex[from]; delete ex[from]; }
   if(Array.isArray(settings.favs)) settings.favs = [...new Set(settings.favs.map(n=>n.toLowerCase()===from ? to : n))];
+  const gl = settings.goals || {};
+  if(gl[from] && from!==tl){ if(!gl[tl]) gl[tl] = {...gl[from], exercise: to}; delete gl[from]; }
   if(prefs.repeat && Array.isArray(prefs.repeat.items)) prefs.repeat.items.forEach(it=>{ if((it.exercise||"").toLowerCase()===from) it.exercise = to; });
 }
 // Migration (2026-10-31): duplicate spellings removed from the exercise library move to the name that was kept.
@@ -103,6 +105,12 @@ export function init(){
   if(!settings.exercises || typeof settings.exercises!=="object" || Array.isArray(settings.exercises)) settings.exercises = {};
   // Added 2026-11-12: favorite exercises, a list of names. Older data has none.
   if(!Array.isArray(settings.favs)) settings.favs = [];
+  // Added 2026-11-13 (Body and goals): measurements by day, {"YYYY-MM-DD": {waist, chest, hips, arms, thighs, fat, unit}},
+  // and lift goals by lowercase exercise name, {exercise, weight, reps, unit, by, set}. Older data has neither.
+  // Progress photos live in IndexedDB (js/photos.js), not here.
+  const isObj = v => v && typeof v==="object" && !Array.isArray(v);
+  if(!isObj(settings.meas)) settings.meas = {};
+  if(!isObj(settings.goals)) settings.goals = {};
 
   loadLocal();
   {
