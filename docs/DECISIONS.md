@@ -210,3 +210,9 @@ The plan for the next updates is in docs/ROADMAP.md.
 - A lift goal is a weight × reps by a date, one per exercise, in settings.goals under the exercise's lowercase name. The bar compares your best est. 1RM (sets of 10 reps or fewer) with the goal's; a goal of 1 rep counts the weight itself (Epley gives the same number at 1 rep). The goal is reached by a real set at that weight for that many reps, on or after the day it was set, and that day gets a Goal badge in History. Changing the weight or reps restarts that count; moving the date doesn't.
 - The projected date is a straight-line fit of each day's best est. 1RM over the last 8 weeks, shown only with 3 days over 2 weeks or more and a rising trend.
 - Older settings have no measurements or goals; start-up adds empty ones (tests/body.spec.js loads settings saved before this change).
+
+## Your PR in the next-set suggestion (2026-11-13)
+- The suggestion chip on the Log form also names your PR: the set with your best est. 1RM, from sets of 10 reps or fewer, the same rule as the rankings. A suggestion that would beat it gets the green PR badge used in History. Otherwise, on a day to push, it names the smallest set that would beat it. That's either more weight at today's reps or one more rep at last time's top weight, whichever is the smaller step, and only if it's within 3% of the PR. After missed reps or a long break it names the PR and nothing to try.
+- The PR is the chosen variant's when you've logged that variant, since a machine's numbers don't compare with a cable's; otherwise it's every variant together. Bodyweight sets have none, since their weight is only what's added.
+- The numbers are the weight as entered, so they match the weight box. With "Plates only (bar added)" set, the bar is left out of both sides alike, so which set is best doesn't change.
+- This was chosen over a separate PR chip so the form keeps one suggestion.

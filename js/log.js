@@ -75,7 +75,7 @@ function renderSuggest(){
   sugNow = (!isCardioForm() && mode==="straight" && name) ? nextSet(name, $("#date").value || today()) : null;
   const same = sugNow && Math.abs((parseFloat($("#weight").value)||0) - sugNow.weight)<0.01 && (parseInt($("#reps").value,10)||0)===sugNow.reps;
   box.hidden = !sugNow || same;
-  if(!box.hidden) $("#sug-text").innerHTML = `<b>${esc(sugNow.title)}</b>${esc(sugNow.why)}`;
+  if(!box.hidden) $("#sug-text").innerHTML = `<b>${esc(sugNow.title)}${sugNow.isPR ? `<span class="pr">PR</span>` : ""}</b>${esc([sugNow.why, sugNow.prText].filter(Boolean).join(" ")).replace(/\d+(\.\d+)? × \d+/g, m=>`<span>${m}</span>`)}`;   // a set never breaks across lines
 }
 
 // ---------- repeat the day's last set ----------

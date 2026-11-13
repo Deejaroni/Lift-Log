@@ -2,6 +2,10 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-13 (third update)
+- The weight suggestion on the Log tab now shows your PR for that exercise. When the suggested set would beat it, it gets a PR tag; otherwise it names the smallest set that would, like one more rep or a little more weight.
+- After missed reps or a long break, it shows your PR without suggesting an attempt.
+
 ## 2026-11-13 (second update)
 - Progress has a new Body section at the top: your body weight with a smoothed trend line and how much it changes a week, from the weigh-ins you already log.
 - Track measurements (waist, chest, hips, arms, thighs and body fat), each with its change and its own chart.

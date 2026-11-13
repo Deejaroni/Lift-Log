@@ -600,6 +600,7 @@ canvas.exs-anim{touch-action:pan-y;cursor:grab}
 .sug[hidden]{display:none}
 .sug p{margin:0;flex:1;min-width:0;font-size:.85rem;color:var(--muted)}
 .sug p b{display:block;color:var(--green-ink);font-size:1rem}
+.sug p span{white-space:nowrap}
 .sug button{flex:none;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:700}
 .sug button:active{background:var(--line)}
 .again{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:48px;margin-top:8px;padding:8px 12px}

@@ -37,7 +37,7 @@ test("a suggestion chip proposes the next set, and Use fills it in", async ({ pa
   const errors = await openApp(page, { entries: [...session("2026-02-20", [8, 8, 8]), ...session("2026-02-25", [8, 8, 8])] });
   await pickExercise(page, bench);
   await expect(page.locator("#weight")).toHaveValue("135");   // the form keeps last time's numbers
-  await expect(page.locator("#sug b")).toHaveText("Try 140 × 8");
+  await expect(page.locator("#sug b")).toHaveText("Try 140 × 8PR");   // 140 × 8 beats the 135 × 8 PR
   await expect(page.locator("#sug")).toContainText("You got all 8 reps on every set last time.");
   const box = await page.locator("#sug-use").boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(40);

@@ -3,9 +3,10 @@
 
 import { $ } from "./ui.js";
 import { entries, prefs, rev } from "./state.js";
-import { e1rm, esc, fmt, niceDate, rirText, roundStep, toUnit, today } from "./log.js";
+import { e1rm, esc, fmt, niceDate, rirText, roundStep, stepSize, toUnit, today } from "./log.js";
 import { equipText, isCardio, isCardioForm } from "./equipment.js";
-import { variantLabel } from "./parents.js";
+import { variantKey, variantLabel } from "./parents.js";
+import { currentVariant } from "./variant-ui.js";
 import { groupOf } from "./catalog.js";
 import { LOWER, suggestFor, workoutById, workoutFor } from "./plan.js";
 
@@ -35,8 +36,55 @@ function lastText(name, date){
 
 const DAY = 864e5, days = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / DAY);
 
-// Next set for an exercise on a date: {weight, reps, title, why}, or null when there isn't enough to go on.
+// ---------- your PR, and the smallest set that would beat it ----------
+// The PR is the best est. 1RM from sets of 10 reps or fewer, as entered (the weight box's numbers). It comes from the
+// chosen variant's sets when you've logged that variant (a machine's numbers don't compare with a cable's), else from
+// every variant. Bodyweight sets have no PR here.
+function prSets(name, date){
+  const all = straight(name, e => e.reps > 0 && e.reps <= 10 && e.weight > 0 && !isBW(e) && (!date || e.date < date));
+  const k = variantKey(currentVariant()), mine = all.filter(e => variantKey(e.variant) === k);
+  return mine.length ? mine : all;
+}
+function bestPR(name, date){
+  let best = null;
+  prSets(name, date).sort((a, b) => a.date === b.date ? byTs(a, b) : a.date < b.date ? -1 : 1).forEach(e => {
+    const w = toUnit(e.weight, e.unit), x = e1rm(w, e.reps);
+    if(!best || x > best.e1 + 0.01) best = { w, r: e.reps, e1: x, date: e.date };
+  });
+  return best;
+}
+// The smallest step over your PR: more weight at these reps, or one more rep at last time's top weight. Only within 3%
+// of the PR, so it's a real attempt and not a jump.
+function prTry(name, reps, lastTop, date){
+  const pr = bestPR(name, date); if(!pr) return null;
+  const step = stepSize(), cands = [];
+  if(reps >= 1 && reps <= 10){
+    let w = Math.ceil((pr.e1 / (reps <= 1 ? 1 : 1 + reps / 30)) / step) * step;
+    if(e1rm(w, reps) <= pr.e1 + 0.01) w += step;
+    cands.push({ weight: w, reps });
+  }
+  if(lastTop > 0){
+    const most = prSets(name, date).filter(e => toUnit(e.weight, e.unit) >= lastTop - 0.01).reduce((m, e) => Math.max(m, e.reps), 0);
+    if(most > 0 && most < 10) cands.push({ weight: lastTop, reps: most + 1 });
+  }
+  return cands.map(c => ({ ...c, e1: e1rm(c.weight, c.reps) })).filter(c => c.e1 > pr.e1 + 0.01 && c.e1 <= pr.e1 * 1.03).sort((a, b) => a.e1 - b.e1)[0] || null;
+}
+const shortDate = d => new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.slice(0, 4) === today().slice(0, 4) ? undefined : "numeric" });
+// Adds your PR to a suggestion: a PR tag when the suggestion beats it; else, on a day to push, a set that would.
+function withPR(s, name, date){
+  const pr = bestPR(name, date); if(!pr) return s;
+  const was = `Your PR is ${fmt(pr.w)} × ${pr.r} (${shortDate(pr.date)})`;
+  if(e1rm(s.weight, s.reps) > pr.e1 + 0.01) return { ...s, isPR: true, prText: `${was}, so this beats it.` };
+  const t = s.hold ? null : prTry(name, s.reps, s.top, date);
+  return { ...s, prText: t ? `${was}; ${fmt(t.weight)} × ${t.reps} would beat it.` : `${was}.` };
+}
+
+// Next set for an exercise on a date: {weight, reps, title, why, isPR, prText}, or null when there isn't enough to go on.
 function nextSet(name, date){
+  const s = baseNext(name, date);
+  return s ? withPR(s, name, date) : null;
+}
+function baseNext(name, date){
   if(!name) return null;
   const hist = straight(name, e => e.date < date);
   const dates = [...new Set(hist.map(e => e.date))].sort();
@@ -44,7 +92,7 @@ function nextSet(name, date){
   const last = hist.filter(e => e.date === dates[dates.length - 1]).sort(byTs).map(e => ({ w: toUnit(e.weight, e.unit), r: e.reps, bw: isBW(e) }));
   const top = Math.max(...last.map(x => x.w)), atTop = last.filter(x => Math.abs(x.w - top) < 0.01);
   if(atTop[0].bw && top === 0) return null;   // plain bodyweight: nothing to add
-  const mk = (weight, reps, why) => ({ weight, reps, why, title: `${weight > top + 0.01 || reps !== atTop[0].r || weight < top - 0.01 ? "Try" : "Stay at"} ${fmt(weight)} × ${reps}` });
+  const mk = (weight, reps, why, hold = false) => ({ weight, reps, why, hold, top, title: `${weight > top + 0.01 || reps !== atTop[0].r || weight < top - 0.01 ? "Try" : "Stay at"} ${fmt(weight)} × ${reps}` });
 
   // Planned for this day: the plan's range and progression decide.
   const w = workoutById(workoutFor(date)), it = w && w.items.find(x => x.exercise.toLowerCase() === name.toLowerCase() && !x.minutes);
@@ -55,9 +103,9 @@ function nextSet(name, date){
   }
 
   const gap = days(dates[dates.length - 1], date);
-  if(gap > 28) return mk(roundStep(top * 0.9), atTop[0].r, `Back after ${Math.floor(gap / 7)} weeks: start a little lighter.`);
+  if(gap > 28) return mk(roundStep(top * 0.9), atTop[0].r, `Back after ${Math.floor(gap / 7)} weeks: start a little lighter.`, true);
   const target = atTop[0].r, missed = atTop.filter(x => x.r < target).length;
-  if(missed) return mk(top, target, `Last time: ${atTop.map(x => x.r).join(", ")}. Get all ${target}, then add weight.`);
+  if(missed) return mk(top, target, `Last time: ${atTop.map(x => x.r).join(", ")}. Get all ${target}, then add weight.`, true);
   const kg = prefs.unit === "kg", lower = LOWER.has(groupOf(name));
   const inc = lower ? (kg ? 5 : 10) : (kg ? 2.5 : 5);
   return mk(top + inc, target, atTop.length > 1 ? `You got all ${target} reps on every set last time.` : `You got ${target} reps last time.`);
@@ -92,4 +140,4 @@ function renderLastTime(){
 }
 function toggleLastTime(){ ltOpen = !ltOpen; renderLastTime(); }
 
-export { renderLastTime, toggleLastTime, lastSession, lastText, nextSet };
+export { renderLastTime, toggleLastTime, lastSession, lastText, nextSet, bestPR, prTry };
