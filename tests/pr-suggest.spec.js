@@ -50,3 +50,28 @@ test("the PR is the chosen variant's when you've logged it", async ({ page }) =>
   await expect(page.locator("#sug")).toContainText("Your PR is 140 × 10 (Feb 18)");
   expect(errors).toEqual([]);
 });
+
+test("one past session is enough, and the suggestion follows the chosen variant", async ({ page }) => {
+  // Barbell bench twice, then dumbbell bench once (last week). Picking the dumbbell variant suggests from the dumbbells.
+  const db = { equip: "Dumbbell", angle: "Flat" };
+  const errors = await openApp(page, { entries: [
+    bench("2026-02-11", 185, 5), bench("2026-02-18", 185, 5),
+    ...[0, 1, 2].map(() => set({ date: "2026-02-25", exercise: "Bench press", muscle: "Chest", weight: 70, reps: 10, variant: db })),
+    ...[0, 1].map(() => set({ date: "2026-02-26", exercise: "Chest press", muscle: "Chest", weight: 120, reps: 12, variant: { equip: "Machine" } })),
+  ] });
+  await pickExercise(page, "Bench press");
+  await expect(page.locator("#ex-variant")).toContainText("Dumbbell");   // last used
+  const sug = page.locator("#sug");
+  await expect(sug.locator("b")).toHaveText(/^Try 75 × 10/);
+  await expect(sug).toContainText("Your PR is 70 × 10 (Feb 25)");
+  // Switching to the barbell variant suggests from the barbell sessions.
+  await page.locator("#ex-variant .vchip").filter({ hasText: "Dumbbell" }).click();
+  await page.click('#ex-vedit [data-dim="equip"][data-val="Barbell"]');
+  await page.click("#ex-vedit-done");
+  await expect(sug.locator("b")).toHaveText(/^Try 190 × 5/);
+  // A machine chest press with one session.
+  await page.click("#ex-change");
+  await pickExercise(page, "Chest press");
+  await expect(sug.locator("b")).toHaveText(/^Try 125 × 12/);
+  expect(errors).toEqual([]);
+});

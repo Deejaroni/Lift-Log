@@ -44,11 +44,13 @@ test("a suggestion chip proposes the next set, and Use fills it in", async ({ pa
   await page.click("#sug-use");
   await expect(page.locator("#weight")).toHaveValue("140");
   await expect(page.locator("#reps")).toHaveValue("8");
-  await expect(page.locator("#sug")).toBeHidden();
+  // The chip stays (with the reason and your PR); only Use goes, since the form already has it.
+  await expect(page.locator("#sug")).toBeVisible();
+  await expect(page.locator("#sug-use")).toBeHidden();
   expect(errors).toEqual([]);
 });
 
-test("suggestions follow missed reps, long breaks, the plan, and need two sessions", async ({ page }) => {
+test("suggestions follow missed reps, long breaks and the plan, and start after one session", async ({ page }) => {
   const program = { name: "P", template: "x", mode: "fixed", days: [null, null, "w1", null, null, null, null], rotation: [], start: "2026-03-02", done: {}, override: null, deloadEvery: 0,
     prog: { on: true, upper: 5, lower: 10, unit: "lb" }, workouts: [{ id: "w1", name: "Upper", items: [{ exercise: "Seated row", sets: 3, lo: 8, hi: 12 }] }] };
   const errors = await openApp(page, { settings: { program }, entries: [
@@ -66,7 +68,7 @@ test("suggestions follow missed reps, long breaks, the plan, and need two sessio
   expect(r.missed).toEqual({ title: "Stay at 135 × 8", why: "Last time: 8, 8, 7. Get all 8, then add weight." });
   expect(r.back).toEqual({ title: "Try 85 × 6", why: "Back after 7 weeks: start a little lighter." });
   expect(r.plan).toEqual({ title: "Try 125 × 8", why: "Plan: 3 × 8–12. +5 lb: you hit 12 reps on all 3 sets last time." });
-  expect(r.once).toBeNull();
+  expect(r.once).toEqual({ title: "Try 310 × 10", why: "You got 10 reps last time." });   // one session is enough
   expect(r.never).toBeNull();
   expect(errors).toEqual([]);
 });

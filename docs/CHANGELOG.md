@@ -2,6 +2,12 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-14
+- Each exercise on the Log tab has a + Add set button that copies its last set, for a set you logged too early or one you missed. Undo takes it back.
+- The weight suggestion and your PR now show after just one past workout with an exercise, instead of two.
+- The suggestion follows the variant you chose: dumbbell bench press suggests from your dumbbell sets, not your barbell ones.
+- The suggestion stays on screen when the weight box already matches it, so your PR still shows; sets from earlier today count toward the PR.
+
 ## 2026-11-13 (third update)
 - The weight suggestion on the Log tab now shows your PR for that exercise. When the suggested set would beat it, it gets a PR tag; otherwise it names the smallest set that would, like one more rep or a little more weight.
 - After missed reps or a long break, it shows your PR without suggesting an attempt.

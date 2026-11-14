@@ -1,9 +1,9 @@
 // Lift Log: Showing logged entries, editing them, and calorie estimates.
 // ES module. Its start-up code runs in init(), which js/app.js calls in a fixed order (see docs/DECISIONS.md).
 
-import { $, notify } from "./ui.js";
+import { $, notify, toast } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, settings, store } from "./state.js";
-import { renderRepeat, barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
+import { uid, renderRepeat, barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
 import { variantLabel } from "./parents.js";
 import { equipFrom, fieldsHTML, setEquipVal, stateFrom, toggleEquip, togglesHTML, CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
@@ -255,7 +255,10 @@ function groupHTML(list, hist){
     const ids = new Set(g.map(e=>e.ss).filter(Boolean)), l = g[0].exercise.toLowerCase();
     const mates = [...new Set(list.filter(e=>ids.has(e.ss) && e.exercise.toLowerCase()!==l).map(e=>e.exercise))];
     const ssTag = mates.length ? `<p class="ss-tag">Superset with ${esc(mates.join(", "))}</p>` : "";
-    return `<div class="ex-group" data-ex="${esc(l)}">${head}${ssTag}${hist ? setBars(g, b) : ""}${parts.join("")}</div>`;
+    // On the Log tab: "+ Add set" copies the exercise's last straight set (one logged too early, or one too few).
+    const last = hist ? null : g.filter(e=>!e.chain).sort((a,b)=>(a.ts||0)-(b.ts||0)).pop();
+    const add = last ? `<button type="button" class="add-set" data-add-set="${esc(last.id)}">+ Add set · ${esc(last.equip&&last.equip.bw ? (last.weight>0 ? `BW + ${fmt(toUnit(last.weight,last.unit))} ${prefs.unit}` : "BW") : `${fmt(toUnit(last.weight,last.unit))} ${prefs.unit}`)} × ${last.reps}</button>` : "";
+    return `<div class="ex-group" data-ex="${esc(l)}">${head}${ssTag}${hist ? setBars(g, b) : ""}${parts.join("")}${add}</div>`;
   }).join("");
 }
 // History: one bar per set, scaled to the heaviest load; the top set (best est. 1RM, 10 reps or fewer) is red.
@@ -302,6 +305,15 @@ function renderDay(){
   });
   renderRepeat(); renderTodayRow();
 }
+// A copy of a logged set, right after the exercise's last set that day. It doesn't start the rest timer: the set
+// was already done. Undo in the toast removes it.
+async function addSetLike(id){
+  const src = entries.find(e=>e.id===id); if(!src) return;
+  const l = src.exercise.toLowerCase(), ts = Math.max(...entries.filter(e=>e.date===src.date && e.exercise.toLowerCase()===l).map(e=>e.ts||0), src.ts||0) + 1;
+  const copy = {...JSON.parse(JSON.stringify(src)), id: uid(), ts};
+  await store.add([copy]);
+  toast("Set added.", "Undo", ()=>store.remove(copy.id), 8000);
+}
 export function init(){
   document.addEventListener("click", e=>{
     if(e.target.closest(".edit-box [data-del], .edit-box [data-del-chain]")) editing = null;   // Undo brings it back closed
@@ -309,6 +321,8 @@ export function init(){
     if(tap){ openEdit(tap.dataset.tap); return; }
     const ed = e.target.closest("[data-edit]");
     if(ed){ openEdit(ed.dataset.edit); return; }
+    const ad = e.target.closest("[data-add-set]");
+    if(ad){ addSetLike(ad.dataset.addSet); return; }
     const st = e.target.closest("[data-estep]");
     if(st){ const i = st.parentElement.querySelector("input"), w = st.dataset.estep==="weight";
       i.value = fmt(Math.max(w?0:1, (parseFloat(i.value)||0) + (+st.dataset.dir)*(w ? (prefs.unit==="kg"?2.5:5) : 1))); return; }

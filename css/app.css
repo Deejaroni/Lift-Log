@@ -499,6 +499,9 @@ button.ex-chosen-text{border:0;background:none;padding:4px 0;margin:0;color:inhe
 .exs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
 .exs-head h3{margin:0;min-width:0;overflow-wrap:anywhere}
 .exs-anim{display:block;width:100%;height:auto;aspect-ratio:200/176;background:var(--field);border-radius:12px}
+/* + Add set under each exercise on the Log tab */
+.add-set{display:block;width:100%;min-height:44px;margin-top:6px;border:1px dashed var(--line);border-radius:10px;background:none;color:var(--blue-ink);font-weight:700;font-size:.9rem}
+.add-set:active{background:var(--field)}
 /* Body section on Progress: weight trend, measurements, photos; lift goals; their sheets. */
 .bd-now{margin-top:14px;font-weight:600;color:var(--muted)}
 .bd-big{font-size:2.2rem;font-weight:700;font-stretch:80%;line-height:1;color:var(--ink)}
@@ -603,6 +606,7 @@ canvas.exs-anim{touch-action:pan-y;cursor:grab}
 .sug p span{white-space:nowrap}
 .sug button{flex:none;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:700}
 .sug button:active{background:var(--line)}
+.sug button[hidden]{display:none}
 .again{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-height:48px;margin-top:8px;padding:8px 12px}
 .again[hidden]{display:none}
 .again b{font-weight:700}

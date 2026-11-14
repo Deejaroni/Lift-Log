@@ -41,7 +41,8 @@ const DAY = 864e5, days = (a, b) => Math.round((new Date(b + "T00:00:00") - new 
 // chosen variant's sets when you've logged that variant (a machine's numbers don't compare with a cable's), else from
 // every variant. Bodyweight sets have no PR here.
 function prSets(name, date){
-  const all = straight(name, e => e.reps > 0 && e.reps <= 10 && e.weight > 0 && !isBW(e) && (!date || e.date < date));
+  // Sets logged on the day itself count too, so a PR you set earlier today is the one to beat.
+  const all = straight(name, e => e.reps > 0 && e.reps <= 10 && e.weight > 0 && !isBW(e) && (!date || e.date <= date));
   const k = variantKey(currentVariant()), mine = all.filter(e => variantKey(e.variant) === k);
   return mine.length ? mine : all;
 }
@@ -86,9 +87,12 @@ function nextSet(name, date){
 }
 function baseNext(name, date){
   if(!name) return null;
-  const hist = straight(name, e => e.date < date);
+  // The chosen variant's sessions when you've done it (dumbbell and barbell numbers don't mix), else every variant's.
+  // One past session is enough to suggest from.
+  const every = straight(name, e => e.date < date), k = variantKey(currentVariant()), mine = every.filter(e => variantKey(e.variant) === k);
+  const hist = mine.length ? mine : every;
   const dates = [...new Set(hist.map(e => e.date))].sort();
-  if(dates.length < 2) return null;
+  if(!dates.length) return null;
   const last = hist.filter(e => e.date === dates[dates.length - 1]).sort(byTs).map(e => ({ w: toUnit(e.weight, e.unit), r: e.reps, bw: isBW(e) }));
   const top = Math.max(...last.map(x => x.w)), atTop = last.filter(x => Math.abs(x.w - top) < 0.01);
   if(atTop[0].bw && top === 0) return null;   // plain bodyweight: nothing to add

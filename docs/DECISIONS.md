@@ -216,3 +216,8 @@ The plan for the next updates is in docs/ROADMAP.md.
 - The PR is the chosen variant's when you've logged that variant, since a machine's numbers don't compare with a cable's; otherwise it's every variant together. Bodyweight sets have none, since their weight is only what's added.
 - The numbers are the weight as entered, so they match the weight box. With "Plates only (bar added)" set, the bar is left out of both sides alike, so which set is best doesn't change.
 - This was chosen over a separate PR chip so the form keeps one suggestion.
+
+## + Add set (2026-11-14)
+- Each exercise in the Log tab's day list ends with "+ Add set · 185 lb × 5". It copies that exercise's last straight set (everything but its id), placed right after it, for a set logged too early or one too few. It doesn't start the rest timer, since the set was already done; Undo is in the toast, like Delete. History doesn't have it; Log a set there by picking the date on the Log tab.
+- The next-set suggestion now stays on screen when the form already holds its numbers, so its reason and your PR still show; only Use goes. Sets logged earlier the same day count toward the PR it names.
+- The suggestion used to wait for two past sessions of an exercise; now one is enough (with a single session there was only "Last time", which read as the suggestion not working). It also follows the chosen variant: with Dumbbell chosen it suggests from your dumbbell sessions, not the barbell ones, falling back to every variant only when you haven't done this one before.
