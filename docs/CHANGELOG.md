@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-16
+- The tab bar no longer gets stuck in the middle of the screen on iPhone. It hides while the keyboard is open and comes back at the bottom when it closes.
+
 ## 2026-11-14
 - Each exercise on the Log tab has a + Add set button that copies its last set, for a set you logged too early or one you missed. Undo takes it back.
 - The weight suggestion and your PR now show after just one past workout with an exercise, instead of two.

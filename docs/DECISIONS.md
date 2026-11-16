@@ -221,3 +221,9 @@ The plan for the next updates is in docs/ROADMAP.md.
 - Each exercise in the Log tab's day list ends with "+ Add set · 185 lb × 5". It copies that exercise's last straight set (everything but its id), placed right after it, for a set logged too early or one too few. It doesn't start the rest timer, since the set was already done; Undo is in the toast, like Delete. History doesn't have it; Log a set there by picking the date on the Log tab.
 - The next-set suggestion now stays on screen when the form already holds its numbers, so its reason and your PR still show; only Use goes. Sets logged earlier the same day count toward the PR it names.
 - The suggestion used to wait for two past sessions of an exercise; now one is enough (with a single session there was only "Last time", which read as the suggestion not working). It also follows the chosen variant: with Dumbbell chosen it suggests from your dumbbell sessions, not the barbell ones, falling back to every variant only when you haven't done this one before.
+
+## Tab bar and the iPhone keyboard (2026-11-16)
+iOS can leave `position:fixed` bars mid-screen while the keyboard is open or just after it closes. The tab bar
+now hides while the keyboard is up (the keyboard bar covers logging), and otherwise is shifted with a transform
+so its bottom matches the visual viewport's bottom. Rechecked on scroll, viewport changes and 400 ms after focus
+leaves a field, since iOS updates the viewport late.

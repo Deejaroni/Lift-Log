@@ -110,6 +110,15 @@ function renderKbBar(){
   $("#kb-log").textContent = `Log set · ${fmt(parseFloat($("#weight").value)||0)} × ${parseInt($("#reps").value,10)||0}`;
   const v = window.visualViewport; bar.style.top = `${v.offsetTop + v.height - bar.offsetHeight}px`;
 }
+// The tab bar hides while the keyboard is open, and otherwise sits at the bottom of what's on screen:
+// iOS can leave fixed bars mid-screen after the keyboard closes or while scrolling.
+function placeTabs(){
+  const nav = document.querySelector("nav.tabs"), v = window.visualViewport; if(!nav) return;
+  const kb = kbOpen(), off = v ? Math.round(v.offsetTop + v.height - innerHeight) : 0;
+  nav.classList.toggle("kb-hide", kb);
+  nav.style.transform = !kb && Math.abs(off) > 1 ? `translateY(${off}px)` : "";
+}
+const onViewport = () => { renderKbBar(); placeTabs(); };
 // Fills weight, reps and equipment from the last time: the same variant if you've logged it, else any variant
 // (with the equipment the chosen variant needs).
 function prefill(name){
@@ -490,9 +499,10 @@ export function init(){
   $("#kb-next").onclick = ()=>{ const i = KB_FIELDS.indexOf(document.activeElement.id); if(i>=0 && i<KB_FIELDS.length-1) $("#"+KB_FIELDS[i+1]).focus(); else document.activeElement.blur(); };
   $("#kb-log").onclick = ()=>{ document.activeElement.blur(); $("#save").click(); };
   document.addEventListener("focusin", renderKbBar);
-  document.addEventListener("focusout", ()=>setTimeout(renderKbBar, 0));
+  document.addEventListener("focusout", ()=>{ setTimeout(onViewport, 0); setTimeout(placeTabs, 400); });   // iOS settles late
   KB_FIELDS.forEach(f=>$("#"+f).addEventListener("input", renderKbBar));
-  if(window.visualViewport){ visualViewport.addEventListener("resize", renderKbBar); visualViewport.addEventListener("scroll", renderKbBar); }
+  if(window.visualViewport){ visualViewport.addEventListener("resize", onViewport); visualViewport.addEventListener("scroll", onViewport); }
+  addEventListener("scroll", placeTabs, { passive: true });
   ["grip","path","pos"].forEach(k=>{ $("#lr-"+k).innerHTML = `<option value="">Not recorded</option>` + LR[k].map(o=>`<option>${o}</option>`).join(""); });
 }
 
