@@ -12,6 +12,7 @@ import { renderHistory } from "./search.js";
 import { isoOf } from "./progress.js";
 import { renderHead, renderPlanToday, renderTodayRow } from "./plan.js";
 import { renderAll } from "./main.js";
+import { finishHTML } from "./summary.js";
 
 // ---------- renderers ----------
 // ---------- editing logged entries ----------
@@ -292,7 +293,7 @@ function renderDay(){
   $("#day-title").textContent = d===today() ? "Today" : niceDate(d);
   const list = sorted().filter(e=>e.date===d);
   const before = new Map([...document.querySelectorAll("#day-list .ex-group[data-ex]")].map(g=>[g.dataset.ex, {v: +(g.querySelector(".cnt")||{dataset:{}}).dataset.v, badges: [...g.querySelectorAll(".ex-head .pr")].map(b=>b.textContent)}]));
-  $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) : `<p class="empty">Nothing logged for this day yet.</p>`;
+  $("#day-list").innerHTML = list.length ? groupHTML(list) + dayTotalHTML(list, true) + finishHTML(d) : `<p class="empty">Nothing logged for this day yet.</p>`;
   // Newly logged sets slide in; their exercise's total counts up and any badge they earned pops in.
   const fresh = shown.date===d && shown.ids ? list.filter(e=>!shown.ids.has(e.id)) : [];
   shown = {date:d, ids:new Set(list.map(e=>e.id))};

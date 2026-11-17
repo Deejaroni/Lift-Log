@@ -14,10 +14,11 @@ import { init as history } from "./history.js";
 import { init as progress } from "./progress.js";
 import { init as body } from "./body.js";
 import { init as goals } from "./goals.js";
+import { init as summary } from "./summary.js";
 import "./plan.js";
 import { init as exerciseSheet } from "./exercise-sheet.js";
 import { init as planEditor } from "./plan-editor.js";
 import { init as standards } from "./standards.js";
 import { init as main } from "./main.js";
 
-[ui, state, backup, log, equipment, entries, catalog, search, variantUi, history, progress, body, goals, exerciseSheet, planEditor, standards, main].forEach(init => init());
+[ui, state, backup, log, equipment, entries, catalog, search, variantUi, history, progress, body, goals, summary, exerciseSheet, planEditor, standards, main].forEach(init => init());

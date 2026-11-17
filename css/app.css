@@ -726,3 +726,10 @@ button.lt-row:active{background:var(--line)}
 #hist-pick .dlg{max-height:80vh;display:flex;flex-direction:column}
 #hist-pick .ex-results{max-height:none;flex:1;min-height:0}
 #hist-q{margin-top:4px}
+/* Finish workout: the button under today's list and its summary */
+.finish-btn{display:block;width:100%;min-height:44px;margin-top:14px}
+#sum-sheet .sum-when{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+#sum-sheet .stats{margin:14px 0 8px}
+#sum-sheet .sum-vs,#sum-sheet .sum-none{margin:0 0 10px;color:var(--muted);font-size:.9rem}
+.sum-prs{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px;font-size:.9rem}
+.sum-prs .pr{margin:0 6px 0 0}

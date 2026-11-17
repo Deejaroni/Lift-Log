@@ -241,3 +241,9 @@ pictures that showed the wrong movement or equipment. Fixes:
 - New poses for movements that differ from their family live in js/poses3d-fixes.js (pistol, shrimp and sissy
   squats, Pallof press, scaption, Arnold press, hammer, reverse and rope curls, rope pushdown, one-leg bridges).
 - Rope attachments draw two strands from the hands to a knot, then one cable to the pulley.
+
+## Finish workout summary (2026-11-17)
+- Of five overnight UI ideas, only the summary was approved; the others (a pinned Log set bar, a folded Details row, a folding plan card, tap-to-edit in History) added clutter.
+- Nothing is stored: the summary is worked out from the day's sets each time it opens, so no migration is needed and logging more sets afterwards just updates it.
+- Comparison day: the last time the planned workout was done, else the last day that shared at least half of today's exercises.
+- Records: the same badges as History (not "New" or "Back"), plus Biggest day. Time is first to last set, so it leaves out warm-up before the first set.

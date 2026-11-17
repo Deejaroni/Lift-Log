@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-17 (second update)
+- A Finish workout button under today's sets shows a short summary: how long you trained, sets, pounds lifted compared with the last time you did that workout, and any records.
+
 ## 2026-11-17
 - Exercise pictures now show the right movement for pistol, shrimp and sissy squats, the Pallof press, scaption, the Arnold press, hammer and reverse curls, rope pushdowns and curls, and single-leg bridges and hip thrusts.
 - Pictures show the right equipment: hands hold the weight on hip thrusts and bridges, the Turkish get-up and kettlebell carry use kettlebells, cable moves draw only the cable, and machine presses, shrugs and raises show handles.
