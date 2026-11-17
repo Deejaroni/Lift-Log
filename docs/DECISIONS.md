@@ -227,3 +227,17 @@ iOS can leave `position:fixed` bars mid-screen while the keyboard is open or jus
 now hides while the keyboard is up (the keyboard bar covers logging), and otherwise is shifted with a transform
 so its bottom matches the visual viewport's bottom. Rechecked on scroll, viewport changes and 400 ms after focus
 leaves a field, since iOS updates the viewport late.
+
+## Animation accuracy pass (2026-11-17)
+A review of every exercise's 3D picture (all 592 library exercises, 237 pose and weight combinations) found
+pictures that showed the wrong movement or equipment. Fixes:
+- Names with no equipment word fall back to a barbell. js/variants3d.js now has a short KINDS list for the
+  exceptions (hammer curls and carries use dumbbells, the get-up a kettlebell, face pulls a cable, bodyweight
+  moves nothing). It only changes the 3D picture's equipment, not the 2D fallback.
+- A pattern's own implement (say, the side bend's dumbbell) used to win over the exercise's. Now a dumbbell,
+  kettlebell or cable named by the exercise wins over a pattern's free weight, so a kettlebell farmer's carry holds
+  kettlebells and a cable side bend holds a handle. Machine handles and lat bars are unchanged.
+- P.pulley is where the cable comes from only when the exercise uses a cable; P.cable is always drawn.
+- New poses for movements that differ from their family live in js/poses3d-fixes.js (pistol, shrimp and sissy
+  squats, Pallof press, scaption, Arnold press, hammer, reverse and rope curls, rope pushdown, one-leg bridges).
+- Rope attachments draw two strands from the hands to a knot, then one cable to the pulley.

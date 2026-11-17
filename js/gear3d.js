@@ -48,8 +48,15 @@ function latBar(M){
   for(const x of [-1, 1]){ const e = mesh(G.bar, M.metal); e.scale.set(.32, 1.4, 1.4); e.position.set(x * .58, -.04, 0); e.rotation.z = x * -.28; g.add(e); }
   return g;
 }
+// A rope attachment's end, held in a hand (the two strands meet at a knot above the hands).
+function ropeEnd(M){ const g = new THREE.Group(), b = mesh(G.bar, M.metal); b.scale.set(.09, 2.4, 2.4); b.rotation.z = Math.PI / 2; b.userData.rope = true; g.add(b); return g; }
 function plate(M){ const g = new THREE.Group(), p = mesh(G.plate, M.plate); p.scale.set(.8, .9, .9); g.add(p); return g; }
-const IMPLEMENT = {barbell: barbell, dumbbell: dumbbell, kettlebell: kettlebell, cable: handle};
+const IMPLEMENT = {barbell: barbell, dumbbell: dumbbell, kettlebell: kettlebell, cable: handle, rope: ropeEnd, machine: handle};
+// A pattern's implement is its usual free weight; a dumbbell, kettlebell or cable chosen for the exercise wins
+// (a kettlebell farmer's carry holds kettlebells; a cable side bend holds a handle, not a dumbbell). A machine's
+// handles show where the pattern says the hands hold something.
+const FREE = ["dumbbell", "kettlebell"];
+const implementFor = (P, kind) => FREE.includes(P.implement) && [...FREE, "cable", "machine"].includes(kind) ? kind : P.implement || (kind === "none" ? "" : kind);
 
 // What the hands hold for a pattern and a kind of weight: "bar" (one bar in both hands), "each" (one per hand),
 // "one" (a single weight in both hands), "left" (one hand only), "plate", or "" (nothing).
@@ -83,7 +90,7 @@ const cache = new WeakMap();
 function buildGear(root, P, kind, M){
   geo();
   const g = new THREE.Group(), B = builder(g, M), parts = P.props ? P.props(B) || {} : {};
-  const hold = holdOf(P, kind), imp = P.implement || (kind === "none" ? "" : kind);
+  const hold = holdOf(P, kind), imp = implementFor(P, kind);
   const make = hold === "plate" ? plate : IMPLEMENT[imp] || null, items = {};
   if(hold === "bar" && imp){
     // A barbell, or for cables and machines a straight handle (lat bars bend down at the ends).
@@ -92,8 +99,9 @@ function buildGear(root, P, kind, M){
   } else if(hold === "each" && make){ items.L = make(M); items.R = make(M); g.add(items.L, items.R); }
   else if((hold === "one" || hold === "left" || hold === "plate") && make){ items.one = make(M); g.add(items.one); }
   // Cables run from the handles (or the bar) to the pattern's pulley (low in front when it doesn't say).
-  const pulley = P.cable || (kind === "cable" && hold ? [0, .12, .6] : null);
-  const cables = pulley ? [line(g, M)].concat(hold === "each" ? [line(g, M)] : []) : [];
+  // P.pulley is where the cable comes from when the exercise uses one (the pattern also works with free weights).
+  const pulley = P.cable || (kind === "cable" && hold ? P.pulley || [0, .12, .6] : null), rope = imp === "rope";
+  const cables = pulley ? [line(g, M)].concat(hold === "each" ? [line(g, M)] : []).concat(rope ? [line(g, M)] : []) : [];
   const cableAt = pulley && new THREE.Vector3(...(Array.isArray(pulley) ? pulley : pulley.L));
   const cableR = pulley && new THREE.Vector3(...(Array.isArray(pulley) ? pulley : pulley.R));
   g.userData.place = (J, s) => {
@@ -111,7 +119,10 @@ function buildGear(root, P, kind, M){
     }
     if(cables.length && (items.L || items.bar || items.one)){
       const ends = hold === "each" ? [items.L.position, items.R.position] : [items.bar ? items.bar.position : items.one ? items.one.position : mid(J)];
-      cables.forEach((c, i) => stretch(c, ends[i], i ? cableR : cableAt));
+      if(rope){ // Each strand runs from a hand up to the knot; one cable runs on to the pulley.
+        const knot = ends[0].clone().add(ends[1]).multiplyScalar(.5), up = cableAt.clone().sub(knot).normalize();
+        knot.addScaledVector(up, .16); stretch(cables[0], ends[0], knot); stretch(cables[1], ends[1], knot); stretch(cables[2], knot, cableAt);
+      } else cables.forEach((c, i) => stretch(c, ends[i], i ? cableR : cableAt));
     }
     if(P.move) P.move(parts, J, s);
   };

@@ -7,6 +7,7 @@
 import * as THREE from "three";
 import { morePoses } from "./poses3d-more.js";
 import { variantPoses } from "./poses3d-variants.js";
+import { fixPoses } from "./poses3d-fixes.js";
 
 const R = Math.PI / 180;
 // A direction tilted forward from straight up (up) or straight down (dn) by a degrees; x leans it sideways.
@@ -101,8 +102,10 @@ export const POSES = {
     move(o, J){ const f = J.foot_L.clone().add(J.foot_R).multiplyScalar(.5), k = J.shin_L.clone().add(J.shin_R).multiplyScalar(.5), d = f.clone().sub(k).normalize();
       o.pad.position.copy(f).addScaledVector(d, -.06).add(new THREE.Vector3(0, -d.z, d.y).multiplyScalar(.065)); o.pad.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0)); },
     track: J => J.foot_L.clone()},
-  hipThrust: {at: {fix: "chest", pos: [0, .5, -.32]}, hold: {barbell: "bar", default: ""}, yaw: 1.15,
-    grip: (J, s, kind) => kind === "barbell" ? {center: J.hips.clone().add(new THREE.Vector3(0, .13, .05)), half: .38, hand: [0, -.2, 1], palm: [0, 1, .2], pole: [.6, .2, -1]} : null,
+  // The hands hold the weight on the hips: a bar, one dumbbell or kettlebell, or the machine's hip pad.
+  hipThrust: {at: {fix: "chest", pos: [0, .5, -.32]}, hold: {barbell: "bar", none: "", machine: "", default: "one"}, yaw: 1.15,
+    grip: (J, s, kind) => kind === "none" ? null : {center: J.hips.clone().add(new THREE.Vector3(0, .13, .05)), half: kind === "barbell" ? .38 : kind === "machine" ? .3 : .08,
+      hand: [0, -.2, 1], palm: [0, 1, .2], pole: [.6, .2, -1]},
     c: {hips: [0, .05, -1], spine: [0, .1, -1], chest: [0, .12, -1], neck: [0, .5, -.85], head: [0, .45, -.9], thigh: [.16, .02, 1], shin: [0, -1, .05], foot: [.1, -.35, 1],
       upperarm: [.4, -.5, .6], forearm: [-.2, -.8, .5], grip: .6},
     s: {hips: [0, .5, -.85], spine: [0, .5, -.85], chest: [0, .45, -.9], neck: [0, .6, -.8], head: [0, .5, -.85], thigh: [.16, .42, .9], shin: [0, -.98, -.18], foot: [.1, -.35, 1],
@@ -158,7 +161,7 @@ export const POSES = {
     s: {...torso(22), thigh: [.05, -.95, .25], shin: [0, -.6, -.8], upperarm: [.2, -.15, -1], forearm: [.05, -1, .1], hand: [0, -.4, .9], palm: [-.6, -.8, 0]},
     props(B){ for(const x of [-.24, .24]){ B.rod([x, 1.24, -.35], [x, 1.24, .35], .02); B.rod([x, 0, -.3], [x, 1.24, -.3], .025); B.rod([x, 0, .3], [x, 1.24, .3], .025); } },
     track: J => J.chest.clone()},
-  ohp: {c: {upperarm: [.22, 1, .05], forearm: [.1, 1, 0], hand: [0, 1, -.05]}, s: {},
+  ohp: {hold: {machine: "each"}, c: {upperarm: [.22, 1, .05], forearm: [.1, 1, 0], hand: [0, 1, -.05]}, s: {},
     grip: path("chest", [0, .78, .03], [0, .21, .16], .3, [0, .85, -.5], [0, .5, .85], [.4, -1, .5])},
   lateralRaise: {hold: {default: "each"},
     c: {...torso(6), thigh: [.06, -1, .06], shin: [0, -1, -.05], upperarm: [1, -.04, .42], forearm: [1, -.12, .6], hand: [1, -.1, .6], palm: [0, -1, 0]},
@@ -200,7 +203,7 @@ export const POSES = {
     c: {...SUPINE, thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1], upperarm: [.18, .05, 1], forearm: [-.1, .2, 1], hand: [-.1, .3, .95], palm: [-.7, .7, 0]},
     s: {...SUPINE, thigh: [.3, -.2, 1], shin: [0, -.93, -.36], foot: [.2, -.3, 1], upperarm: [.18, .95, -.25], forearm: [-.1, .9, -.35], hand: [-.1, .9, -.3], palm: [-.7, -.2, .7]},
     props(B){ bench(B); }},
-  shrug: {
+  shrug: {hold: {machine: "each"},
     c: {shoulder: [1, .35, 0], upperarm: [.1, -1, .02], forearm: [.06, -1, .04]},
     s: {shoulder: [1, -.06, 0], upperarm: [.1, -1, .02], forearm: [.06, -1, .04]},
     track: J => J.neck.clone()},
@@ -243,3 +246,5 @@ const KIT = {THREE, up, dn, inC, torso, SUPINE, PRONE, SEATED, at, path, BACK_BA
 Object.assign(POSES, morePoses(KIT));
 // Seated, chest-supported, machine, kneeling and other versions (picked by name in js/variants3d.js).
 Object.assign(POSES, variantPoses(KIT, POSES));
+// Movements that differ from their family (one-leg squats, the Pallof press, hammer curls, ropes...).
+Object.assign(POSES, fixPoses(KIT, POSES));

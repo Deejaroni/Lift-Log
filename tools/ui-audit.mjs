@@ -47,7 +47,7 @@ const SCREENS = [
   ["Exercise picker", async page => { await tab("log")(page); await page.click("#exercise-search"); await page.fill("#exercise-search", ""); }],
   ["Search results", async page => { await tab("log")(page); await page.fill("#exercise-search", "bench"); }],
   ["Exercise sheet", async page => { await tab("log")(page); await page.fill("#exercise-search", "Barbell bench press — flat");
-    await page.click('#ex-results [data-name="Barbell bench press — flat"]'); await page.click("#ex-chosen-text"); await page.locator("#exsheet").waitFor(); }],
+    await page.click('#ex-results [data-src="Barbell bench press — flat"]'); await page.click("#ex-chosen-text"); await page.locator("#exsheet").waitFor(); }],
   ["Plan", tab("plan")],
   ["History", async page => { await tab("history")(page); const more = page.locator("#history [data-more]").first(); if (await more.count()) await more.click(); }],
   ["Progress: top", tab("progress")],
@@ -154,7 +154,7 @@ for (const sc of SCENARIOS) {
     return page.evaluate(() => Math.max(16, ...window.__taps.filter(e => /pointer|mouse|click|key/.test(e.name)).map(e => e.duration))); };
   const med = xs => xs.filter(x => x != null).sort((a, b) => a - b)[Math.floor(xs.length / 2)];
   const logs = [];
-  for (let i = 0; i < 3; i++) { await page.fill("#exercise-search", "Barbell bench press — flat"); await page.click('#ex-results [data-name="Barbell bench press — flat"]');
+  for (let i = 0; i < 3; i++) { await page.fill("#exercise-search", "Barbell bench press — flat"); await page.click('#ex-results [data-src="Barbell bench press — flat"]');
     await page.fill("#weight", "135"); await page.fill("#reps", "5"); await page.waitForTimeout(300); logs.push(await tap("#save")); }
   findings.speed.push({ action: "Log set", ms: med(logs), budget: 100 });
   await page.evaluate(() => scrollTo(0, 0));

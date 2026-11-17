@@ -7,6 +7,20 @@ const MACHINE = /machine|pec deck|plate-loaded|selectorized|iso-lateral|convergi
 
 // [pattern (or "*"), name test, 3D pose key, kind (optional)]. First match wins.
 const RULES = [
+  // Movements that differ from their family (js/poses3d-fixes.js)
+  ["*", /pistol/, "pistol", "none"],
+  ["*", /shrimp squat/, "shrimpSquat", "none"],
+  ["*", /sissy squat/, "sissySquat", "none"],
+  ["*", /pallof/, "pallof", "cable"],
+  ["*", /scaption/, "scaption", "dumbbell"],
+  ["ohp", /arnold/, "arnold", "dumbbell"],
+  ["curl", /rope hammer/, "curlRope", "cable"],
+  ["curl", /hammer/, "curlHammer"],
+  ["curl", /reverse curl/, "curlReverse"],
+  ["pushdown", /rope/, "pushdownRope", "cable"],
+  ["hipThrust", /single-leg glute bridge/, "gluteBridgeOne", "none"],
+  ["hipThrust", /single-leg/, "hipThrustOne"],
+  ["abduction", /seated cable/, "abductionSeated", "none"],
   // Squats and legs
   ["squat", /hack squat|pendulum|v-squat|leverage squat/, "hackSquat", "machine"],
   ["squat", /belt squat/, "beltSquat", "machine"],
@@ -93,12 +107,22 @@ const RULES = [
   ["bike", /recumbent/, "bikeRecumbent"],
 ];
 
+// Names with no equipment word fall back to a barbell; these use something else.
+const NO_BAR = /barbell|ez-bar|smith|trap bar/;
+const KINDS = [
+  [/hammer curl|zottman|farmer|suitcase/, "dumbbell"],
+  [/turkish get-up/, "kettlebell"],
+  [/face pull/, "cable"],
+  [/glute bridge|bird dog|dead bug|donkey kick|superman|mountain climber|hollow|wall sit|burpee|squat thrust|jump squat|jumping lunge|inverted row|ring row|toes-to-bar|nordic|back extension|reverse hyper|banded|handstand|muscle-up/, "none"],
+];
+
 // The 3D pose key and the kind of weight to draw for an exercise using 2D pattern `key`.
 export function pose3dFor(key, name, kind){
   const n = (name || "").toLowerCase();
   let k = key, kd = kind;
   for(const [p, re, to, kk] of RULES) if((p === "*" || p === key) && re.test(n)){ k = to; if(kk) kd = kk; break; }
   if(MACHINE.test(n) && !/smith|cable/.test(n) && kd === "barbell") kd = "machine";
+  if(kd === "barbell" && !NO_BAR.test(n)) for(const [re, kk] of KINDS) if(re.test(n)){ kd = kk; break; }
   return {key: k, kind: kd};
 }
 export const VARIANT_KEYS = [...new Set(RULES.map(r => r[2]))];

@@ -2,6 +2,10 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-17
+- Exercise pictures now show the right movement for pistol, shrimp and sissy squats, the Pallof press, scaption, the Arnold press, hammer and reverse curls, rope pushdowns and curls, and single-leg bridges and hip thrusts.
+- Pictures show the right equipment: hands hold the weight on hip thrusts and bridges, the Turkish get-up and kettlebell carry use kettlebells, cable moves draw only the cable, and machine presses, shrugs and raises show handles.
+
 ## 2026-11-16
 - The tab bar no longer gets stuck in the middle of the screen on iPhone. It hides while the keyboard is open and comes back at the bottom when it closes.
 

@@ -42,7 +42,7 @@ export function morePoses(K){
       c: {...torso(32, .7), ...SEATED, upperarm: inC([.2, -.75, .65], 32), forearm: inC([0, -.12, 1], 32), hand: inC([0, .75, .65], 32), palm: inC([0, -.65, .75], 32)},
       s: {...torso(32, .7), ...SEATED, upperarm: inC([.2, -.75, .65], 32), forearm: inC([0, -.12, 1], 32), hand: inC([0, -.85, .5], 32), palm: inC([0, -.5, -.85], 32)},
       props(B){ bench(B, .44, -.45, .2, .32); }, track: J => J.handtip_L.clone()},
-    sideBend: {hold: {none: "", default: "left"}, implement: "dumbbell",
+    sideBend: {hold: {none: "", default: "left"}, implement: "dumbbell", pulley: [.45, .1, .05],
       c: {upperarm: [.12, -1, 0], forearm: [.08, -1, .03], palm: [-1, 0, 0], upperarmR: [-.6, -.75, -.15], forearmR: [.65, -.55, .35], handR: [.3, -.9, .3]},
       s: {hips: [.05, 1, 0], spine: [.35, .94, 0], chest: [.5, .87, 0], neck: [.45, .9, 0], head: [.35, .94, 0],
         upperarm: [.48, -.88, 0], forearm: [.45, -.89, .03], palm: [-1, 0, 0], upperarmR: [-.6, -.75, -.15], forearmR: [.65, -.55, .35], handR: [.3, -.9, .3]},
