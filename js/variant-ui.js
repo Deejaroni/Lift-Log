@@ -21,11 +21,11 @@ function lastVariantOf(name){
 // What a fresh pick shows: the variant you used last, else the library's plainest one.
 const defaultVariant = name => lastVariantOf(name) || (PARENTS.get(name)?.variants[0].v) || {};
 
-// Choices for one detail, given the equipment chosen: what goes with that equipment, your own past choices first.
-function choices(name, dim){
+// Choices for one detail, given the equipment chosen in v: what goes with that equipment, your own past choices first.
+function choices(name, dim, v = cur){
   const p = PARENTS.get(name); if(!p) return [];
   const all = p.dims[dim] || [];
-  const withEquip = dim !== "equip" && cur.equip ? new Set(p.variants.filter(x => x.v.equip === cur.equip).map(x => x.v[dim]).filter(Boolean)) : null;
+  const withEquip = dim !== "equip" && v.equip ? new Set(p.variants.filter(x => x.v.equip === v.equip).map(x => x.v[dim]).filter(Boolean)) : null;
   let list = withEquip ? all.filter(v => withEquip.has(v) || (dim === "width" || dim === "grip")) : all;
   if(dim === "attach" && withEquip && !withEquip.size) list = [];
   const used = new Map();
@@ -34,26 +34,38 @@ function choices(name, dim){
 }
 const label = (dim, v) => dim === "attach" ? (SHORT[v] || v) : v;
 
+// The chips for variant v of an exercise (the set editor in js/entries.js uses these too).
+function chipsHTML(name, v){
+  const dims = DIMS.filter(([k]) => choices(name, k, v).length || v[k]);
+  const set = dims.filter(([k]) => v[k]).map(([k]) => `<button type="button" class="vchip" data-vdim="${k}" aria-pressed="true">${esc(label(k, v[k]))}<span class="vcaret" aria-hidden="true"> ▾</span></button>`);
+  const unset = dims.filter(([k]) => !v[k]);
+  const core = unset.filter(([k]) => CORE.includes(k)).map(([k, t]) => `<button type="button" class="vchip" data-vdim="${k}" aria-pressed="false">+ ${esc(t)}</button>`);
+  const more = unset.some(([k]) => !CORE.includes(k)) ? [`<button type="button" class="vchip" data-vdim="" aria-pressed="false">+ More</button>`] : [];
+  return [...set, ...core, ...more].join("");
+}
+// Every detail with its choices; tapping a chosen one again clears it. idp prefixes the row ids.
+function choicesHTML(name, v, idp = "vrow"){
+  return DIMS.map(([k, t]) => {
+    const opts = choices(name, k, v); if(v[k] && !opts.includes(v[k])) opts.unshift(v[k]);
+    if(!opts.length) return "";
+    return `<div class="vrow" id="${idp}-${k}">${esc(t)}</div><div class="vopts">${opts.map(o => `<button type="button" class="vopt" data-dim="${k}" data-val="${esc(o)}" aria-pressed="${v[k] === o}">${esc(label(k, o))}</button>`).join("")}</div>`;
+  }).join("");
+}
+// v with one detail picked (or cleared, if it was already chosen). New equipment drops an attachment that doesn't fit.
+function pick(name, v, dim, val){
+  const n = {...v, [dim]: v[dim] === val ? undefined : val};
+  if(dim === "equip" && n.attach && !choices(name, "attach", n).includes(n.attach)) n.attach = undefined;
+  return cleanVariant(n);
+}
 function renderChips(){
   const wrap = $("#ex-variant"), edit = $("#ex-vedit");
   if(!hasVariants(curName)){ wrap.hidden = true; edit.hidden = true; return; }
-  const dims = DIMS.filter(([k]) => choices(curName, k).length || cur[k]);
-  const set = dims.filter(([k]) => cur[k]).map(([k]) => `<button type="button" class="vchip" data-vdim="${k}" aria-pressed="true">${esc(label(k, cur[k]))}<span class="vcaret" aria-hidden="true"> ▾</span></button>`);
-  const unset = dims.filter(([k]) => !cur[k]);
-  const core = unset.filter(([k]) => CORE.includes(k)).map(([k, t]) => `<button type="button" class="vchip" data-vdim="${k}" aria-pressed="false">+ ${esc(t)}</button>`);
-  const more = unset.some(([k]) => !CORE.includes(k)) ? [`<button type="button" class="vchip" data-vdim="" aria-pressed="false">+ More</button>`] : [];
-  wrap.innerHTML = [...set, ...core, ...more].join("");
+  wrap.innerHTML = chipsHTML(curName, cur);
   wrap.hidden = false;
   if(!edit.hidden) renderEdit();
 }
-// Every detail with its choices; tapping a chosen one again clears it.
 function renderEdit(focus){
-  const rows = DIMS.map(([k, t]) => {
-    const opts = choices(curName, k); if(cur[k] && !opts.includes(cur[k])) opts.unshift(cur[k]);
-    if(!opts.length) return "";
-    return `<div class="vrow" id="vrow-${k}">${esc(t)}</div><div class="vopts">${opts.map(v => `<button type="button" class="vopt" data-dim="${k}" data-val="${esc(v)}" aria-pressed="${cur[k] === v}">${esc(label(k, v))}</button>`).join("")}</div>`;
-  }).join("");
-  $("#ex-vedit-body").innerHTML = rows;
+  $("#ex-vedit-body").innerHTML = choicesHTML(curName, cur);
   if(focus) $(`#vrow-${focus}`)?.scrollIntoView({block: "nearest"});
 }
 
@@ -73,14 +85,11 @@ export function init(){
   $("#ex-vedit").addEventListener("click", e => {
     const b = e.target.closest("[data-dim]"); if(!b) return;
     const {dim, val} = b.dataset;
-    cur[dim] = cur[dim] === val ? undefined : val;
-    // New equipment: drop an attachment that doesn't go with it.
-    if(dim === "equip" && cur.attach && !choices(curName, "attach").includes(cur.attach)) cur.attach = undefined;
-    cur = cleanVariant(cur);
+    cur = pick(curName, cur, dim, val);
     renderEdit(); renderChips();
     if(onChange) onChange(currentVariant(), dim);
   });
   $("#ex-vedit-done").addEventListener("click", closeEdit);
 }
 
-export { hasVariants, currentVariant, lastVariantOf, defaultVariant, setVariant, onVariantChange, closeEdit };
+export { chipsHTML, choicesHTML, pick, hasVariants, currentVariant, lastVariantOf, defaultVariant, setVariant, onVariantChange, closeEdit };

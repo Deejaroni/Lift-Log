@@ -4,8 +4,9 @@
 import { $, notify, toast } from "./ui.js";
 import { bwEntryOn, bwKgOn, entries, hasBW, prefs, recordBW, saveSettings, settings, store } from "./state.js";
 import { uid, renderRepeat, barAddRaw, e1rm, esc, exercisesByRecent, fmt, fmtBig, loadMult, loadOf, multReason, niceDate, rirText, sorted, toUnit, today, variantText, volOf } from "./log.js";
-import { variantLabel } from "./parents.js";
-import { equipFrom, fieldsHTML, setEquipVal, stateFrom, toggleEquip, togglesHTML, CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
+import { cleanVariant, srcFor, variantLabel } from "./parents.js";
+import { chipsHTML, choicesHTML, hasVariants, pick } from "./variant-ui.js";
+import { equipFrom, fieldsHTML, setEquipVal, stateFrom, suggestEquip, toggleEquip, togglesHTML, CARDIO_FIELDS, cardioRow, cardioTypeOf, countedKcal, distUnitFor, equipText, fmtMin, isCardio, isMob, mmss, parseSplit, spdU, toMeters, updateBWForm } from "./equipment.js";
 import { groupOf } from "./catalog.js";
 import { badgeHTML, exBadges, whyHTML } from "./badges.js";
 import { renderHistory } from "./search.js";
@@ -18,19 +19,21 @@ import { finishHTML } from "./summary.js";
 // ---------- editing logged entries ----------
 let editing = null; // entry id, or chain id for drop sets
 let edEq = {};      // the open set editor's equipment, as toggle state
+let edV = {}, edName = "";   // the open set editor's variant (equipment, attachment, grip...) and exercise
 const fld = (label, key, val, attrs) => `<div><label class="lbl">${label}</label><input data-ef="${key}" ${attrs||'type="text"'} value="${esc(val??"")}"></div>`;
 const editActions = (id, del) => `<div class="edit-actions"><button class="primary" data-edit-save="${esc(id)}">Save changes</button><button class="secondary" data-edit-cancel>Cancel</button>${del?`<button class="del" ${del}="${esc(id)}">Delete</button>`:""}</div>`;
 const eqSummary = () => { const eq = equipFrom(edEq); return eq ? equipText({equip:eq, unit:prefs.unit}) : "None"; };
-// Edit a set in place: weight and reps, failure, reps left, equipment and note. Exercise and date are under More.
+// Edit a set in place: weight and reps, variant, failure, reps left, setup and note. Exercise and date are under More.
 function editSetHTML(e){
   const step = (label, key, val, attrs) => `<div class="stepper"><label class="lbl">${label}</label><div class="spin"><button type="button" data-estep="${key}" data-dir="-1" aria-label="Decrease ${key}">−</button><input data-ef="${key}" type="number" ${attrs} value="${val}" aria-label="${label}"><button type="button" data-estep="${key}" data-dir="1" aria-label="Increase ${key}">+</button></div></div>`;
   const wl = `${e.equip&&e.equip.bw?"Added weight":barAddRaw(e.equip)>0?"Plates":"Weight"} ${prefs.unit}`;
   return `<div class="edit-box" data-edit-kind="set" data-id="${esc(e.id)}" data-rir="${e.rir??""}">
     <div class="ed-two">${step(wl,"weight",fmt(toUnit(e.weight,e.unit)),'inputmode="decimal" min="0" step="any"')}${step("Reps","reps",e.reps,'inputmode="numeric" min="1" step="1"')}</div>
+    ${hasVariants(e.exercise) ? `<p class="lbl ed-lbl">Variant</p><div class="vchips ed-vchips" role="group" aria-label="Variant">${chipsHTML(e.exercise, edV)}</div><div class="vedit ed-vedit" hidden>${choicesHTML(e.exercise, edV, "edv")}</div>` : ""}
     <label class="tog"><input type="checkbox" role="switch" data-ef="failure" ${e.failure?"checked":""}><span class="sw" aria-hidden="true"></span>To failure</label>
     <p class="lbl ed-lbl">Reps left in the tank</p>
     <div class="fail-chips" role="group" aria-label="Reps left in the tank">${[0,1,2,3,4].map(r=>`<button type="button" class="fchip rchip" data-erir="${r}" aria-pressed="${e.rir===r}">${r>=4?"4+":r}</button>`).join("")}</div>
-    <p class="lbl ed-lbl">Equipment</p>
+    <p class="lbl ed-lbl">Setup</p>
     <button type="button" class="ed-eq" data-ed-eq aria-expanded="false"><span class="ed-eq-sum">${esc(eqSummary())}</span>›</button>
     <div class="ed-eq-body" hidden><div class="equip-toggles">${togglesHTML(edEq)}</div><div class="ed-eq-fields">${fieldsHTML(edEq,"ede")}</div></div>
     <label class="lbl ed-lbl">Note</label><input data-ef="note" type="text" value="${esc(e.note||"")}" placeholder="Seat 4, felt easy">
@@ -42,6 +45,7 @@ function openEdit(id){
   editing = id;
   const en = entries.find(x=>x.id===id && !x.chain);
   edEq = en && !isCardio(en) ? stateFrom(en.equip, en.unit) : {};
+  edV = en && en.variant ? {...en.variant} : {}; edName = en ? en.exercise : "";
   renderDay(); renderHistory();
 }
 function editChainHTML(c){
@@ -99,6 +103,7 @@ async function saveEdit(box){
     const u = Object.assign({}, old, {exercise, date, weight, unit:prefs.unit, reps, note:val("note"), failure: !!val("failure"), muscle:newMuscle(old)});
     const rir = box.dataset.rir; if(rir!=="") u.rir = +rir; else delete u.rir;
     const eq = equipFrom(edEq); if(eq) u.equip = eq; else delete u.equip;
+    if(!renamed([old]) && hasVariants(old.exercise)){ const v = cleanVariant(edV); if(Object.keys(v).length) u.variant = v; else delete u.variant; }
     updates = [u];
   } else if(kind==="chain"){
     const olds = entries.filter(e=>e.chain===id).sort((a,b)=>a.step-b.step); if(!olds.length) return;
@@ -330,6 +335,18 @@ export function init(){
     const rr = e.target.closest("[data-erir]");
     if(rr){ const box = rr.closest(".edit-box"), v = box.dataset.rir===rr.dataset.erir ? "" : rr.dataset.erir; box.dataset.rir = v;
       box.querySelectorAll("[data-erir]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.erir===v))); return; }
+    // Variant chips: a chip opens the choices; a choice updates the chips, and new equipment brings its usual setup.
+    const vc = e.target.closest(".edit-box .ed-vchips [data-vdim]");
+    if(vc){ const box = vc.closest(".edit-box"); box.querySelector(".ed-vedit").hidden = false;
+      if(vc.dataset.vdim) box.querySelector(`#edv-${vc.dataset.vdim}`)?.scrollIntoView({block:"nearest"}); return; }
+    const vo = e.target.closest(".edit-box .ed-vedit [data-dim]");
+    if(vo){ const box = vo.closest(".edit-box"), {dim, val} = vo.dataset;
+      edV = pick(edName, edV, dim, val);
+      if(dim==="equip" || dim==="attach" || dim==="side"){ edEq = stateFrom(suggestEquip(srcFor(edName, edV)), prefs.unit);
+        box.querySelector(".ed-eq-body .equip-toggles").innerHTML = togglesHTML(edEq); box.querySelector(".ed-eq-fields").innerHTML = fieldsHTML(edEq,"ede"); }
+      box.querySelector(".ed-vchips").innerHTML = chipsHTML(edName, edV);
+      const ve = box.querySelector(".ed-vedit"); ve.innerHTML = choicesHTML(edName, edV, "edv"); ve.hidden = true;   // one pick, then out of the way
+      box.querySelector(".ed-eq-sum").textContent = eqSummary(); return; }
     const eqb = e.target.closest("[data-ed-eq]");
     if(eqb){ const body = eqb.nextElementSibling; body.hidden = !body.hidden; eqb.setAttribute("aria-expanded", String(!body.hidden)); return; }
     const mb = e.target.closest("[data-ed-more]");

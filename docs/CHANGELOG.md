@@ -2,6 +2,9 @@
 
 Newest first. One entry per deploy. Describe what users notice, not how the code changed.
 
+## 2026-11-20
+- Tapping a logged set lets you change its equipment, attachment, grip or position with the same chips as the Log form, instead of deleting and logging it again. The setup (bar, plates, bench) follows the new equipment, and that row is now called Setup.
+
 ## 2026-11-17 (second update)
 - A Finish workout button under today's sets shows a short summary: how long you trained, sets, pounds lifted compared with the last time you did that workout, and any records.
 

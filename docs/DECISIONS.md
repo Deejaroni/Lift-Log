@@ -247,3 +247,10 @@ pictures that showed the wrong movement or equipment. Fixes:
 - Nothing is stored: the summary is worked out from the day's sets each time it opens, so no migration is needed and logging more sets afterwards just updates it.
 - Comparison day: the last time the planned workout was done, else the last day that shared at least half of today's exercises.
 - Records: the same badges as History (not "New" or "Back"), plus Biggest day. Time is first to last set, so it leaves out warm-up before the first set.
+
+## Changing a logged set's variant (2026-11-20)
+- The set editor reuses the Log form's variant chips (chipsHTML/choicesHTML/pick in js/variant-ui.js), so both offer the same choices.
+- The choices close after each pick to keep the editor short; tap a chip to open them again.
+- The editor's old "Equipment" row is now "Setup", so it isn't confused with the equipment chip.
+- No "change all of today's sets" switch: the user preferred editing one set at a time to an extra control.
+- Renaming the exercise under More leaves the variant as it was, since the old variant may not apply to the new name.
